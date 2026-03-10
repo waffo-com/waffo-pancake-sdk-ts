@@ -1,0 +1,842 @@
+// ---------------------------------------------------------------------------
+// Client config
+// ---------------------------------------------------------------------------
+
+export interface WaffoPancakeConfig {
+  /** Merchant ID (X-Merchant-Id header) */
+  merchantId: string;
+  /** RSA private key in PEM format for request signing */
+  privateKey: string;
+  /** Base URL override (default: https://waffo-pancake-auth-service.vercel.app) */
+  baseUrl?: string;
+  /** Custom fetch implementation (default: global fetch) */
+  fetch?: typeof fetch;
+}
+
+// ---------------------------------------------------------------------------
+// API response envelope
+// ---------------------------------------------------------------------------
+
+/**
+ * Single error object within the `errors` array.
+ *
+ * @example
+ * { message: "Store slug already exists", layer: "store" }
+ */
+export interface ApiError {
+  /** Error message */
+  message: string;
+  /** Layer where the error originated */
+  layer: `${ErrorLayer}`;
+}
+
+/** Successful API response envelope. */
+export interface ApiSuccessResponse<T> {
+  data: T;
+}
+
+/**
+ * Error API response envelope.
+ *
+ * `errors` are ordered by call stack: `[0]` is the deepest layer, `[n]` is the outermost.
+ */
+export interface ApiErrorResponse {
+  data: null;
+  errors: ApiError[];
+}
+
+/** Union type of success and error API responses. */
+export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
+
+// ---------------------------------------------------------------------------
+// Enums (runtime-accessible values)
+// ---------------------------------------------------------------------------
+
+/**
+ * Environment type.
+ * @see waffo-pancake-order-service/app/lib/types.ts
+ */
+export enum Environment {
+  Test = "test",
+  Prod = "prod",
+}
+
+/**
+ * Tax category for products.
+ * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ */
+export enum TaxCategory {
+  DigitalGoods = "digital_goods",
+  SaaS = "saas",
+  Software = "software",
+  Ebook = "ebook",
+  OnlineCourse = "online_course",
+  Consulting = "consulting",
+  ProfessionalService = "professional_service",
+}
+
+/**
+ * Subscription billing period.
+ * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ */
+export enum BillingPeriod {
+  Weekly = "weekly",
+  Monthly = "monthly",
+  Quarterly = "quarterly",
+  Yearly = "yearly",
+}
+
+/**
+ * Product version status.
+ * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ */
+export enum ProductVersionStatus {
+  Active = "active",
+  Inactive = "inactive",
+}
+
+/**
+ * Store entity status.
+ * @see waffo-pancake-store-service/app/lib/resources/store.ts
+ */
+export enum EntityStatus {
+  Active = "active",
+  Inactive = "inactive",
+  Suspended = "suspended",
+}
+
+/**
+ * Store member role.
+ * @see waffo-pancake-store-service/app/lib/resources/store.ts
+ */
+export enum StoreRole {
+  Owner = "owner",
+  Admin = "admin",
+  Member = "member",
+}
+
+/**
+ * One-time order status.
+ * @see waffo-pancake-order-service/app/lib/resources/onetime-order.ts
+ */
+export enum OnetimeOrderStatus {
+  Pending = "pending",
+  Completed = "completed",
+  Canceled = "canceled",
+}
+
+/**
+ * Subscription order status.
+ *
+ * State machine:
+ * - pending -> active, canceled
+ * - active -> canceling, past_due, canceled, expired
+ * - canceling -> active, canceled
+ * - past_due -> active, canceled
+ * - canceled -> terminal
+ * - expired -> terminal
+ *
+ * @see waffo-pancake-order-service/app/lib/resources/subscription-order.ts
+ */
+export enum SubscriptionOrderStatus {
+  Pending = "pending",
+  Active = "active",
+  Canceling = "canceling",
+  Canceled = "canceled",
+  PastDue = "past_due",
+  Expired = "expired",
+}
+
+/**
+ * Payment status.
+ * @see waffo-pancake-order-service/app/lib/resources/payment.ts
+ */
+export enum PaymentStatus {
+  Pending = "pending",
+  Succeeded = "succeeded",
+  Failed = "failed",
+  Canceled = "canceled",
+}
+
+/**
+ * Refund ticket status.
+ * @see waffo-pancake-order-service/app/lib/resources/refund-ticket.ts
+ */
+export enum RefundTicketStatus {
+  Pending = "pending",
+  Approved = "approved",
+  Rejected = "rejected",
+  Processing = "processing",
+  Succeeded = "succeeded",
+  Failed = "failed",
+}
+
+/**
+ * Refund status.
+ * @see waffo-pancake-order-service/app/lib/resources/refund.ts
+ */
+export enum RefundStatus {
+  Succeeded = "succeeded",
+  Failed = "failed",
+}
+
+/**
+ * Media asset type.
+ * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ */
+export enum MediaType {
+  Image = "image",
+  Video = "video",
+}
+
+/**
+ * Checkout session product type.
+ * @see waffo-pancake-order-service/app/lib/types.ts
+ */
+export enum CheckoutSessionProductType {
+  Onetime = "onetime",
+  Subscription = "subscription",
+}
+
+/** Error layer identifier in the call stack. */
+export enum ErrorLayer {
+  Gateway = "gateway",
+  User = "user",
+  Store = "store",
+  Product = "product",
+  Order = "order",
+  GraphQL = "graphql",
+  Resource = "resource",
+  Email = "email",
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+/**
+ * Parameters for issuing a buyer session token.
+ * @see waffo-pancake-user-service/app/lib/utils/jwt.ts IssueSessionTokenRequest
+ */
+export interface IssueSessionTokenParams {
+  /** Buyer identity (email or any merchant-provided identifier string) */
+  buyerIdentity: string;
+  /** Store ID */
+  storeId: string;
+}
+
+/**
+ * Issued session token response.
+ *
+ * @example
+ * { token: "eyJhbGciOi...", expiresAt: "2026-03-10T09:00:00.000Z" }
+ */
+export interface SessionToken {
+  /** JWT token string */
+  token: string;
+  /** Expiration time (ISO 8601 UTC) */
+  expiresAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Store — from waffo-pancake-store-service
+// ---------------------------------------------------------------------------
+
+/**
+ * Webhook configuration for test and production environments.
+ * @see waffo-pancake-store-service/app/lib/types.ts
+ */
+export interface WebhookSettings {
+  /** Test environment webhook URL */
+  testWebhookUrl: string | null;
+  /** Production environment webhook URL */
+  prodWebhookUrl: string | null;
+  /** Event types subscribed in test environment */
+  testEvents: string[];
+  /** Event types subscribed in production environment */
+  prodEvents: string[];
+}
+
+/**
+ * Notification settings (all default to true).
+ * @see waffo-pancake-store-service/app/lib/types.ts
+ */
+export interface NotificationSettings {
+  emailOrderConfirmation: boolean;
+  emailSubscriptionConfirmation: boolean;
+  emailSubscriptionCycled: boolean;
+  emailSubscriptionCanceled: boolean;
+  emailSubscriptionRevoked: boolean;
+  emailSubscriptionPastDue: boolean;
+  notifyNewOrders: boolean;
+  notifyNewSubscriptions: boolean;
+}
+
+/**
+ * Single-theme checkout page styling.
+ * @see waffo-pancake-store-service/app/lib/types.ts
+ */
+export interface CheckoutThemeSettings {
+  checkoutLogo: string | null;
+  checkoutColorPrimary: string;
+  checkoutColorBackground: string;
+  checkoutColorCard: string;
+  checkoutColorText: string;
+  checkoutColorTextSecondary: string;
+  checkoutBorderRadius: string;
+}
+
+/**
+ * Checkout page configuration (light and dark themes).
+ * @see waffo-pancake-store-service/app/lib/types.ts
+ */
+export interface CheckoutSettings {
+  light: CheckoutThemeSettings;
+  dark: CheckoutThemeSettings;
+}
+
+/**
+ * Store entity.
+ * @see waffo-pancake-store-service/app/lib/resources/store.ts
+ */
+export interface Store {
+  id: string;
+  name: string;
+  status: EntityStatus;
+  logo: string | null;
+  supportEmail: string | null;
+  website: string | null;
+  slug: string | null;
+  isPublic: boolean;
+  prodEnabled: boolean;
+  webhookSettings: WebhookSettings | null;
+  notificationSettings: NotificationSettings | null;
+  checkoutSettings: CheckoutSettings | null;
+  deletedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Parameters for creating a store. */
+export interface CreateStoreParams {
+  /** Store name (slug is auto-generated) */
+  name: string;
+}
+
+/** Parameters for updating a store. */
+export interface UpdateStoreParams {
+  /** Store ID */
+  id: string;
+  name?: string;
+  status?: EntityStatus;
+  logo?: string | null;
+  supportEmail?: string | null;
+  website?: string | null;
+  isPublic?: boolean;
+  webhookSettings?: WebhookSettings | null;
+  notificationSettings?: NotificationSettings | null;
+  checkoutSettings?: CheckoutSettings | null;
+}
+
+/** Parameters for deleting (soft-delete) a store. */
+export interface DeleteStoreParams {
+  /** Store ID */
+  id: string;
+}
+
+// ---------------------------------------------------------------------------
+// Store Merchant (coming soon — endpoints return 501)
+// ---------------------------------------------------------------------------
+
+/** Parameters for adding a merchant to a store. */
+export interface AddMerchantParams {
+  storeId: string;
+  email: string;
+  role: "admin" | "member";
+}
+
+/** Result of adding a merchant to a store. */
+export interface AddMerchantResult {
+  storeId: string;
+  merchantId: string;
+  email: string;
+  role: string;
+  status: string;
+  addedAt: string;
+}
+
+/** Parameters for removing a merchant from a store. */
+export interface RemoveMerchantParams {
+  storeId: string;
+  merchantId: string;
+}
+
+/** Result of removing a merchant from a store. */
+export interface RemoveMerchantResult {
+  message: string;
+  removedAt: string;
+}
+
+/** Parameters for updating a merchant's role. */
+export interface UpdateRoleParams {
+  storeId: string;
+  merchantId: string;
+  role: "admin" | "member";
+}
+
+/** Result of updating a merchant's role. */
+export interface UpdateRoleResult {
+  storeId: string;
+  merchantId: string;
+  role: string;
+  updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Product — shared types from waffo-pancake-product-service
+// ---------------------------------------------------------------------------
+
+/**
+ * Price for a single currency.
+ *
+ * Amounts are stored in the smallest currency unit (e.g. cents, yen)
+ * to avoid floating-point precision issues.
+ *
+ * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ *
+ * @example
+ * // USD $9.99
+ * { amount: 999, taxIncluded: true, taxCategory: "saas" }
+ *
+ * @example
+ * // JPY ¥1000
+ * { amount: 1000, taxIncluded: false, taxCategory: "software" }
+ */
+export interface PriceInfo {
+  /** Price amount in smallest currency unit */
+  amount: number;
+  /** Whether the price is tax-inclusive */
+  taxIncluded: boolean;
+  /** Tax category */
+  taxCategory: TaxCategory;
+}
+
+/**
+ * Multi-currency prices (keyed by ISO 4217 currency code).
+ *
+ * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ *
+ * @example
+ * {
+ *   "USD": { amount: 999, taxIncluded: true, taxCategory: "saas" },
+ *   "EUR": { amount: 899, taxIncluded: true, taxCategory: "saas" }
+ * }
+ */
+export type Prices = Record<string, PriceInfo>;
+
+/**
+ * Media asset (image or video).
+ * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ */
+export interface MediaItem {
+  /** Media type */
+  type: `${MediaType}`;
+  /** Asset URL */
+  url: string;
+  /** Alt text */
+  alt?: string;
+  /** Thumbnail URL */
+  thumbnail?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Onetime Product — from waffo-pancake-product-service
+// ---------------------------------------------------------------------------
+
+/**
+ * One-time product detail (public API shape).
+ * @see waffo-pancake-product-service/app/lib/resources/onetime-product.ts OnetimeProductDetail
+ */
+export interface OnetimeProductDetail {
+  id: string;
+  storeId: string;
+  name: string;
+  description: string | null;
+  prices: Prices;
+  media: MediaItem[];
+  successUrl: string | null;
+  metadata: Record<string, unknown>;
+  status: ProductVersionStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Parameters for creating a one-time product.
+ * @see waffo-pancake-product-service/app/lib/resources/onetime-product.ts CreateOnetimeProductRequestBody
+ */
+export interface CreateOnetimeProductParams {
+  storeId: string;
+  name: string;
+  prices: Prices;
+  description?: string;
+  media?: MediaItem[];
+  successUrl?: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Parameters for updating a one-time product (creates a new version; skips if unchanged).
+ * @see waffo-pancake-product-service/app/lib/resources/onetime-product.ts UpdateOnetimeProductContentRequestBody
+ */
+export interface UpdateOnetimeProductParams {
+  id: string;
+  name: string;
+  prices: Prices;
+  description?: string;
+  media?: MediaItem[];
+  successUrl?: string;
+  metadata?: Record<string, unknown>;
+}
+
+/** Parameters for publishing a one-time product's test version to production. */
+export interface PublishOnetimeProductParams {
+  /** Product ID */
+  id: string;
+}
+
+/**
+ * Parameters for updating a one-time product's status.
+ * @see waffo-pancake-product-service/app/lib/resources/onetime-product.ts UpdateOnetimeStatusRequestBody
+ */
+export interface UpdateOnetimeStatusParams {
+  id: string;
+  status: ProductVersionStatus;
+}
+
+// ---------------------------------------------------------------------------
+// Subscription Product — from waffo-pancake-product-service
+// ---------------------------------------------------------------------------
+
+/**
+ * Subscription product detail (public API shape).
+ * @see waffo-pancake-product-service/app/lib/resources/subscription-product.ts SubscriptionProductDetail
+ */
+export interface SubscriptionProductDetail {
+  id: string;
+  storeId: string;
+  name: string;
+  description: string | null;
+  billingPeriod: BillingPeriod;
+  prices: Prices;
+  media: MediaItem[];
+  successUrl: string | null;
+  metadata: Record<string, unknown>;
+  status: ProductVersionStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Parameters for creating a subscription product.
+ * @see waffo-pancake-product-service/app/lib/resources/subscription-product.ts CreateSubscriptionProductRequestBody
+ */
+export interface CreateSubscriptionProductParams {
+  storeId: string;
+  name: string;
+  billingPeriod: BillingPeriod;
+  prices: Prices;
+  description?: string;
+  media?: MediaItem[];
+  successUrl?: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Parameters for updating a subscription product (creates a new version; skips if unchanged).
+ * @see waffo-pancake-product-service/app/lib/resources/subscription-product.ts UpdateSubscriptionProductContentRequestBody
+ */
+export interface UpdateSubscriptionProductParams {
+  id: string;
+  name: string;
+  billingPeriod: BillingPeriod;
+  prices: Prices;
+  description?: string;
+  media?: MediaItem[];
+  successUrl?: string;
+  metadata?: Record<string, unknown>;
+}
+
+/** Parameters for publishing a subscription product's test version to production. */
+export interface PublishSubscriptionProductParams {
+  /** Product ID */
+  id: string;
+}
+
+/**
+ * Parameters for updating a subscription product's status.
+ * @see waffo-pancake-product-service/app/lib/resources/subscription-product.ts UpdateSubscriptionStatusRequestBody
+ */
+export interface UpdateSubscriptionStatusParams {
+  id: string;
+  status: ProductVersionStatus;
+}
+
+// ---------------------------------------------------------------------------
+// Subscription Product Group — from waffo-pancake-product-service
+// ---------------------------------------------------------------------------
+
+/**
+ * Group rules for subscription product groups.
+ * @see waffo-pancake-product-service/app/lib/resources/subscription-product-group.ts
+ */
+export interface GroupRules {
+  /** Whether trial period is shared across products in the group */
+  sharedTrial: boolean;
+}
+
+/**
+ * Subscription product group entity.
+ * @see waffo-pancake-product-service/app/lib/resources/subscription-product-group.ts
+ */
+export interface SubscriptionProductGroup {
+  id: string;
+  storeId: string;
+  name: string;
+  description: string | null;
+  rules: GroupRules;
+  productIds: string[];
+  environment: Environment;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Parameters for creating a subscription product group.
+ * @see waffo-pancake-product-service/app/lib/resources/subscription-product-group.ts CreateGroupRequestBody
+ */
+export interface CreateSubscriptionProductGroupParams {
+  storeId: string;
+  name: string;
+  description?: string;
+  rules?: GroupRules;
+  productIds?: string[];
+}
+
+/**
+ * Parameters for updating a subscription product group (`productIds` is a full replacement).
+ * @see waffo-pancake-product-service/app/lib/resources/subscription-product-group.ts UpdateGroupRequestBody
+ */
+export interface UpdateSubscriptionProductGroupParams {
+  id: string;
+  name?: string;
+  description?: string;
+  rules?: GroupRules;
+  productIds?: string[];
+}
+
+/** Parameters for hard-deleting a subscription product group. */
+export interface DeleteSubscriptionProductGroupParams {
+  /** Group ID */
+  id: string;
+}
+
+/** Parameters for publishing a test-environment group to production (upsert). */
+export interface PublishSubscriptionProductGroupParams {
+  /** Group ID */
+  id: string;
+}
+
+// ---------------------------------------------------------------------------
+// Order — from waffo-pancake-order-service
+// ---------------------------------------------------------------------------
+
+/** Parameters for canceling a subscription order. */
+export interface CancelSubscriptionParams {
+  /** Order ID */
+  orderId: string;
+}
+
+/**
+ * Result of canceling a subscription order.
+ * @see waffo-pancake-order-service cancel-order route.ts
+ */
+export interface CancelSubscriptionResult {
+  orderId: string;
+  /** Status after cancellation (`"canceled"` or `"canceling"`) */
+  status: `${SubscriptionOrderStatus}`;
+}
+
+/**
+ * Buyer billing details for checkout.
+ * @see waffo-pancake-order-service/app/lib/types.ts
+ */
+export interface BillingDetail {
+  /** Country code (ISO 3166-1 alpha-2) */
+  country: string;
+  /** Whether this is a business purchase */
+  isBusiness: boolean;
+  /** Postal / ZIP code */
+  postcode?: string;
+  /** State / province code (required for US/CA) */
+  state?: string;
+  /** Business name (required when isBusiness=true) */
+  businessName?: string;
+  /** Tax ID (required for EU businesses) */
+  taxId?: string;
+}
+
+/**
+ * Parameters for creating a checkout session.
+ * @see waffo-pancake-order-service/app/lib/types.ts CreateCheckoutSessionRequest
+ */
+export interface CreateCheckoutSessionParams {
+  /** Store ID */
+  storeId?: string;
+  /** Product ID */
+  productId: string;
+  /** Product type */
+  productType: `${CheckoutSessionProductType}`;
+  /** Currency code (ISO 4217) */
+  currency: string;
+  /** Optional price snapshot override (reads from DB if omitted) */
+  priceSnapshot?: PriceInfo;
+  /** Trial toggle override (subscription only) */
+  withTrial?: boolean;
+  /** Pre-filled buyer email */
+  buyerEmail?: string;
+  /** Pre-filled billing details */
+  billingDetail?: BillingDetail;
+  /** Redirect URL after successful payment */
+  successUrl?: string;
+  /** Session expiration in seconds (default: 7 days) */
+  expiresInSeconds?: number;
+  /** Custom metadata */
+  metadata?: Record<string, string>;
+}
+
+/** Result of creating a checkout session. */
+export interface CheckoutSessionResult {
+  /** Session ID */
+  sessionId: string;
+  /** URL to redirect the customer to */
+  checkoutUrl: string;
+  /** Session expiration time (ISO 8601 UTC) */
+  expiresAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// GraphQL
+// ---------------------------------------------------------------------------
+
+/** Parameters for a GraphQL query. */
+export interface GraphQLParams {
+  /** GraphQL query string */
+  query: string;
+  /** Query variables */
+  variables?: Record<string, unknown>;
+}
+
+/** GraphQL response envelope. */
+export interface GraphQLResponse<T = Record<string, unknown>> {
+  data: T | null;
+  errors?: Array<{
+    message: string;
+    locations?: Array<{ line: number; column: number }>;
+    path?: string[];
+  }>;
+}
+
+// ---------------------------------------------------------------------------
+// Webhook
+// ---------------------------------------------------------------------------
+
+/**
+ * Webhook event types.
+ * @see docs/api-reference/webhooks.mdx
+ */
+export enum WebhookEventType {
+  /** One-time order first payment succeeded */
+  OrderCompleted = "order.completed",
+  /** Subscription first payment succeeded (newly activated) */
+  SubscriptionActivated = "subscription.activated",
+  /** Subscription renewal payment succeeded */
+  SubscriptionPaymentSucceeded = "subscription.payment_succeeded",
+  /** Buyer initiated cancellation (expires at end of current period) */
+  SubscriptionCanceling = "subscription.canceling",
+  /** Buyer withdrew cancellation (subscription restored) */
+  SubscriptionUncanceled = "subscription.uncanceled",
+  /** Subscription product changed (upgrade/downgrade) */
+  SubscriptionUpdated = "subscription.updated",
+  /** Subscription fully terminated */
+  SubscriptionCanceled = "subscription.canceled",
+  /** Renewal payment failed (past due) */
+  SubscriptionPastDue = "subscription.past_due",
+  /** Refund succeeded */
+  RefundSucceeded = "refund.succeeded",
+  /** Refund failed */
+  RefundFailed = "refund.failed",
+}
+
+/**
+ * Common data fields in a webhook event payload.
+ * @see docs/api-reference/webhooks.mdx
+ */
+export interface WebhookEventData {
+  orderId: string;
+  buyerEmail: string;
+  currency: string;
+  /** Amount in smallest currency unit */
+  amount: number;
+  /** Tax amount in smallest currency unit */
+  taxAmount: number;
+  productName: string;
+}
+
+/**
+ * Webhook event payload.
+ *
+ * @see docs/api-reference/webhooks.mdx
+ *
+ * @example
+ * {
+ *   id: "550e8400-...",
+ *   timestamp: "2026-03-10T08:30:00.000Z",
+ *   eventType: "order.completed",
+ *   eventId: "pay_660e8400-...",
+ *   storeId: "770e8400-...",
+ *   mode: "prod",
+ *   data: { orderId: "...", buyerEmail: "...", currency: "USD", amount: 2900, taxAmount: 290, productName: "Pro Plan" }
+ * }
+ */
+export interface WebhookEvent<T = WebhookEventData> {
+  /** Delivery record unique ID (UUID), usable for idempotent deduplication */
+  id: string;
+  /** Event timestamp (ISO 8601 UTC) */
+  timestamp: string;
+  /** Event type */
+  eventType: `${WebhookEventType}` | (string & {});
+  /** Business event ID (e.g. payment ID, order ID) */
+  eventId: string;
+  /** Store ID the event belongs to */
+  storeId: string;
+  /** Environment identifier */
+  mode: `${Environment}`;
+  /** Event data */
+  data: T;
+}
+
+/** Options for {@link verifyWebhook}. */
+export interface VerifyWebhookOptions {
+  /**
+   * Specify which environment's public key to use for verification.
+   * When omitted, both keys are tried automatically (prod first).
+   */
+  environment?: `${Environment}`;
+  /**
+   * Timestamp tolerance window in milliseconds for replay protection.
+   * Set to 0 to skip timestamp checking.
+   * @default 300000 (5 minutes)
+   */
+  toleranceMs?: number;
+}

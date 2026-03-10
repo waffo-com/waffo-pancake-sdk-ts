@@ -1,0 +1,25 @@
+# Changelog
+
+All notable changes to `@waffo-pancake/sdk` will be documented in this file.
+
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.0] - 2026-03-10
+
+### Added
+
+- **Client** — `WaffoPancake` SDK client with RSA-SHA256 request signing and deterministic idempotency key (`X-Idempotency-Key = SHA256(merchantId:path:body)`)
+- **Auth** — `client.auth.issueSessionToken()` for buyer session token issuance
+- **Stores** — `client.stores.create()` / `update()` / `delete()` for store management (webhook, notification, checkout settings)
+- **Store Merchants** — `client.storeMerchants.add()` / `remove()` / `updateRole()` (endpoints return 501, coming soon)
+- **Onetime Products** — `client.onetimeProducts.create()` / `update()` / `publish()` / `updateStatus()` with multi-currency pricing
+- **Subscription Products** — `client.subscriptionProducts.create()` / `update()` / `publish()` / `updateStatus()` with billing period support
+- **Subscription Product Groups** — `client.subscriptionProductGroups.create()` / `update()` / `delete()` / `publish()` for shared trial and plan switching
+- **Orders** — `client.orders.cancelSubscription()` with status machine (pending→canceled, active→canceling)
+- **Checkout** — `client.checkout.createSession()` with trial toggle, billing detail, price snapshot, and metadata
+- **GraphQL** — `client.graphql.query<T>()` for typed GraphQL queries (Query only, no Mutations)
+- **Webhooks** — `verifyWebhook()` with embedded RSA-SHA256 public keys (test/prod), auto environment detection, and replay protection (default 5min tolerance)
+- **Error handling** — `WaffoPancakeError` with HTTP status and call-stack-ordered `errors` array
+- **Types** — 15 runtime enums, 40+ TypeScript interfaces covering all API resources
+- **Engineering** — ESLint 9 (TypeScript ESLint + import order + naming convention + JSDoc), Vitest 4 with v8 coverage, `tsconfig.build.json` for clean `dist/` output
+- **Documentation** — Split into focused documents: README (project intro), `docs/api-reference.md` (complete API reference), `docs/graphql-guide.md` (GraphQL usage guide), `docs/webhook-guide.md` (webhook verification guide)
