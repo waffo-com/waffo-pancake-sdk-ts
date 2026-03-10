@@ -1,8 +1,17 @@
 # Changelog
 
-All notable changes to `@waffo-pancake/sdk` will be documented in this file.
+All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.1] - 2026-03-10
+
+### Changed
+
+- **Build** — Switch from `tsc` to `tsup`, output ESM + CJS dual format
+- **Package** — Rename from `@waffo-pancake/sdk` to `@waffo/pancake-ts`
+- **CI/CD** — Add GitHub Actions workflow (`ci-cd.yml`) with lint, test, coverage, build, and npm publish on `v*` tag
+- **Node** — Minimum Node version raised from 18 to 20 (`@vitest/coverage-v8` requires `node:inspector/promises`)
 
 ## [0.1.0] - 2026-03-10
 

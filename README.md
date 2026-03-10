@@ -1,4 +1,4 @@
-# @waffo-pancake/sdk
+# @waffo/pancake-ts
 
 TypeScript SDK for the Waffo Pancake Merchant of Record (MoR) payment platform.
 
@@ -10,13 +10,13 @@ TypeScript SDK for the Waffo Pancake Merchant of Record (MoR) payment platform.
 ## Installation
 
 ```bash
-npm install @waffo-pancake/sdk
+npm install @waffo/pancake-ts
 ```
 
 ## Quick Start
 
 ```typescript
-import { WaffoPancake } from "@waffo-pancake/sdk";
+import { WaffoPancake } from "@waffo/pancake-ts";
 
 const client = new WaffoPancake({
   merchantId: process.env.WAFFO_MERCHANT_ID!,
@@ -122,7 +122,7 @@ const { store: deleted } = await client.stores.delete({ id: store.id });
 ### Onetime Products — Create, Update, Publish
 
 ```typescript
-import { TaxCategory, ProductVersionStatus } from "@waffo-pancake/sdk";
+import { TaxCategory, ProductVersionStatus } from "@waffo/pancake-ts";
 
 // Create with multi-currency pricing
 const { product } = await client.onetimeProducts.create({
@@ -155,7 +155,7 @@ await client.onetimeProducts.updateStatus({ id: product.id, status: ProductVersi
 ### Subscription Products — Create with Billing Period
 
 ```typescript
-import { BillingPeriod, TaxCategory } from "@waffo-pancake/sdk";
+import { BillingPeriod, TaxCategory } from "@waffo/pancake-ts";
 
 const { product } = await client.subscriptionProducts.create({
   storeId: "store_xxx",
@@ -203,7 +203,7 @@ const { orderId, status } = await client.orders.cancelSubscription({
 ### Checkout — Create a Session
 
 ```typescript
-import { CheckoutSessionProductType } from "@waffo-pancake/sdk";
+import { CheckoutSessionProductType } from "@waffo/pancake-ts";
 
 // One-time product checkout
 const session = await client.checkout.createSession({
@@ -263,7 +263,7 @@ See [GraphQL Guide](docs/graphql-guide.md) for introspection, filters, paginatio
 The SDK exports a standalone `verifyWebhook()` function with **embedded RSA-SHA256 public keys** for both test and production environments. No need to manage keys yourself.
 
 ```typescript
-import { verifyWebhook, WebhookEventType } from "@waffo-pancake/sdk";
+import { verifyWebhook, WebhookEventType } from "@waffo/pancake-ts";
 
 // Express (IMPORTANT: use raw body — parsed JSON breaks signature verification)
 app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
@@ -321,7 +321,7 @@ See [Webhook Guide](docs/webhook-guide.md) for all 10 event types, signature alg
 API errors throw `WaffoPancakeError` with the HTTP status code and a call-stack-ordered errors array.
 
 ```typescript
-import { WaffoPancakeError } from "@waffo-pancake/sdk";
+import { WaffoPancakeError } from "@waffo/pancake-ts";
 
 try {
   await client.stores.create({ name: "" });

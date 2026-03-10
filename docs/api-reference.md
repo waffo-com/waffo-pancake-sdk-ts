@@ -1,6 +1,6 @@
 # API Reference
 
-Complete reference for all `@waffo-pancake/sdk` resources, parameters, and return types.
+Complete reference for all `@waffo/pancake-ts` resources, parameters, and return types.
 
 > **Conventions**:
 > - All amounts are in the **smallest currency unit** (e.g. 999 = $9.99 USD, 4500 = ¥4500 JPY)
@@ -239,7 +239,7 @@ const result = await client.storeMerchants.updateRole({
 Create a one-time product with multi-currency pricing.
 
 ```typescript
-import { TaxCategory } from "@waffo-pancake/sdk";
+import { TaxCategory } from "@waffo/pancake-ts";
 
 const { product } = await client.onetimeProducts.create({
   storeId: "store_xxx",
@@ -317,7 +317,7 @@ const { product } = await client.onetimeProducts.publish({ id: "prod_xxx" });
 Activate or deactivate a product.
 
 ```typescript
-import { ProductVersionStatus } from "@waffo-pancake/sdk";
+import { ProductVersionStatus } from "@waffo/pancake-ts";
 
 const { product } = await client.onetimeProducts.updateStatus({
   id: "prod_xxx",
@@ -343,7 +343,7 @@ const { product } = await client.onetimeProducts.updateStatus({
 Create a subscription product with a billing period and multi-currency pricing.
 
 ```typescript
-import { BillingPeriod, TaxCategory } from "@waffo-pancake/sdk";
+import { BillingPeriod, TaxCategory } from "@waffo/pancake-ts";
 
 const { product } = await client.subscriptionProducts.create({
   storeId: "store_xxx",
@@ -514,7 +514,7 @@ const { orderId, status } = await client.orders.cancelSubscription({
 Create a checkout session. Returns a URL to redirect the buyer to the hosted checkout page.
 
 ```typescript
-import { CheckoutSessionProductType } from "@waffo-pancake/sdk";
+import { CheckoutSessionProductType } from "@waffo/pancake-ts";
 
 // One-time product checkout
 const session = await client.checkout.createSession({

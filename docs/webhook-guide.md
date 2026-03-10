@@ -23,7 +23,7 @@ Waffo Pancake sends webhook events to your configured endpoint when payment, sub
 ### Express
 
 ```typescript
-import { verifyWebhook, WebhookEventType } from "@waffo-pancake/sdk";
+import { verifyWebhook, WebhookEventType } from "@waffo/pancake-ts";
 
 // IMPORTANT: Use raw body — parsed JSON will break signature verification
 app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
@@ -60,7 +60,7 @@ app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
 ### Next.js App Router
 
 ```typescript
-import { verifyWebhook } from "@waffo-pancake/sdk";
+import { verifyWebhook } from "@waffo/pancake-ts";
 
 export async function POST(request: Request) {
   const body = await request.text();

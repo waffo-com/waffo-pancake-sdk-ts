@@ -18,7 +18,7 @@ import type { WaffoPancakeConfig } from "./types.js";
  * automatically signed — no manual header construction needed.
  *
  * @example
- * import { WaffoPancake } from "@waffo-pancake/sdk";
+ * import { WaffoPancake } from "@waffo/pancake-ts";
  *
  * const client = new WaffoPancake({
  *   merchantId: process.env.WAFFO_MERCHANT_ID!,

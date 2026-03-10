@@ -1,5 +1,5 @@
 /**
- * ESLint 配置 - @waffo-pancake/sdk
+ * ESLint 配置 - @waffo/pancake-ts
  */
 import { defineConfig, globalIgnores } from "eslint/config";
 import importPlugin from "eslint-plugin-import";
