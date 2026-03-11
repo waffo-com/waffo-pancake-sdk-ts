@@ -21,7 +21,7 @@ describe("signRequest", () => {
     const signature = signRequest(method, path, timestamp, body, privateKey);
 
     // Verify signature manually
-    const bodyHash = createHash("sha256").update(body).digest("hex");
+    const bodyHash = createHash("sha256").update(body).digest("base64");
     const canonicalRequest = `${method}\n${path}\n${timestamp}\n${bodyHash}`;
 
     const verifier = createVerify("sha256");

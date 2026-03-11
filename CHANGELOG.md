@@ -4,6 +4,12 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-03-11
+
+### Fixed
+
+- **Signing** — Body hash encoding changed from `hex` to `base64` to match auth-service canonical request format
+
 ## [0.1.1] - 2026-03-10
 
 ### Changed

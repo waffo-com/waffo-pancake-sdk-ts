@@ -20,7 +20,7 @@ export function signRequest(
   body: string,
   privateKey: string,
 ): string {
-  const bodyHash = createHash("sha256").update(body).digest("hex");
+  const bodyHash = createHash("sha256").update(body).digest("base64");
   const canonicalRequest = `${method}\n${path}\n${timestamp}\n${bodyHash}`;
 
   const sign = createSign("sha256");
