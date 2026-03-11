@@ -4,6 +4,13 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-03-11
+
+### Added
+
+- **Private key normalization** — `privateKey` is automatically normalized at construction time. Accepts literal `\n` from environment variables, Windows `\r\n` line endings, raw base64 without PEM headers, single-line base64, and PKCS#1 (`BEGIN RSA PRIVATE KEY`) format. Invalid or empty keys throw a descriptive error immediately instead of failing on the first API call.
+- **Checkout integration guide** in README — Step-by-step instructions (Issue Token → Create Session → Open Checkout Page) with recommendation to open the checkout URL in a new browser tab.
+
 ## [0.1.2] - 2026-03-11
 
 ### Fixed

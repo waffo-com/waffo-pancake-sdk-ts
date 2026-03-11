@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { WaffoPancakeError } from "./errors.js";
-import { signRequest } from "./signing.js";
+import { normalizePrivateKey, signRequest } from "./signing.js";
 
 import type { ApiResponse, WaffoPancakeConfig } from "./types.js";
 
@@ -20,7 +20,7 @@ export class HttpClient {
 
   constructor(config: WaffoPancakeConfig) {
     this.merchantId = config.merchantId;
-    this.privateKey = config.privateKey;
+    this.privateKey = normalizePrivateKey(config.privateKey);
     this.baseUrl = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
     this._fetch = config.fetch ?? fetch;
   }

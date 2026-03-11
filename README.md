@@ -56,9 +56,31 @@ const result = await client.graphql.query<{ stores: Array<{ id: string; name: st
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `merchantId` | `string` | Yes | Merchant ID, sent as `X-Merchant-Id` header |
-| `privateKey` | `string` | Yes | RSA private key in PEM format for request signing |
+| `privateKey` | `string` | Yes | RSA private key (see [Private Key Formats](#private-key-formats) below) |
 | `baseUrl` | `string` | No | API base URL (default: `https://waffo-pancake-auth-service.vercel.app`) |
 | `fetch` | `typeof fetch` | No | Custom fetch implementation |
+
+### Private Key Formats
+
+The SDK automatically normalizes `privateKey` at construction time, so all of the following formats are accepted:
+
+| Format | Example | Notes |
+|--------|---------|-------|
+| Standard PKCS#8 PEM | `-----BEGIN PRIVATE KEY-----\n...` | Recommended |
+| PKCS#1 PEM | `-----BEGIN RSA PRIVATE KEY-----\n...` | Also accepted |
+| Literal `\n` (env vars) | `"-----BEGIN PRIVATE KEY-----\\nMIIE..."` | Common when stored in `.env` or CI secrets |
+| Windows line endings | `\r\n` | Converted to `\n` |
+| Raw base64 (no headers) | `MIIEvQIBADANBgkqhki...` | Wrapped with PKCS#8 headers automatically |
+| Single-line base64 with headers | Header + all base64 on one line + footer | Re-wrapped to 64-char lines |
+
+If the key is invalid or empty, the constructor throws a descriptive error immediately rather than failing silently on the first API call.
+
+```typescript
+// All of these work:
+new WaffoPancake({ merchantId: "m_1", privateKey: process.env.PRIVATE_KEY! });         // .env with literal \n
+new WaffoPancake({ merchantId: "m_1", privateKey: fs.readFileSync("key.pem", "utf8") }); // file read
+new WaffoPancake({ merchantId: "m_1", privateKey: rawBase64String });                   // raw base64
+```
 
 ## Resources
 
@@ -75,6 +97,114 @@ const result = await client.graphql.query<{ stores: Array<{ id: string; name: st
 | `client.graphql` | `query<T>()` | Typed GraphQL queries (Query only, no Mutations) |
 
 See [API Reference](docs/api-reference.md) for complete parameter tables and return types.
+
+## Checkout Integration
+
+Guide buyers from your site to the Waffo checkout page in three steps:
+
+```
+1. Issue Session Token      →  Obtain a buyer identity credential (JWT)
+2. Create Checkout Session  →  Create a session and get the checkout URL
+3. Open Checkout Page       →  Open the checkout in a new browser tab
+```
+
+### Step 1 — Issue a Session Token
+
+Your backend requests a Session Token on behalf of the buyer. The token carries the buyer's identity and is used by the checkout page to load order details and place orders.
+
+```typescript
+const { token } = await client.auth.issueSessionToken({
+  storeId: "store_xxx",
+  buyerIdentity: "customer@example.com",
+});
+```
+
+### Step 2 — Create a Checkout Session
+
+Create a checkout session with your API Key. The response includes a checkout URL with the token embedded in the URL fragment.
+
+```typescript
+import { CheckoutSessionProductType } from "@waffo/pancake-ts";
+
+const session = await client.checkout.createSession({
+  storeId: "store_xxx",
+  productId: "prod_xxx",
+  productType: CheckoutSessionProductType.Onetime,
+  currency: "USD",
+  buyerEmail: "customer@example.com",
+  successUrl: "https://example.com/thank-you",
+});
+// session.checkoutUrl format:
+// https://waffo.ai/store/{slug}/checkout/{sessionId}#token={JWT}
+```
+
+The token is passed via the URL fragment (after `#`), which is never sent to the server and never appears in the `Referer` header.
+
+### Step 3 — Open Checkout Page (New Tab)
+
+**We recommend opening the checkout page in a new tab** rather than navigating in the current page. Benefits:
+
+- Buyers can return to your site immediately after payment or if they close the checkout tab
+- Merchant page state (cart, forms, scroll position) is preserved
+- Payment flow is decoupled from the browsing experience, reducing checkout abandonment
+
+```typescript
+// Frontend — recommended: open in a new tab
+window.open(session.checkoutUrl, "_blank", "noopener,noreferrer");
+
+// Or via an <a> tag
+// <a href={checkoutUrl} target="_blank" rel="noopener noreferrer">Proceed to Checkout</a>
+```
+
+> **Not recommended:** `window.location.href = session.checkoutUrl` replaces the current page, preventing buyers from returning to your site without browser back navigation.
+
+### Complete Example (Express)
+
+```typescript
+import express from "express";
+import { WaffoPancake, CheckoutSessionProductType } from "@waffo/pancake-ts";
+
+const client = new WaffoPancake({
+  merchantId: process.env.WAFFO_MERCHANT_ID!,
+  privateKey: process.env.WAFFO_PRIVATE_KEY!,
+});
+
+const app = express();
+
+app.post("/api/checkout", async (req, res) => {
+  const { productId, currency, buyerEmail } = req.body;
+
+  // Step 1: Issue session token
+  const { token } = await client.auth.issueSessionToken({
+    storeId: "store_xxx",
+    buyerIdentity: buyerEmail,
+  });
+
+  // Step 2: Create checkout session
+  const session = await client.checkout.createSession({
+    storeId: "store_xxx",
+    productId,
+    productType: CheckoutSessionProductType.Onetime,
+    currency,
+    buyerEmail,
+    successUrl: "https://example.com/thank-you",
+  });
+
+  // Return URL to frontend (frontend opens in new tab)
+  res.json({ checkoutUrl: session.checkoutUrl });
+});
+```
+
+```typescript
+// Frontend
+const res = await fetch("/api/checkout", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ productId: "prod_xxx", currency: "USD", buyerEmail: "customer@example.com" }),
+});
+const { checkoutUrl } = await res.json();
+window.open(checkoutUrl, "_blank", "noopener,noreferrer");
+```
 
 ## Usage Examples
 
