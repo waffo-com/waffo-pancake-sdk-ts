@@ -33,7 +33,7 @@ export class StoresResource {
    * const { store } = await client.stores.update({
    *   id: "store_xxx",
    *   name: "Updated Name",
-   *   supportEmail: "help@example.com",
+   *   isPublic: true,
    * });
    */
   async update(params: UpdateStoreParams): Promise<{ store: Store }> {

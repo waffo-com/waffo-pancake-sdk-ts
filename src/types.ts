@@ -330,8 +330,6 @@ export interface UpdateStoreParams {
   name?: string;
   status?: EntityStatus;
   logo?: string | null;
-  supportEmail?: string | null;
-  website?: string | null;
   isPublic?: boolean;
   webhookSettings?: WebhookSettings | null;
   notificationSettings?: NotificationSettings | null;
