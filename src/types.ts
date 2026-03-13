@@ -674,13 +674,13 @@ export interface BillingDetail {
   country: string;
   /** Whether this is a business purchase */
   isBusiness: boolean;
-  /** Postal / ZIP code */
+  /** Postal / ZIP code (required for US, at least one of postcode/state for CA) */
   postcode?: string;
-  /** State / province code (required for US/CA) */
+  /** State / province code (at least one of state/postcode for CA) */
   state?: string;
-  /** Business name (required when isBusiness=true) */
+  /** Business name (recommended for invoicing, does not affect tax calculation) */
   businessName?: string;
-  /** Tax ID (required for EU businesses) */
+  /** Tax ID / VAT number (EU businesses: triggers reverse charge 0% when provided) */
   taxId?: string;
 }
 
