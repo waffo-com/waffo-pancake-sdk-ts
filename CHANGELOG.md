@@ -4,6 +4,14 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-03-16
+
+### Changed
+
+- **Types** — `CheckoutSettings` adds `defaultDarkMode: boolean` field to match API response (store create/update)
+- **Types** — `CreateCheckoutSessionParams` adds optional `darkMode` field for dark mode override
+- **Types** — `CreateCheckoutSessionParams.storeId` changed from optional to required to match API spec
+
 ## [0.1.3] - 2026-03-11
 
 ### Added

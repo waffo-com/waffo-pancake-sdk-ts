@@ -291,6 +291,7 @@ export interface CheckoutThemeSettings {
  * @see waffo-pancake-store-service/app/lib/types.ts
  */
 export interface CheckoutSettings {
+  defaultDarkMode: boolean;
   light: CheckoutThemeSettings;
   dark: CheckoutThemeSettings;
 }
@@ -690,7 +691,7 @@ export interface BillingDetail {
  */
 export interface CreateCheckoutSessionParams {
   /** Store ID */
-  storeId?: string;
+  storeId: string;
   /** Product ID */
   productId: string;
   /** Product type */
@@ -709,6 +710,8 @@ export interface CreateCheckoutSessionParams {
   successUrl?: string;
   /** Session expiration in seconds (default: 7 days) */
   expiresInSeconds?: number;
+  /** Dark mode override (true=dark, false=light, omit=use store default) */
+  darkMode?: boolean;
   /** Custom metadata */
   metadata?: Record<string, string>;
 }

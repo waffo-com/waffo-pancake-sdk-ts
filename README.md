@@ -348,6 +348,7 @@ const session = await client.checkout.createSession({
 
 // Subscription with trial and billing detail
 const subSession = await client.checkout.createSession({
+  storeId: "store_xxx",
   productId: "prod_yyy",
   productType: CheckoutSessionProductType.Subscription,
   currency: "USD",
