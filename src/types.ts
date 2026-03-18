@@ -703,7 +703,7 @@ export interface CreateCheckoutSessionParams {
   billingDetail?: BillingDetail;
   /** Redirect URL after successful payment */
   successUrl?: string;
-  /** Session expiration in seconds (default: 7 days) */
+  /** Session expiration in seconds (default: 45 minutes) */
   expiresInSeconds?: number;
   /** Dark mode override (true=dark, false=light, omit=use store default) */
   darkMode?: boolean;

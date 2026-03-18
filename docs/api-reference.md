@@ -554,7 +554,7 @@ const snapshotSession = await client.checkout.createSession({
 | `buyerEmail` | `string` | No | Pre-filled buyer email |
 | `billingDetail` | `BillingDetail` | No | Pre-filled billing details (country, tax ID, etc.) |
 | `successUrl` | `string` | No | Redirect URL after successful payment |
-| `expiresInSeconds` | `number` | No | Session expiry in seconds (default: 7 days) |
+| `expiresInSeconds` | `number` | No | Session expiry in seconds (default: 45 minutes) |
 | `metadata` | `Record<string, string>` | No | Custom metadata |
 
 **Returns `CheckoutSessionResult`**:
