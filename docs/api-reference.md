@@ -90,7 +90,6 @@ const { store } = await client.stores.update({
       checkoutColorBackground: "#ffffff",
       checkoutColorCard: "#f5f5f5",
       checkoutColorText: "#000000",
-      checkoutColorTextSecondary: "#666666",
       checkoutBorderRadius: "8px",
     },
     dark: {
@@ -99,7 +98,6 @@ const { store } = await client.stores.update({
       checkoutColorBackground: "#1a1a1a",
       checkoutColorCard: "#2a2a2a",
       checkoutColorText: "#ffffff",
-      checkoutColorTextSecondary: "#999999",
       checkoutBorderRadius: "8px",
     },
   },

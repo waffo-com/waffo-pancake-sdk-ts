@@ -4,6 +4,28 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2026-03-18
+
+### Changed
+
+- **Types** — `CheckoutThemeSettings` removes `checkoutColorTextSecondary` field (7→6 fields). The secondary text color is now derived server-side from `checkoutColorText` and `checkoutColorCard` via color mixing. Merchants only need to configure 5 base color/radius fields; the remaining 7 PSP variables are computed automatically.
+
+### Migration
+
+If your code references `checkoutColorTextSecondary`, remove it. The field is no longer accepted by the API and is silently ignored in stored data.
+
+```diff
+ const theme: CheckoutThemeSettings = {
+   checkoutLogo: null,
+   checkoutColorPrimary: "#6366f1",
+   checkoutColorBackground: "#ffffff",
+   checkoutColorCard: "#f9fafb",
+   checkoutColorText: "#111827",
+-  checkoutColorTextSecondary: "#6b7280",
+   checkoutBorderRadius: "0.5rem",
+ };
+```
+
 ## [0.1.4] - 2026-03-16
 
 ### Changed

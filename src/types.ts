@@ -282,7 +282,6 @@ export interface CheckoutThemeSettings {
   checkoutColorBackground: string;
   checkoutColorCard: string;
   checkoutColorText: string;
-  checkoutColorTextSecondary: string;
   checkoutBorderRadius: string;
 }
 
