@@ -32,7 +32,7 @@ import type { WaffoPancakeConfig } from "./types.js";
  * const { product } = await client.onetimeProducts.create({
  *   storeId: store.id,
  *   name: "E-Book",
- *   prices: { USD: { amount: 2900, taxIncluded: false, taxCategory: "digital_goods" } },
+ *   prices: { USD: { amount: 2900, taxCategory: "digital_goods" } },
  * });
  *
  * // Create a checkout session

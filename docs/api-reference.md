@@ -66,7 +66,6 @@ const { store } = await client.stores.update({
   id: "store_xxx",
   name: "Updated Name",
   supportEmail: "help@example.com",
-  isPublic: true,
   webhookSettings: {
     testWebhookUrl: "https://example.com/webhooks",
     prodWebhookUrl: null,
@@ -114,7 +113,6 @@ const { store } = await client.stores.update({
 | `logo` | `string \| null` | No | Logo URL |
 | `supportEmail` | `string \| null` | No | Support email address |
 | `website` | `string \| null` | No | Store website URL |
-| `isPublic` | `boolean` | No | Whether the store is publicly visible |
 | `webhookSettings` | `WebhookSettings \| null` | No | Webhook endpoint configuration (test/prod URLs and subscribed event types) |
 | `notificationSettings` | `NotificationSettings \| null` | No | Email notification preferences |
 | `checkoutSettings` | `CheckoutSettings \| null` | No | Checkout page theme (light/dark) |
@@ -244,9 +242,9 @@ const { product } = await client.onetimeProducts.create({
   name: "E-Book: TypeScript Handbook",
   description: "Complete TypeScript guide for developers",
   prices: {
-    USD: { amount: 2900, taxIncluded: false, taxCategory: TaxCategory.DigitalGoods },
-    EUR: { amount: 2700, taxIncluded: true, taxCategory: TaxCategory.DigitalGoods },
-    JPY: { amount: 4500, taxIncluded: true, taxCategory: TaxCategory.DigitalGoods },
+    USD: { amount: 2900, taxCategory: TaxCategory.DigitalGoods },
+    EUR: { amount: 2700, taxCategory: TaxCategory.DigitalGoods },
+    JPY: { amount: 4500, taxCategory: TaxCategory.DigitalGoods },
   },
   media: [{ type: "image", url: "https://example.com/cover.jpg", alt: "Book cover" }],
   successUrl: "https://example.com/thank-you",
@@ -276,7 +274,7 @@ Update a one-time product. Creates a new immutable version; skips if content is 
 const { product } = await client.onetimeProducts.update({
   id: "prod_xxx",
   name: "E-Book: TypeScript Handbook v2",
-  prices: { USD: { amount: 3900, taxIncluded: false, taxCategory: "digital_goods" } },
+  prices: { USD: { amount: 3900, taxCategory: "digital_goods" } },
 });
 ```
 
@@ -347,7 +345,7 @@ const { product } = await client.subscriptionProducts.create({
   storeId: "store_xxx",
   name: "Pro Plan",
   billingPeriod: BillingPeriod.Monthly,
-  prices: { USD: { amount: 999, taxIncluded: false, taxCategory: TaxCategory.SaaS } },
+  prices: { USD: { amount: 999, taxCategory: TaxCategory.SaaS } },
   description: "Unlimited access to all features",
 });
 ```
@@ -376,7 +374,7 @@ const { product } = await client.subscriptionProducts.update({
   id: "prod_xxx",
   name: "Pro Plan v2",
   billingPeriod: BillingPeriod.Monthly,
-  prices: { USD: { amount: 1499, taxIncluded: false, taxCategory: "saas" } },
+  prices: { USD: { amount: 1499, taxCategory: "saas" } },
 });
 ```
 
@@ -539,7 +537,7 @@ const snapshotSession = await client.checkout.createSession({
   productId: "prod_xxx",
   productType: "onetime",
   currency: "USD",
-  priceSnapshot: { amount: 1999, taxIncluded: false, taxCategory: "digital_goods" },
+  priceSnapshot: { amount: 1999, taxCategory: "digital_goods" },
 });
 ```
 

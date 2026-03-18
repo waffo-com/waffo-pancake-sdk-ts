@@ -307,7 +307,6 @@ export interface Store {
   supportEmail: string | null;
   website: string | null;
   slug: string | null;
-  isPublic: boolean;
   prodEnabled: boolean;
   webhookSettings: WebhookSettings | null;
   notificationSettings: NotificationSettings | null;
@@ -330,7 +329,6 @@ export interface UpdateStoreParams {
   name?: string;
   status?: EntityStatus;
   logo?: string | null;
-  isPublic?: boolean;
   webhookSettings?: WebhookSettings | null;
   notificationSettings?: NotificationSettings | null;
   checkoutSettings?: CheckoutSettings | null;
@@ -404,17 +402,15 @@ export interface UpdateRoleResult {
  *
  * @example
  * // USD $9.99
- * { amount: 999, taxIncluded: true, taxCategory: "saas" }
+ * { amount: 999, taxCategory: "saas" }
  *
  * @example
  * // JPY ¥1000
- * { amount: 1000, taxIncluded: false, taxCategory: "software" }
+ * { amount: 1000, taxCategory: "software" }
  */
 export interface PriceInfo {
   /** Price amount in smallest currency unit */
   amount: number;
-  /** Whether the price is tax-inclusive */
-  taxIncluded: boolean;
   /** Tax category */
   taxCategory: TaxCategory;
 }
@@ -426,8 +422,8 @@ export interface PriceInfo {
  *
  * @example
  * {
- *   "USD": { amount: 999, taxIncluded: true, taxCategory: "saas" },
- *   "EUR": { amount: 899, taxIncluded: true, taxCategory: "saas" }
+ *   "USD": { amount: 999, taxCategory: "saas" },
+ *   "EUR": { amount: 899, taxCategory: "saas" }
  * }
  */
 export type Prices = Record<string, PriceInfo>;

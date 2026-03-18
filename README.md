@@ -31,8 +31,8 @@ const { product } = await client.onetimeProducts.create({
   storeId: store.id,
   name: "E-Book: TypeScript Handbook",
   prices: {
-    USD: { amount: 2900, taxIncluded: false, taxCategory: "digital_goods" },
-    EUR: { amount: 2700, taxIncluded: true, taxCategory: "digital_goods" },
+    USD: { amount: 2900, taxCategory: "digital_goods" },
+    EUR: { amount: 2700, taxCategory: "digital_goods" },
   },
 });
 
@@ -260,9 +260,9 @@ const { product } = await client.onetimeProducts.create({
   name: "E-Book: TypeScript Handbook",
   description: "Complete TypeScript guide for developers",
   prices: {
-    USD: { amount: 2900, taxIncluded: false, taxCategory: TaxCategory.DigitalGoods },
-    EUR: { amount: 2700, taxIncluded: true, taxCategory: TaxCategory.DigitalGoods },
-    JPY: { amount: 4500, taxIncluded: true, taxCategory: TaxCategory.DigitalGoods },
+    USD: { amount: 2900, taxCategory: TaxCategory.DigitalGoods },
+    EUR: { amount: 2700, taxCategory: TaxCategory.DigitalGoods },
+    JPY: { amount: 4500, taxCategory: TaxCategory.DigitalGoods },
   },
   media: [{ type: "image", url: "https://example.com/cover.jpg", alt: "Book cover" }],
   metadata: { sku: "ebook-ts-001" },
@@ -272,7 +272,7 @@ const { product } = await client.onetimeProducts.create({
 await client.onetimeProducts.update({
   id: product.id,
   name: "E-Book: TypeScript Handbook v2",
-  prices: { USD: { amount: 3900, taxIncluded: false, taxCategory: "digital_goods" } },
+  prices: { USD: { amount: 3900, taxCategory: "digital_goods" } },
 });
 
 // Publish test version → production
@@ -291,7 +291,7 @@ const { product } = await client.subscriptionProducts.create({
   storeId: "store_xxx",
   name: "Pro Plan",
   billingPeriod: BillingPeriod.Monthly,
-  prices: { USD: { amount: 999, taxIncluded: false, taxCategory: TaxCategory.SaaS } },
+  prices: { USD: { amount: 999, taxCategory: TaxCategory.SaaS } },
   description: "Unlimited access to all features",
 });
 

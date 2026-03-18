@@ -22,7 +22,7 @@ export class SubscriptionProductsResource {
    *   storeId: "store_xxx",
    *   name: "Pro Plan",
    *   billingPeriod: "monthly",
-   *   prices: { USD: { amount: 999, taxIncluded: false, taxCategory: "saas" } },
+   *   prices: { USD: { amount: 999, taxCategory: "saas" } },
    * });
    */
   async create(params: CreateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {
@@ -40,7 +40,7 @@ export class SubscriptionProductsResource {
    *   id: "prod_xxx",
    *   name: "Pro Plan v2",
    *   billingPeriod: "monthly",
-   *   prices: { USD: { amount: 1499, taxIncluded: false, taxCategory: "saas" } },
+   *   prices: { USD: { amount: 1499, taxCategory: "saas" } },
    * });
    */
   async update(params: UpdateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {

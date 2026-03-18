@@ -21,7 +21,7 @@ export class OnetimeProductsResource {
    * const { product } = await client.onetimeProducts.create({
    *   storeId: "store_xxx",
    *   name: "E-Book",
-   *   prices: { USD: { amount: 2900, taxIncluded: false, taxCategory: "digital_goods" } },
+   *   prices: { USD: { amount: 2900, taxCategory: "digital_goods" } },
    * });
    */
   async create(params: CreateOnetimeProductParams): Promise<{ product: OnetimeProductDetail }> {
@@ -38,7 +38,7 @@ export class OnetimeProductsResource {
    * const { product } = await client.onetimeProducts.update({
    *   id: "prod_xxx",
    *   name: "E-Book v2",
-   *   prices: { USD: { amount: 3900, taxIncluded: false, taxCategory: "digital_goods" } },
+   *   prices: { USD: { amount: 3900, taxCategory: "digital_goods" } },
    * });
    */
   async update(params: UpdateOnetimeProductParams): Promise<{ product: OnetimeProductDetail }> {

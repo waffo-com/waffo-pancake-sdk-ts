@@ -4,6 +4,38 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2026-03-18
+
+### Changed
+
+- **Types (BREAKING)** — `PriceInfo` removes `taxIncluded` field. Prices now only require `amount` and `taxCategory`. The system internally defaults to tax-exclusive pricing; `taxIncluded` may be re-introduced in a future version.
+- **Types (BREAKING)** — `Store` removes `isPublic` field from response type. `UpdateStoreParams` removes `isPublic` field from input type. Store visibility is no longer configurable (defaults to private).
+
+### Migration
+
+Remove `taxIncluded` from all `PriceInfo` / `Prices` objects:
+
+```diff
+ const { product } = await client.onetimeProducts.create({
+   storeId: "store_xxx",
+   name: "My Product",
+   prices: {
+-    USD: { amount: 2900, taxIncluded: false, taxCategory: "digital_goods" },
++    USD: { amount: 2900, taxCategory: "digital_goods" },
+   },
+ });
+```
+
+Remove `isPublic` from `stores.update()` calls:
+
+```diff
+ const { store } = await client.stores.update({
+   id: "store_xxx",
+-  isPublic: true,
+   name: "Updated Name",
+ });
+```
+
 ## [0.1.5] - 2026-03-18
 
 ### Changed

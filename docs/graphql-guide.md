@@ -78,7 +78,7 @@ interface ProductQuery {
     id: string;
     name: string;
     status: string;
-    prices: Record<string, { amount: number; taxIncluded: boolean }>;
+    prices: Record<string, { amount: number; taxCategory: string }>;
   } | null;
 }
 const product = await client.graphql.query<ProductQuery>({
@@ -263,7 +263,7 @@ const overview = await client.graphql.query<OverviewQuery>({
 | `StringFilter` | `eq`, `ne`, `contains`, `startsWith`, `endsWith`, `in` | `status`, `name`, `email`, `currency` |
 | `DateTimeFilter` | `eq`, `ne`, `gt`, `gte`, `lt`, `lte` | `createdAt`, `updatedAt`, `expiresAt` |
 | `IntFilter` | `eq`, `ne`, `gt`, `gte`, `lt`, `lte` | `amount`, `totalAmount` |
-| `BooleanFilter` | `eq` | `isPublic`, `taxIncluded` |
+| `BooleanFilter` | `eq` | `prodEnabled`, `testMode` |
 
 > To see which filter fields are available for a specific entity, use introspection:
 > `__type(name: "OrderFilter") { fields { name type { name } } }`
