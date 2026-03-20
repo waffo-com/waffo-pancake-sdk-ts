@@ -1,5 +1,7 @@
 import { createVerify } from "node:crypto";
 
+import { normalizePublicKey } from "./signing.js";
+
 import type { VerifyWebhookOptions, WebhookEvent } from "./types.js";
 
 /** Default tolerance: 5 minutes */
@@ -141,23 +143,33 @@ export function verifyWebhook<T = Record<string, unknown>>(
 
   // RSA-SHA256 verification
   const signatureInput = `${t}.${payload}`;
-  const env = options?.environment;
+  const customKey = options?.publicKey;
 
-  if (env === "test") {
-    if (!rsaVerify(signatureInput, v1, TEST_PUBLIC_KEY)) {
-      throw new Error("Invalid webhook signature (test key)");
-    }
-  } else if (env === "prod") {
-    if (!rsaVerify(signatureInput, v1, PROD_PUBLIC_KEY)) {
-      throw new Error("Invalid webhook signature (prod key)");
+  if (customKey) {
+    // Custom public key takes precedence over built-in keys
+    const normalizedKey = normalizePublicKey(customKey);
+    if (!rsaVerify(signatureInput, v1, normalizedKey)) {
+      throw new Error("Invalid webhook signature (custom key)");
     }
   } else {
-    // Auto-detect: try prod first, then test
-    const prodValid = rsaVerify(signatureInput, v1, PROD_PUBLIC_KEY);
-    if (!prodValid) {
-      const testValid = rsaVerify(signatureInput, v1, TEST_PUBLIC_KEY);
-      if (!testValid) {
-        throw new Error("Invalid webhook signature (tried both prod and test keys)");
+    const env = options?.environment;
+
+    if (env === "test") {
+      if (!rsaVerify(signatureInput, v1, TEST_PUBLIC_KEY)) {
+        throw new Error("Invalid webhook signature (test key)");
+      }
+    } else if (env === "prod") {
+      if (!rsaVerify(signatureInput, v1, PROD_PUBLIC_KEY)) {
+        throw new Error("Invalid webhook signature (prod key)");
+      }
+    } else {
+      // Auto-detect: try prod first, then test
+      const prodValid = rsaVerify(signatureInput, v1, PROD_PUBLIC_KEY);
+      if (!prodValid) {
+        const testValid = rsaVerify(signatureInput, v1, TEST_PUBLIC_KEY);
+        if (!testValid) {
+          throw new Error("Invalid webhook signature (tried both prod and test keys)");
+        }
       }
     }
   }

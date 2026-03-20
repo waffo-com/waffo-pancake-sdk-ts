@@ -59,6 +59,7 @@ const result = await client.graphql.query<{ stores: Array<{ id: string; name: st
 | `privateKey` | `string` | Yes | RSA private key (see [Private Key Formats](#private-key-formats) below) |
 | `baseUrl` | `string` | No | API base URL (default: `https://waffo-pancake-auth-service.vercel.app`) |
 | `fetch` | `typeof fetch` | No | Custom fetch implementation |
+| `webhookPublicKey` | `string` | No | Custom RSA public key for webhook verification (see [Public Key Formats](#public-key-formats) below). Overrides built-in keys when set. |
 
 ### Private Key Formats
 
@@ -82,6 +83,19 @@ new WaffoPancake({ merchantId: "m_1", privateKey: fs.readFileSync("key.pem", "ut
 new WaffoPancake({ merchantId: "m_1", privateKey: rawBase64String });                   // raw base64
 ```
 
+### Public Key Formats
+
+The `webhookPublicKey` option (and the `publicKey` field in `VerifyWebhookOptions`) accepts the same flexible formats as private keys:
+
+| Format | Example | Notes |
+|--------|---------|-------|
+| Standard SPKI PEM | `-----BEGIN PUBLIC KEY-----\n...` | Recommended |
+| PKCS#1 PEM | `-----BEGIN RSA PUBLIC KEY-----\n...` | Also accepted |
+| Literal `\n` (env vars) | `"-----BEGIN PUBLIC KEY-----\\nMIIB..."` | Common when stored in `.env` or CI secrets |
+| Windows line endings | `\r\n` | Converted to `\n` |
+| Raw base64 (no headers) | `MIIBIjANBgkqhki...` | Wrapped with SPKI headers automatically |
+| Single-line base64 with headers | Header + all base64 on one line + footer | Re-wrapped to 64-char lines |
+
 ## Resources
 
 | Namespace | Methods | Description |
@@ -95,6 +109,7 @@ new WaffoPancake({ merchantId: "m_1", privateKey: rawBase64String });           
 | `client.orders` | `cancelSubscription()` | Order management (pending→canceled, active→canceling) |
 | `client.checkout` | `createSession()` | Create a checkout session with trial toggle, billing detail, and price snapshot |
 | `client.graphql` | `query<T>()` | Typed GraphQL queries (Query only, no Mutations) |
+| `client.webhooks` | `verify<T>()` | Webhook signature verification (uses configured `webhookPublicKey` or built-in keys) |
 
 See [API Reference](docs/api-reference.md) for complete parameter tables and return types.
 
@@ -391,7 +406,9 @@ See [GraphQL Guide](docs/graphql-guide.md) for introspection, filters, paginatio
 
 ## Webhook Verification
 
-The SDK exports a standalone `verifyWebhook()` function with **embedded RSA-SHA256 public keys** for both test and production environments. No need to manage keys yourself.
+Two ways to verify webhooks: the **standalone function** `verifyWebhook()` with built-in public keys, or the **client instance method** `client.webhooks.verify()` which uses the configured `webhookPublicKey`.
+
+### Option A — Standalone Function (built-in keys)
 
 ```typescript
 import { verifyWebhook, WebhookEventType } from "@waffo/pancake-ts";
@@ -443,6 +460,32 @@ export async function POST(request: Request) {
 // Options: specify environment, disable/customize replay protection
 const event = verifyWebhook(body, sig, { environment: "prod" });
 const event = verifyWebhook(body, sig, { toleranceMs: 0 }); // disable replay check
+```
+
+### Option B — Client Instance Method (custom public key)
+
+When you provide a `webhookPublicKey` in the client config, `client.webhooks.verify()` uses that key automatically. Useful for self-hosted deployments or custom key rotation.
+
+```typescript
+const client = new WaffoPancake({
+  merchantId: process.env.WAFFO_MERCHANT_ID!,
+  privateKey: process.env.WAFFO_PRIVATE_KEY!,
+  webhookPublicKey: process.env.WAFFO_WEBHOOK_PUBLIC_KEY!, // any format accepted
+});
+
+// Uses the configured public key — no need to pass it per call
+const event = client.webhooks.verify(rawBody, signatureHeader);
+
+// You can still override per call if needed
+const event = client.webhooks.verify(rawBody, sig, { publicKey: anotherKey });
+```
+
+### Standalone Function with Custom Key
+
+You can also pass a custom key directly to the standalone function without creating a client:
+
+```typescript
+const event = verifyWebhook(body, sig, { publicKey: process.env.MY_PUBLIC_KEY! });
 ```
 
 See [Webhook Guide](docs/webhook-guide.md) for all 10 event types, signature algorithm, and best practices.
@@ -537,7 +580,8 @@ src/
     ├── subscription-product-groups.ts
     ├── orders.ts
     ├── checkout.ts
-    └── graphql.ts
+    ├── graphql.ts
+    └── webhooks.ts
 docs/
 ├── api-reference.md       # Complete API reference
 ├── graphql-guide.md       # GraphQL usage guide

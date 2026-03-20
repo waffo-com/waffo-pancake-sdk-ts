@@ -4,6 +4,15 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2026-03-20
+
+### Added
+
+- **Custom webhook public key** — `WaffoPancakeConfig` accepts optional `webhookPublicKey` to override built-in Waffo public keys for webhook signature verification. Useful for self-hosted deployments or custom key rotation.
+- **`client.webhooks.verify()`** — New resource namespace on the client instance. Uses the configured `webhookPublicKey` automatically; supports per-call override via `options.publicKey`.
+- **`VerifyWebhookOptions.publicKey`** — The standalone `verifyWebhook()` function also accepts a custom public key per call, taking precedence over built-in keys and the `environment` option.
+- **Public key normalization** — `normalizePublicKey()` handles the same flexible input formats as `normalizePrivateKey`: literal `\n` from environment variables, Windows `\r\n` line endings, raw base64 without PEM headers, single-line base64, and PKCS#1 (`BEGIN RSA PUBLIC KEY`) format. Applied automatically when a custom public key is used.
+
 ## [0.1.6] - 2026-03-18
 
 ### Changed

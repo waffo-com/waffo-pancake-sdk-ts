@@ -8,6 +8,7 @@ import { StoreMerchantsResource } from "./resources/store-merchants.js";
 import { StoresResource } from "./resources/stores.js";
 import { SubscriptionProductGroupsResource } from "./resources/subscription-product-groups.js";
 import { SubscriptionProductsResource } from "./resources/subscription-products.js";
+import { WebhooksResource } from "./resources/webhooks.js";
 
 import type { WaffoPancakeConfig } from "./types.js";
 
@@ -48,6 +49,15 @@ import type { WaffoPancakeConfig } from "./types.js";
  * const result = await client.graphql.query({
  *   query: `query { stores { id name status } }`,
  * });
+ *
+ * @example
+ * // Use a custom public key for webhook verification
+ * const client = new WaffoPancake({
+ *   merchantId: "...",
+ *   privateKey: "...",
+ *   webhookPublicKey: myCustomPublicKeyPem,
+ * });
+ * const event = client.webhooks.verify(rawBody, signatureHeader);
  */
 export class WaffoPancake {
   private readonly http: HttpClient;
@@ -61,6 +71,7 @@ export class WaffoPancake {
   readonly orders: OrdersResource;
   readonly checkout: CheckoutResource;
   readonly graphql: GraphQLResource;
+  readonly webhooks: WebhooksResource;
 
   constructor(config: WaffoPancakeConfig) {
     this.http = new HttpClient(config);
@@ -74,5 +85,6 @@ export class WaffoPancake {
     this.orders = new OrdersResource(this.http);
     this.checkout = new CheckoutResource(this.http);
     this.graphql = new GraphQLResource(this.http);
+    this.webhooks = new WebhooksResource(config.webhookPublicKey);
   }
 }

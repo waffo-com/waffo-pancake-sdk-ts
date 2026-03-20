@@ -11,6 +11,8 @@ export interface WaffoPancakeConfig {
   baseUrl?: string;
   /** Custom fetch implementation (default: global fetch) */
   fetch?: typeof fetch;
+  /** Custom RSA public key (PEM) for webhook signature verification. When set, overrides the built-in Waffo public keys. */
+  webhookPublicKey?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -827,6 +829,7 @@ export interface VerifyWebhookOptions {
   /**
    * Specify which environment's public key to use for verification.
    * When omitted, both keys are tried automatically (prod first).
+   * Ignored when `publicKey` is provided.
    */
   environment?: `${Environment}`;
   /**
@@ -835,4 +838,9 @@ export interface VerifyWebhookOptions {
    * @default 300000 (5 minutes)
    */
   toleranceMs?: number;
+  /**
+   * Custom RSA public key (PEM) for signature verification.
+   * When provided, overrides both built-in keys and the `environment` option.
+   */
+  publicKey?: string;
 }
