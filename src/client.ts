@@ -36,7 +36,7 @@ import type { WaffoPancakeConfig } from "./types.js";
  *   name: "E-Book",
  *   prices: { USD: { amount: 2900, taxCategory: "digital_goods" } },
  * });
- * // => product.id = "otp_..."
+ * // => product.id = "prod_..."
  *
  * // Create a checkout session
  * const session = await client.checkout.createSession({

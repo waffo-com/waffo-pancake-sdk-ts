@@ -272,7 +272,7 @@ Update a one-time product. Creates a new immutable version; skips if content is 
 
 ```typescript
 const { product } = await client.onetimeProducts.update({
-  id: "otp_xxx",
+  id: "prod_xxx",
   name: "E-Book: TypeScript Handbook v2",
   prices: { USD: { amount: 3900, taxCategory: "digital_goods" } },
 });
@@ -297,7 +297,7 @@ const { product } = await client.onetimeProducts.update({
 Publish the test version to production.
 
 ```typescript
-const { product } = await client.onetimeProducts.publish({ id: "otp_xxx" });
+const { product } = await client.onetimeProducts.publish({ id: "prod_xxx" });
 ```
 
 **Parameters `PublishOnetimeProductParams`**:
@@ -316,7 +316,7 @@ Activate or deactivate a product.
 import { ProductVersionStatus } from "@waffo/pancake-ts";
 
 const { product } = await client.onetimeProducts.updateStatus({
-  id: "otp_xxx",
+  id: "prod_xxx",
   status: ProductVersionStatus.Inactive,
 });
 ```
@@ -371,7 +371,7 @@ Update a subscription product. Creates a new immutable version; skips if unchang
 
 ```typescript
 const { product } = await client.subscriptionProducts.update({
-  id: "sbp_xxx",
+  id: "prod_xxx",
   name: "Pro Plan v2",
   billingPeriod: BillingPeriod.Monthly,
   prices: { USD: { amount: 1499, taxCategory: "saas" } },
@@ -387,7 +387,7 @@ const { product } = await client.subscriptionProducts.update({
 Publish the test version to production.
 
 ```typescript
-const { product } = await client.subscriptionProducts.publish({ id: "sbp_xxx" });
+const { product } = await client.subscriptionProducts.publish({ id: "prod_xxx" });
 ```
 
 **Returns `{ product: SubscriptionProductDetail }`**
@@ -398,7 +398,7 @@ Activate or deactivate a subscription product.
 
 ```typescript
 const { product } = await client.subscriptionProducts.updateStatus({
-  id: "sbp_xxx",
+  id: "prod_xxx",
   status: ProductVersionStatus.Active,
 });
 ```
@@ -419,7 +419,7 @@ const { group } = await client.subscriptionProductGroups.create({
   name: "Pro Plans",
   description: "All Pro tier plans",
   rules: { sharedTrial: true },
-  productIds: ["sbp_aaa", "sbp_bbb"],
+  productIds: ["prod_aaa", "prod_bbb"],
 });
 ```
 
@@ -442,7 +442,7 @@ Update a group. `productIds` is a **full replacement** (not a merge).
 ```typescript
 const { group } = await client.subscriptionProductGroups.update({
   id: "spg_xxx",
-  productIds: ["sbp_aaa", "sbp_bbb", "sbp_ccc"],
+  productIds: ["prod_aaa", "prod_bbb", "prod_ccc"],
 });
 ```
 
@@ -483,7 +483,7 @@ Cancel a subscription order. The resulting status depends on the current order s
 
 ```typescript
 const { orderId, status } = await client.orders.cancelSubscription({
-  orderId: "sbo_xxx",
+  orderId: "ord_xxx",
 });
 // status: "canceled" or "canceling"
 ```
@@ -515,7 +515,7 @@ import { CheckoutSessionProductType } from "@waffo/pancake-ts";
 // One-time product checkout
 const session = await client.checkout.createSession({
   storeId: "sto_xxx",
-  productId: "otp_xxx",
+  productId: "prod_xxx",
   productType: CheckoutSessionProductType.Onetime,
   currency: "USD",
   buyerEmail: "customer@example.com",
@@ -525,7 +525,7 @@ const session = await client.checkout.createSession({
 
 // Subscription with trial
 const subSession = await client.checkout.createSession({
-  productId: "sbp_yyy",
+  productId: "prod_yyy",
   productType: CheckoutSessionProductType.Subscription,
   currency: "USD",
   withTrial: true,
@@ -534,7 +534,7 @@ const subSession = await client.checkout.createSession({
 
 // With price snapshot override
 const snapshotSession = await client.checkout.createSession({
-  productId: "otp_xxx",
+  productId: "prod_xxx",
   productType: "onetime",
   currency: "USD",
   priceSnapshot: { amount: 1999, taxCategory: "digital_goods" },
@@ -583,7 +583,7 @@ const result = await client.graphql.query<StoresQuery>({
 
 const productResult = await client.graphql.query({
   query: `query ($id: ID!) { onetimeProduct(id: $id) { id name prices } }`,
-  variables: { id: "otp_xxx" },
+  variables: { id: "prod_xxx" },
 });
 ```
 

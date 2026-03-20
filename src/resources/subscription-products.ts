@@ -37,7 +37,7 @@ export class SubscriptionProductsResource {
    *
    * @example
    * const { product } = await client.subscriptionProducts.update({
-   *   id: "sbp_xxx",
+   *   id: "prod_xxx",
    *   name: "Pro Plan v2",
    *   billingPeriod: "monthly",
    *   prices: { USD: { amount: 1499, taxCategory: "saas" } },
@@ -54,7 +54,7 @@ export class SubscriptionProductsResource {
    * @returns Published product detail
    *
    * @example
-   * const { product } = await client.subscriptionProducts.publish({ id: "sbp_xxx" });
+   * const { product } = await client.subscriptionProducts.publish({ id: "prod_xxx" });
    */
   async publish(params: PublishSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {
     return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/publish-product", params);
@@ -68,7 +68,7 @@ export class SubscriptionProductsResource {
    *
    * @example
    * const { product } = await client.subscriptionProducts.updateStatus({
-   *   id: "sbp_xxx",
+   *   id: "prod_xxx",
    *   status: ProductVersionStatus.Active,
    * });
    */

@@ -22,7 +22,7 @@ export class SubscriptionProductGroupsResource {
    *   storeId: "sto_xxx",
    *   name: "Pro Plans",
    *   rules: { sharedTrial: true },
-   *   productIds: ["sbp_aaa", "sbp_bbb"],
+   *   productIds: ["prod_aaa", "prod_bbb"],
    * });
    */
   async create(params: CreateSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
@@ -38,7 +38,7 @@ export class SubscriptionProductGroupsResource {
    * @example
    * const { group } = await client.subscriptionProductGroups.update({
    *   id: "spg_xxx",
-   *   productIds: ["sbp_aaa", "sbp_bbb", "sbp_ccc"],
+   *   productIds: ["prod_aaa", "prod_bbb", "prod_ccc"],
    * });
    */
   async update(params: UpdateSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {

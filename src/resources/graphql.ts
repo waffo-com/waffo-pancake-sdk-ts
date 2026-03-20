@@ -20,7 +20,7 @@ export class GraphQLResource {
    * @example
    * const result = await client.graphql.query({
    *   query: `query ($id: ID!) { onetimeProduct(id: $id) { id name prices } }`,
-   *   variables: { id: "otp_xxx" },
+   *   variables: { id: "prod_xxx" },
    * });
    */
   async query<T = Record<string, unknown>>(params: GraphQLParams): Promise<GraphQLResponse<T>> {

@@ -87,7 +87,7 @@ const product = await client.graphql.query<ProductQuery>({
       id name status prices
     }
   }`,
-  variables: { id: "otp_xxx" },
+  variables: { id: "prod_xxx" },
 });
 ```
 
@@ -199,7 +199,7 @@ const orderDetail = await client.graphql.query<OrderDetailQuery>({
       }
     }
   }`,
-  variables: { orderId: "oto_xxx" },
+  variables: { orderId: "ord_xxx" },
 });
 ```
 

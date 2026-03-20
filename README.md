@@ -36,7 +36,7 @@ const { product } = await client.onetimeProducts.create({
     EUR: { amount: 2700, taxCategory: "digital_goods" },
   },
 });
-// => product.id = "otp_..."
+// => product.id = "prod_..."
 
 // Create a checkout session and redirect the buyer
 const session = await client.checkout.createSession({
@@ -179,7 +179,7 @@ import { CheckoutSessionProductType } from "@waffo/pancake-ts";
 
 const session = await client.checkout.createSession({
   storeId: "sto_xxx",
-  productId: "otp_xxx",
+  productId: "prod_xxx",
   productType: CheckoutSessionProductType.Onetime,
   currency: "USD",
   buyerEmail: "customer@example.com",
@@ -251,7 +251,7 @@ app.post("/api/checkout", async (req, res) => {
 const res = await fetch("/api/checkout", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ productId: "otp_xxx", currency: "USD", buyerEmail: "customer@example.com" }),
+  body: JSON.stringify({ productId: "prod_xxx", currency: "USD", buyerEmail: "customer@example.com" }),
 });
 const { checkoutUrl } = await res.json();
 window.open(checkoutUrl, "_blank", "noopener,noreferrer");
@@ -358,13 +358,13 @@ const { group } = await client.subscriptionProductGroups.create({
   storeId: "sto_xxx",
   name: "Pro Plans",
   rules: { sharedTrial: true },
-  productIds: ["sbp_aaa", "sbp_bbb"],
+  productIds: ["prod_aaa", "prod_bbb"],
 });
 
 // Update members (full replacement, not merge)
 await client.subscriptionProductGroups.update({
   id: group.id,
-  productIds: ["sbp_aaa", "sbp_bbb", "sbp_ccc"],
+  productIds: ["prod_aaa", "prod_bbb", "prod_ccc"],
 });
 
 // Publish / delete
@@ -376,7 +376,7 @@ await client.subscriptionProductGroups.delete({ id: group.id });
 
 ```typescript
 const { orderId, status } = await client.orders.cancelSubscription({
-  orderId: "sbo_xxx",
+  orderId: "ord_xxx",
 });
 // status: "canceled" (was pending) or "canceling" (was active, PSP notified)
 ```
@@ -389,7 +389,7 @@ import { CheckoutSessionProductType } from "@waffo/pancake-ts";
 // One-time product checkout
 const session = await client.checkout.createSession({
   storeId: "sto_xxx",
-  productId: "otp_xxx",
+  productId: "prod_xxx",
   productType: CheckoutSessionProductType.Onetime,
   currency: "USD",
   buyerEmail: "customer@example.com",
@@ -400,7 +400,7 @@ const session = await client.checkout.createSession({
 // Subscription with trial and billing detail
 const subSession = await client.checkout.createSession({
   storeId: "sto_xxx",
-  productId: "sbp_yyy",
+  productId: "prod_yyy",
   productType: CheckoutSessionProductType.Subscription,
   currency: "USD",
   withTrial: true,
@@ -422,7 +422,7 @@ const result = await client.graphql.query<StoresQuery>({
 // Query with variables
 const product = await client.graphql.query({
   query: `query ($id: ID!) { onetimeProduct(id: $id) { id name prices } }`,
-  variables: { id: "otp_xxx" },
+  variables: { id: "prod_xxx" },
 });
 
 // Nested relationships in a single request
