@@ -523,7 +523,7 @@ const event2 = client2.webhooks.verify(rawBody, sig); // auto-detect environment
 const event3 = client.webhooks.verify(rawBody, sig, { publicKey: oneOffKey });
 ```
 
-See [Webhook Guide](docs/webhook-guide.md) for all 10 event types, signature algorithm, and best practices.
+See [Webhook Guide](docs/webhook-guide.md) for event types, signature algorithm, public key resolution, and best practices.
 
 ## Error Handling
 
@@ -582,7 +582,7 @@ Runtime-accessible values. Both `Enum.Value` and string literal syntax are suppo
 
 ### Types
 
-See [API Reference — Types](docs/api-reference.md#types) for the full list of 40+ exported interfaces.
+Key types: `WaffoPancakeConfig`, `WebhookPublicKeys`, `VerifyWebhookOptions`, `WebhookEvent<T>`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `CheckoutSessionResult`, `GraphQLResponse<T>`, and 30+ more. See [API Reference — Types](docs/api-reference.md#types) for the full list.
 
 ## Development
 

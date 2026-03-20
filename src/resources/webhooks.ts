@@ -2,7 +2,12 @@ import { verifyWebhook } from "../webhooks.js";
 
 import type { VerifyWebhookOptions, WebhookEvent, WebhookPublicKeys } from "../types.js";
 
-/** Webhook signature verification resource. */
+/**
+ * Webhook signature verification resource.
+ *
+ * Unlike other resources, this does not use HttpClient — webhook verification
+ * is a local cryptographic operation that does not require API calls.
+ */
 export class WebhooksResource {
   /** @param publicKeys - Optional config-level public key(s) from WaffoPancakeConfig */
   constructor(private readonly publicKeys: WebhookPublicKeys | undefined) {}

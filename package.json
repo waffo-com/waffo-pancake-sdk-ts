@@ -1,6 +1,6 @@
 {
   "name": "@waffo/pancake-ts",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "description": "TypeScript SDK for Waffo Pancake API (Merchant API Key authentication)",
   "type": "module",
   "main": "./dist/index.cjs",

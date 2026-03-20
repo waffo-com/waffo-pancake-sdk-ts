@@ -861,7 +861,8 @@ export interface VerifyWebhookOptions {
   publicKey?: string;
   /**
    * Config-level public key(s) for the resolution chain.
-   * Typically injected by `client.webhooks.verify()` from `WaffoPancakeConfig.webhookPublicKey`.
+   * When using `client.webhooks.verify()`, this is set automatically from `WaffoPancakeConfig.webhookPublicKey`.
+   * When using the standalone `verifyWebhook()`, you can pass this directly for config-level key injection.
    *
    * Resolution order per environment:
    * 1. `publicKey` (per-call override)
