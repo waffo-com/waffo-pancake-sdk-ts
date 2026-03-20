@@ -26,7 +26,7 @@ export class SubscriptionProductGroupsResource {
    * });
    */
   async create(params: CreateSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
-    return this.http.post("/v1/actions/subscription-product-group/create-group", params);
+    return this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/create-group", params);
   }
 
   /**
@@ -42,7 +42,7 @@ export class SubscriptionProductGroupsResource {
    * });
    */
   async update(params: UpdateSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
-    return this.http.post("/v1/actions/subscription-product-group/update-group", params);
+    return this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/update-group", params);
   }
 
   /**
@@ -55,7 +55,7 @@ export class SubscriptionProductGroupsResource {
    * const { group } = await client.subscriptionProductGroups.delete({ id: "group_xxx" });
    */
   async delete(params: DeleteSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
-    return this.http.post("/v1/actions/subscription-product-group/delete-group", params);
+    return this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/delete-group", params);
   }
 
   /**
@@ -68,6 +68,6 @@ export class SubscriptionProductGroupsResource {
    * const { group } = await client.subscriptionProductGroups.publish({ id: "group_xxx" });
    */
   async publish(params: PublishSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
-    return this.http.post("/v1/actions/subscription-product-group/publish-group", params);
+    return this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/publish-group", params);
   }
 }

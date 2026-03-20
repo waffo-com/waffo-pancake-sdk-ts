@@ -215,8 +215,10 @@ export enum ErrorLayer {
   Store = "store",
   Product = "product",
   Order = "order",
+  Ticket = "ticket",
   GraphQL = "graphql",
   Resource = "resource",
+  /** SDK-specific layer for email delivery errors (not part of the service-side error layers). */
   Email = "email",
 }
 
@@ -336,11 +338,21 @@ export interface CreateStoreParams {
 export interface UpdateStoreParams {
   /** Store ID */
   id: string;
+  /** Store display name */
   name?: string;
+  /** Store status */
   status?: EntityStatus;
+  /** Store logo URL (set to `null` to remove) */
   logo?: string | null;
+  /** Support email address (set to `null` to remove) */
+  supportEmail?: string | null;
+  /** Store website URL (set to `null` to remove) */
+  website?: string | null;
+  /** Webhook configuration for test and production environments (set to `null` to remove) */
   webhookSettings?: WebhookSettings | null;
+  /** Notification preferences (set to `null` to remove) */
   notificationSettings?: NotificationSettings | null;
+  /** Checkout page theme configuration (set to `null` to remove) */
   checkoutSettings?: CheckoutSettings | null;
 }
 

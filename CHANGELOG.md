@@ -4,6 +4,18 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2026-03-20
+
+### Added
+
+- **Types** — `UpdateStoreParams` adds optional `supportEmail` and `website` fields (`string | null`) with JSDoc
+- **Types** — `ErrorLayer` enum adds `Ticket = "ticket"` value
+
+### Changed
+
+- **Resources** — All resource method calls now use explicit generic type parameters (`http.post<T>()`) for improved type safety
+- **README** — Corrected Node requirement to "Node >= 20" and build output to "ESM + CJS"
+
 ## [0.1.7] - 2026-03-20
 
 ### Added

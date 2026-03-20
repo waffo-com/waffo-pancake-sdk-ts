@@ -20,7 +20,7 @@ export class StoresResource {
    * const { store } = await client.stores.create({ name: "My Store" });
    */
   async create(params: CreateStoreParams): Promise<{ store: Store }> {
-    return this.http.post("/v1/actions/store/create-store", params);
+    return this.http.post<{ store: Store }>("/v1/actions/store/create-store", params);
   }
 
   /**
@@ -36,7 +36,7 @@ export class StoresResource {
    * });
    */
   async update(params: UpdateStoreParams): Promise<{ store: Store }> {
-    return this.http.post("/v1/actions/store/update-store", params);
+    return this.http.post<{ store: Store }>("/v1/actions/store/update-store", params);
   }
 
   /**
@@ -49,6 +49,6 @@ export class StoresResource {
    * const { store } = await client.stores.delete({ id: "store_xxx" });
    */
   async delete(params: DeleteStoreParams): Promise<{ store: Store }> {
-    return this.http.post("/v1/actions/store/delete-store", params);
+    return this.http.post<{ store: Store }>("/v1/actions/store/delete-store", params);
   }
 }

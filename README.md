@@ -2,7 +2,7 @@
 
 TypeScript SDK for the Waffo Pancake Merchant of Record (MoR) payment platform.
 
-- Zero runtime dependencies, ESM-only, Node >= 18
+- Zero runtime dependencies, ESM + CJS, Node >= 20
 - Automatic RSA-SHA256 request signing with deterministic idempotency keys
 - Full TypeScript type definitions (15 enums, 40+ interfaces)
 - Webhook verification with embedded public keys (test/prod)
@@ -577,7 +577,7 @@ Runtime-accessible values. Both `Enum.Value` and string literal syntax are suppo
 | `RefundStatus` | `Succeeded`, `Failed` |
 | `MediaType` | `Image`, `Video` |
 | `CheckoutSessionProductType` | `Onetime`, `Subscription` |
-| `ErrorLayer` | `Gateway`, `User`, `Store`, `Product`, `Order`, `GraphQL`, `Resource`, `Email` |
+| `ErrorLayer` | `Gateway`, `User`, `Store`, `Product`, `Order`, `Ticket`, `GraphQL`, `Resource`, `Email` |
 | `WebhookEventType` | `OrderCompleted`, `SubscriptionActivated`, `SubscriptionPaymentSucceeded`, `SubscriptionCanceling`, `SubscriptionUncanceled`, `SubscriptionUpdated`, `SubscriptionCanceled`, `SubscriptionPastDue`, `RefundSucceeded`, `RefundFailed` |
 
 ### Types

@@ -26,7 +26,7 @@ export class StoreMerchantsResource {
    * });
    */
   async add(params: AddMerchantParams): Promise<AddMerchantResult> {
-    return this.http.post("/v1/actions/store-merchant/add-merchant", params);
+    return this.http.post<AddMerchantResult>("/v1/actions/store-merchant/add-merchant", params);
   }
 
   /**
@@ -42,7 +42,7 @@ export class StoreMerchantsResource {
    * });
    */
   async remove(params: RemoveMerchantParams): Promise<RemoveMerchantResult> {
-    return this.http.post("/v1/actions/store-merchant/remove-merchant", params);
+    return this.http.post<RemoveMerchantResult>("/v1/actions/store-merchant/remove-merchant", params);
   }
 
   /**
@@ -59,6 +59,6 @@ export class StoreMerchantsResource {
    * });
    */
   async updateRole(params: UpdateRoleParams): Promise<UpdateRoleResult> {
-    return this.http.post("/v1/actions/store-merchant/update-role", params);
+    return this.http.post<UpdateRoleResult>("/v1/actions/store-merchant/update-role", params);
   }
 }

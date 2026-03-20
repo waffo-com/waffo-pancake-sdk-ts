@@ -26,7 +26,7 @@ export class SubscriptionProductsResource {
    * });
    */
   async create(params: CreateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {
-    return this.http.post("/v1/actions/subscription-product/create-product", params);
+    return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/create-product", params);
   }
 
   /**
@@ -44,7 +44,7 @@ export class SubscriptionProductsResource {
    * });
    */
   async update(params: UpdateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {
-    return this.http.post("/v1/actions/subscription-product/update-product", params);
+    return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-product", params);
   }
 
   /**
@@ -57,7 +57,7 @@ export class SubscriptionProductsResource {
    * const { product } = await client.subscriptionProducts.publish({ id: "prod_xxx" });
    */
   async publish(params: PublishSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {
-    return this.http.post("/v1/actions/subscription-product/publish-product", params);
+    return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/publish-product", params);
   }
 
   /**
@@ -73,6 +73,6 @@ export class SubscriptionProductsResource {
    * });
    */
   async updateStatus(params: UpdateSubscriptionStatusParams): Promise<{ product: SubscriptionProductDetail }> {
-    return this.http.post("/v1/actions/subscription-product/update-status", params);
+    return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-status", params);
   }
 }

@@ -25,7 +25,7 @@ export class OnetimeProductsResource {
    * });
    */
   async create(params: CreateOnetimeProductParams): Promise<{ product: OnetimeProductDetail }> {
-    return this.http.post("/v1/actions/onetime-product/create-product", params);
+    return this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/create-product", params);
   }
 
   /**
@@ -42,7 +42,7 @@ export class OnetimeProductsResource {
    * });
    */
   async update(params: UpdateOnetimeProductParams): Promise<{ product: OnetimeProductDetail }> {
-    return this.http.post("/v1/actions/onetime-product/update-product", params);
+    return this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/update-product", params);
   }
 
   /**
@@ -55,7 +55,7 @@ export class OnetimeProductsResource {
    * const { product } = await client.onetimeProducts.publish({ id: "prod_xxx" });
    */
   async publish(params: PublishOnetimeProductParams): Promise<{ product: OnetimeProductDetail }> {
-    return this.http.post("/v1/actions/onetime-product/publish-product", params);
+    return this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/publish-product", params);
   }
 
   /**
@@ -71,6 +71,6 @@ export class OnetimeProductsResource {
    * });
    */
   async updateStatus(params: UpdateOnetimeStatusParams): Promise<{ product: OnetimeProductDetail }> {
-    return this.http.post("/v1/actions/onetime-product/update-status", params);
+    return this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/update-status", params);
   }
 }
