@@ -1,6 +1,6 @@
 import { createSign, generateKeyPairSync } from "node:crypto";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { verifyWebhook } from "../webhooks.js";
 
@@ -187,6 +187,175 @@ describe("verifyWebhook", () => {
       // environment: "prod" should be ignored, custom key used instead
       const result = verifyWebhook(payload, header, { publicKey: publicKey as string, environment: "prod" });
       expect(result.id).toBe("evt_env_override");
+    });
+  });
+
+  describe("publicKeys config (multi-level fallback)", () => {
+    // Two separate key pairs for test/prod simulation
+    const testKeyPair = generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: "spki", format: "pem" },
+      privateKeyEncoding: { type: "pkcs8", format: "pem" },
+    });
+    const prodKeyPair = generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: "spki", format: "pem" },
+      privateKeyEncoding: { type: "pkcs8", format: "pem" },
+    });
+
+    function signWith(privateKey: string, ts: string, payload: string): string {
+      const signer = createSign("RSA-SHA256");
+      signer.update(`${ts}.${payload}`);
+      return signer.sign(privateKey, "base64");
+    }
+
+    it("should use publicKeys string for any environment", () => {
+      const payload = JSON.stringify({ id: "evt_shared" });
+      const ts = Date.now().toString();
+      const v1 = signWith(testKeyPair.privateKey, ts, payload);
+      const header = `t=${ts},v1=${v1}`;
+
+      const result = verifyWebhook(payload, header, {
+        publicKeys: testKeyPair.publicKey as string,
+        environment: "test",
+      });
+      expect(result.id).toBe("evt_shared");
+    });
+
+    it("should use publicKeys.test when environment is test", () => {
+      const payload = JSON.stringify({ id: "evt_pk_test" });
+      const ts = Date.now().toString();
+      const v1 = signWith(testKeyPair.privateKey, ts, payload);
+      const header = `t=${ts},v1=${v1}`;
+
+      const result = verifyWebhook(payload, header, {
+        publicKeys: {
+          test: testKeyPair.publicKey as string,
+          prod: prodKeyPair.publicKey as string,
+        },
+        environment: "test",
+      });
+      expect(result.id).toBe("evt_pk_test");
+    });
+
+    it("should use publicKeys.prod when environment is prod", () => {
+      const payload = JSON.stringify({ id: "evt_pk_prod" });
+      const ts = Date.now().toString();
+      const v1 = signWith(prodKeyPair.privateKey, ts, payload);
+      const header = `t=${ts},v1=${v1}`;
+
+      const result = verifyWebhook(payload, header, {
+        publicKeys: {
+          test: testKeyPair.publicKey as string,
+          prod: prodKeyPair.publicKey as string,
+        },
+        environment: "prod",
+      });
+      expect(result.id).toBe("evt_pk_prod");
+    });
+
+    it("should auto-detect with per-env publicKeys (prod first, then test)", () => {
+      // Signed with test key — auto-detect should try prod (fail) then test (pass)
+      const payload = JSON.stringify({ id: "evt_pk_auto" });
+      const ts = Date.now().toString();
+      const v1 = signWith(testKeyPair.privateKey, ts, payload);
+      const header = `t=${ts},v1=${v1}`;
+
+      const result = verifyWebhook(payload, header, {
+        publicKeys: {
+          test: testKeyPair.publicKey as string,
+          prod: prodKeyPair.publicKey as string,
+        },
+      });
+      expect(result.id).toBe("evt_pk_auto");
+    });
+
+    it("should prefer publicKey over publicKeys", () => {
+      const payload = JSON.stringify({ id: "evt_pk_priority" });
+      const ts = Date.now().toString();
+      // Signed with test key
+      const v1 = signWith(testKeyPair.privateKey, ts, payload);
+      const header = `t=${ts},v1=${v1}`;
+
+      // publicKey (per-call) = test key, publicKeys.prod = prod key
+      // publicKey should win
+      const result = verifyWebhook(payload, header, {
+        publicKey: testKeyPair.publicKey as string,
+        publicKeys: { prod: prodKeyPair.publicKey as string },
+        environment: "prod",
+      });
+      expect(result.id).toBe("evt_pk_priority");
+    });
+  });
+
+  describe("environment variable fallback", () => {
+    const envKeyPair = generateKeyPairSync("rsa", {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: "spki", format: "pem" },
+      privateKeyEncoding: { type: "pkcs8", format: "pem" },
+    });
+
+    function signWith(ts: string, payload: string): string {
+      const signer = createSign("RSA-SHA256");
+      signer.update(`${ts}.${payload}`);
+      return signer.sign(envKeyPair.privateKey, "base64");
+    }
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it("should use WAFFO_WEBHOOK_TEST_PUBLIC_KEY env var for test environment", () => {
+      vi.stubEnv("WAFFO_WEBHOOK_TEST_PUBLIC_KEY", envKeyPair.publicKey as string);
+
+      const payload = JSON.stringify({ id: "evt_env_test" });
+      const ts = Date.now().toString();
+      const v1 = signWith(ts, payload);
+      const header = `t=${ts},v1=${v1}`;
+
+      const result = verifyWebhook(payload, header, { environment: "test" });
+      expect(result.id).toBe("evt_env_test");
+    });
+
+    it("should use WAFFO_WEBHOOK_PROD_PUBLIC_KEY env var for prod environment", () => {
+      vi.stubEnv("WAFFO_WEBHOOK_PROD_PUBLIC_KEY", envKeyPair.publicKey as string);
+
+      const payload = JSON.stringify({ id: "evt_env_prod" });
+      const ts = Date.now().toString();
+      const v1 = signWith(ts, payload);
+      const header = `t=${ts},v1=${v1}`;
+
+      const result = verifyWebhook(payload, header, { environment: "prod" });
+      expect(result.id).toBe("evt_env_prod");
+    });
+
+    it("should use WAFFO_WEBHOOK_PUBLIC_KEY as shared fallback", () => {
+      vi.stubEnv("WAFFO_WEBHOOK_PUBLIC_KEY", envKeyPair.publicKey as string);
+
+      const payload = JSON.stringify({ id: "evt_env_shared" });
+      const ts = Date.now().toString();
+      const v1 = signWith(ts, payload);
+      const header = `t=${ts},v1=${v1}`;
+
+      const result = verifyWebhook(payload, header, { environment: "test" });
+      expect(result.id).toBe("evt_env_shared");
+    });
+
+    it("should prefer config key over env var", () => {
+      // Set env var to a different key (will fail)
+      vi.stubEnv("WAFFO_WEBHOOK_TEST_PUBLIC_KEY", "MIIBIjAN..invalid..");
+
+      const payload = JSON.stringify({ id: "evt_config_over_env" });
+      const ts = Date.now().toString();
+      const v1 = signWith(ts, payload);
+      const header = `t=${ts},v1=${v1}`;
+
+      // Config key should win over env var
+      const result = verifyWebhook(payload, header, {
+        publicKeys: { test: envKeyPair.publicKey as string },
+        environment: "test",
+      });
+      expect(result.id).toBe("evt_config_over_env");
     });
   });
 });

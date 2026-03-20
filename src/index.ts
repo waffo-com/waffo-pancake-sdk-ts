@@ -101,4 +101,5 @@ export type {
   VerifyWebhookOptions,
   WebhookEvent,
   WebhookEventData,
+  WebhookPublicKeys,
 } from "./types.js";

@@ -60,7 +60,7 @@ describe("WaffoPancake", () => {
     expect(client.webhooks).toBeDefined();
   });
 
-  it("should verify webhook with configured public key via client.webhooks.verify", () => {
+  it("should verify webhook with configured public key string via client.webhooks.verify", () => {
     const client = new WaffoPancake({
       merchantId: "merchant_test",
       privateKey: TEST_PRIVATE_KEY,
@@ -77,5 +77,27 @@ describe("WaffoPancake", () => {
 
     const result = client.webhooks.verify(payload, header);
     expect(result.id).toBe("evt_client");
+  });
+
+  it("should accept per-env webhookPublicKey config", () => {
+    const client = new WaffoPancake({
+      merchantId: "merchant_test",
+      privateKey: TEST_PRIVATE_KEY,
+      webhookPublicKey: {
+        test: TEST_PUBLIC_KEY as string,
+        prod: TEST_PUBLIC_KEY as string,
+      },
+    });
+
+    const event = { id: "evt_perenv", eventType: "order.completed", data: {} };
+    const payload = JSON.stringify(event);
+    const ts = Date.now().toString();
+    const signer = createSign("RSA-SHA256");
+    signer.update(`${ts}.${payload}`);
+    const v1 = signer.sign(TEST_PRIVATE_KEY, "base64");
+    const header = `t=${ts},v1=${v1}`;
+
+    const result = client.webhooks.verify(payload, header, { environment: "test" });
+    expect(result.id).toBe("evt_perenv");
   });
 });

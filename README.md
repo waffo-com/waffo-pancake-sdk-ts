@@ -59,7 +59,7 @@ const result = await client.graphql.query<{ stores: Array<{ id: string; name: st
 | `privateKey` | `string` | Yes | RSA private key (see [Private Key Formats](#private-key-formats) below) |
 | `baseUrl` | `string` | No | API base URL (default: `https://waffo-pancake-auth-service.vercel.app`) |
 | `fetch` | `typeof fetch` | No | Custom fetch implementation |
-| `webhookPublicKey` | `string` | No | Custom RSA public key for webhook verification (see [Public Key Formats](#public-key-formats) below). Overrides built-in keys when set. |
+| `webhookPublicKey` | `string \| { test?, prod? }` | No | Custom webhook public key(s) (see [Webhook Public Key Resolution](#webhook-public-key-resolution) below) |
 
 ### Private Key Formats
 
@@ -83,9 +83,43 @@ new WaffoPancake({ merchantId: "m_1", privateKey: fs.readFileSync("key.pem", "ut
 new WaffoPancake({ merchantId: "m_1", privateKey: rawBase64String });                   // raw base64
 ```
 
+### Webhook Public Key Resolution
+
+The SDK resolves the webhook verification public key per environment using a multi-level fallback chain:
+
+| Priority | Source | Description |
+|----------|--------|-------------|
+| 1 | `options.publicKey` | Per-call override (highest priority, skips all resolution) |
+| 2 | `config.webhookPublicKey[env]` | Config object per-environment key |
+| 3 | `config.webhookPublicKey` (string) | Config shared key (both environments) |
+| 4 | `WAFFO_WEBHOOK_TEST_PUBLIC_KEY` / `WAFFO_WEBHOOK_PROD_PUBLIC_KEY` | Environment variable per-environment |
+| 5 | `WAFFO_WEBHOOK_PUBLIC_KEY` | Environment variable shared |
+| 6 | Built-in hardcoded key | SDK-embedded Waffo public key (default) |
+
+```typescript
+// Shared key for both environments
+new WaffoPancake({ merchantId: "m_1", privateKey: "...", webhookPublicKey: "MIIBIjAN..." });
+
+// Per-environment keys
+new WaffoPancake({
+  merchantId: "m_1",
+  privateKey: "...",
+  webhookPublicKey: {
+    test: process.env.WAFFO_TEST_PUB_KEY!,
+    prod: process.env.WAFFO_PROD_PUB_KEY!,
+  },
+});
+
+// Or rely on environment variables (no config needed)
+// export WAFFO_WEBHOOK_TEST_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n..."
+// export WAFFO_WEBHOOK_PROD_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n..."
+new WaffoPancake({ merchantId: "m_1", privateKey: "..." });
+// => SDK auto-reads from env vars, falls back to built-in keys
+```
+
 ### Public Key Formats
 
-The `webhookPublicKey` option (and the `publicKey` field in `VerifyWebhookOptions`) accepts the same flexible formats as private keys:
+All public key inputs (config, env vars, per-call) accept the same flexible formats as private keys:
 
 | Format | Example | Notes |
 |--------|---------|-------|
@@ -462,30 +496,31 @@ const event = verifyWebhook(body, sig, { environment: "prod" });
 const event = verifyWebhook(body, sig, { toleranceMs: 0 }); // disable replay check
 ```
 
-### Option B — Client Instance Method (custom public key)
+### Option B — Client Instance Method (multi-level key resolution)
 
-When you provide a `webhookPublicKey` in the client config, `client.webhooks.verify()` uses that key automatically. Useful for self-hosted deployments or custom key rotation.
+`client.webhooks.verify()` uses the [multi-level fallback chain](#webhook-public-key-resolution) automatically: config keys → env vars → built-in keys.
 
 ```typescript
+// Per-environment keys via config
 const client = new WaffoPancake({
   merchantId: process.env.WAFFO_MERCHANT_ID!,
   privateKey: process.env.WAFFO_PRIVATE_KEY!,
-  webhookPublicKey: process.env.WAFFO_WEBHOOK_PUBLIC_KEY!, // any format accepted
+  webhookPublicKey: {
+    test: process.env.WAFFO_TEST_PUB_KEY!,
+    prod: process.env.WAFFO_PROD_PUB_KEY!,
+  },
 });
+const event = client.webhooks.verify(rawBody, sig, { environment: "prod" });
 
-// Uses the configured public key — no need to pass it per call
-const event = client.webhooks.verify(rawBody, signatureHeader);
+// Or rely on env vars (WAFFO_WEBHOOK_TEST_PUBLIC_KEY / WAFFO_WEBHOOK_PROD_PUBLIC_KEY)
+const client2 = new WaffoPancake({
+  merchantId: process.env.WAFFO_MERCHANT_ID!,
+  privateKey: process.env.WAFFO_PRIVATE_KEY!,
+});
+const event2 = client2.webhooks.verify(rawBody, sig); // auto-detect environment
 
-// You can still override per call if needed
-const event = client.webhooks.verify(rawBody, sig, { publicKey: anotherKey });
-```
-
-### Standalone Function with Custom Key
-
-You can also pass a custom key directly to the standalone function without creating a client:
-
-```typescript
-const event = verifyWebhook(body, sig, { publicKey: process.env.MY_PUBLIC_KEY! });
+// Per-call override (highest priority, skips all resolution)
+const event3 = client.webhooks.verify(rawBody, sig, { publicKey: oneOffKey });
 ```
 
 See [Webhook Guide](docs/webhook-guide.md) for all 10 event types, signature algorithm, and best practices.

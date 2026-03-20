@@ -51,11 +51,14 @@ import type { WaffoPancakeConfig } from "./types.js";
  * });
  *
  * @example
- * // Use a custom public key for webhook verification
+ * // Per-environment webhook public keys
  * const client = new WaffoPancake({
  *   merchantId: "...",
  *   privateKey: "...",
- *   webhookPublicKey: myCustomPublicKeyPem,
+ *   webhookPublicKey: {
+ *     test: process.env.WAFFO_TEST_PUB_KEY!,
+ *     prod: process.env.WAFFO_PROD_PUB_KEY!,
+ *   },
  * });
  * const event = client.webhooks.verify(rawBody, signatureHeader);
  */

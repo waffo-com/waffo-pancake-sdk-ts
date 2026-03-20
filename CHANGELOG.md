@@ -8,10 +8,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ### Added
 
-- **Custom webhook public key** — `WaffoPancakeConfig` accepts optional `webhookPublicKey` to override built-in Waffo public keys for webhook signature verification. Useful for self-hosted deployments or custom key rotation.
-- **`client.webhooks.verify()`** — New resource namespace on the client instance. Uses the configured `webhookPublicKey` automatically; supports per-call override via `options.publicKey`.
-- **`VerifyWebhookOptions.publicKey`** — The standalone `verifyWebhook()` function also accepts a custom public key per call, taking precedence over built-in keys and the `environment` option.
-- **Public key normalization** — `normalizePublicKey()` handles the same flexible input formats as `normalizePrivateKey`: literal `\n` from environment variables, Windows `\r\n` line endings, raw base64 without PEM headers, single-line base64, and PKCS#1 (`BEGIN RSA PUBLIC KEY`) format. Applied automatically when a custom public key is used.
+- **Custom webhook public key** — `WaffoPancakeConfig.webhookPublicKey` accepts `string` (shared) or `{ test?, prod? }` (per-environment) to override built-in keys.
+- **Multi-level key resolution** — Webhook public key is resolved per environment: `options.publicKey` (per-call) → config key → `WAFFO_WEBHOOK_{TEST|PROD}_PUBLIC_KEY` env var → `WAFFO_WEBHOOK_PUBLIC_KEY` env var → built-in hardcoded key.
+- **`client.webhooks.verify()`** — New resource namespace on the client instance. Injects config-level keys into the resolution chain automatically; supports per-call override via `options.publicKey`.
+- **`VerifyWebhookOptions.publicKey`** — Per-call override for the standalone `verifyWebhook()` function (highest priority, skips all resolution).
+- **`VerifyWebhookOptions.publicKeys`** — Config-level key(s) for the resolution chain (typically injected by `client.webhooks.verify()`).
+- **`WebhookPublicKeys` type** — `string | { test?: string; prod?: string }`, exported from the package.
+- **Public key normalization** — `normalizePublicKey()` handles the same flexible input formats as `normalizePrivateKey`: literal `\n` from environment variables, Windows `\r\n` line endings, raw base64 without PEM headers, single-line base64, and PKCS#1 (`BEGIN RSA PUBLIC KEY`) format. Applied automatically at every level of the resolution chain.
 
 ## [0.1.6] - 2026-03-18
 

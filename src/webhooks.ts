@@ -2,7 +2,7 @@ import { createVerify } from "node:crypto";
 
 import { normalizePublicKey } from "./signing.js";
 
-import type { VerifyWebhookOptions, WebhookEvent } from "./types.js";
+import type { VerifyWebhookOptions, WebhookEvent, WebhookPublicKeys } from "./types.js";
 
 /** Default tolerance: 5 minutes */
 const DEFAULT_TOLERANCE_MS = 5 * 60 * 1000;
@@ -65,10 +65,54 @@ function rsaVerify(signatureInput: string, v1: string, publicKey: string): boole
 }
 
 /**
+ * Resolve the public key for a given environment using the multi-level fallback chain.
+ *
+ * Resolution order:
+ * 1. `configKeys[env]` or `configKeys` (if string) — from WaffoPancakeConfig
+ * 2. `WAFFO_WEBHOOK_TEST_PUBLIC_KEY` / `WAFFO_WEBHOOK_PROD_PUBLIC_KEY` — env var per-env
+ * 3. `WAFFO_WEBHOOK_PUBLIC_KEY` — env var shared
+ * 4. Built-in hardcoded key
+ *
+ * @param env - Target environment
+ * @param configKeys - Config-level public key(s)
+ * @returns Resolved and normalized PEM public key
+ */
+function resolveKeyForEnv(env: "test" | "prod", configKeys?: WebhookPublicKeys): string {
+  // 1. Config-level key
+  if (typeof configKeys === "string") {
+    return normalizePublicKey(configKeys);
+  }
+  if (configKeys?.[env]) {
+    return normalizePublicKey(configKeys[env]);
+  }
+
+  // 2. Environment variable (per-env)
+  const envSpecific = env === "test"
+    ? process.env.WAFFO_WEBHOOK_TEST_PUBLIC_KEY
+    : process.env.WAFFO_WEBHOOK_PROD_PUBLIC_KEY;
+  if (envSpecific) {
+    return normalizePublicKey(envSpecific);
+  }
+
+  // 3. Environment variable (shared)
+  const generic = process.env.WAFFO_WEBHOOK_PUBLIC_KEY;
+  if (generic) {
+    return normalizePublicKey(generic);
+  }
+
+  // 4. Built-in hardcoded key
+  return env === "test" ? TEST_PUBLIC_KEY : PROD_PUBLIC_KEY;
+}
+
+/**
  * Verify and parse an incoming Waffo Pancake webhook event.
  *
- * Uses built-in Waffo public keys (RSA-SHA256) for signature verification.
- * Test and production environments use different key pairs; both are embedded in the SDK.
+ * Public key resolution (per environment):
+ * 1. `options.publicKey` — per-call override (highest priority, skips all other resolution)
+ * 2. `options.publicKeys[env]` or `options.publicKeys` (string) — config-level
+ * 3. `WAFFO_WEBHOOK_{TEST|PROD}_PUBLIC_KEY` environment variable
+ * 4. `WAFFO_WEBHOOK_PUBLIC_KEY` environment variable
+ * 5. Built-in hardcoded key
  *
  * Behavior:
  * - Parses the `X-Waffo-Signature` header (`t=<timestamp>,v1=<base64sig>`)
@@ -143,31 +187,29 @@ export function verifyWebhook<T = Record<string, unknown>>(
 
   // RSA-SHA256 verification
   const signatureInput = `${t}.${payload}`;
-  const customKey = options?.publicKey;
+  const directKey = options?.publicKey;
 
-  if (customKey) {
-    // Custom public key takes precedence over built-in keys
-    const normalizedKey = normalizePublicKey(customKey);
+  if (directKey) {
+    // Per-call override — highest priority, skip all resolution
+    const normalizedKey = normalizePublicKey(directKey);
     if (!rsaVerify(signatureInput, v1, normalizedKey)) {
       throw new Error("Invalid webhook signature (custom key)");
     }
   } else {
+    const configKeys = options?.publicKeys;
     const env = options?.environment;
 
-    if (env === "test") {
-      if (!rsaVerify(signatureInput, v1, TEST_PUBLIC_KEY)) {
-        throw new Error("Invalid webhook signature (test key)");
-      }
-    } else if (env === "prod") {
-      if (!rsaVerify(signatureInput, v1, PROD_PUBLIC_KEY)) {
-        throw new Error("Invalid webhook signature (prod key)");
+    if (env === "test" || env === "prod") {
+      const key = resolveKeyForEnv(env, configKeys);
+      if (!rsaVerify(signatureInput, v1, key)) {
+        throw new Error(`Invalid webhook signature (${env} key)`);
       }
     } else {
       // Auto-detect: try prod first, then test
-      const prodValid = rsaVerify(signatureInput, v1, PROD_PUBLIC_KEY);
-      if (!prodValid) {
-        const testValid = rsaVerify(signatureInput, v1, TEST_PUBLIC_KEY);
-        if (!testValid) {
+      const prodKey = resolveKeyForEnv("prod", configKeys);
+      if (!rsaVerify(signatureInput, v1, prodKey)) {
+        const testKey = resolveKeyForEnv("test", configKeys);
+        if (!rsaVerify(signatureInput, v1, testKey)) {
           throw new Error("Invalid webhook signature (tried both prod and test keys)");
         }
       }

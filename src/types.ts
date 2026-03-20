@@ -11,8 +11,16 @@ export interface WaffoPancakeConfig {
   baseUrl?: string;
   /** Custom fetch implementation (default: global fetch) */
   fetch?: typeof fetch;
-  /** Custom RSA public key (PEM) for webhook signature verification. When set, overrides the built-in Waffo public keys. */
-  webhookPublicKey?: string;
+  /**
+   * Custom RSA public key(s) for webhook signature verification.
+   *
+   * - `string` — single key used for both test and prod environments
+   * - `{ test?, prod? }` — per-environment keys
+   *
+   * Resolution order per environment: config key → env var → built-in key.
+   * @see {@link VerifyWebhookOptions} for per-call overrides
+   */
+  webhookPublicKey?: WebhookPublicKeys;
 }
 
 // ---------------------------------------------------------------------------
@@ -824,6 +832,14 @@ export interface WebhookEvent<T = WebhookEventData> {
   data: T;
 }
 
+/**
+ * Webhook public key configuration.
+ *
+ * - `string` — single key used for both test and prod environments
+ * - `{ test?, prod? }` — per-environment keys
+ */
+export type WebhookPublicKeys = string | { test?: string; prod?: string };
+
 /** Options for {@link verifyWebhook}. */
 export interface VerifyWebhookOptions {
   /**
@@ -839,8 +855,20 @@ export interface VerifyWebhookOptions {
    */
   toleranceMs?: number;
   /**
-   * Custom RSA public key (PEM) for signature verification.
-   * When provided, overrides both built-in keys and the `environment` option.
+   * Per-call public key override (highest priority).
+   * When provided, skips all other key resolution (config, env vars, built-in).
    */
   publicKey?: string;
+  /**
+   * Config-level public key(s) for the resolution chain.
+   * Typically injected by `client.webhooks.verify()` from `WaffoPancakeConfig.webhookPublicKey`.
+   *
+   * Resolution order per environment:
+   * 1. `publicKey` (per-call override)
+   * 2. `publicKeys[env]` or `publicKeys` (config)
+   * 3. `WAFFO_WEBHOOK_{TEST|PROD}_PUBLIC_KEY` (env var)
+   * 4. `WAFFO_WEBHOOK_PUBLIC_KEY` (env var)
+   * 5. Built-in hardcoded key
+   */
+  publicKeys?: WebhookPublicKeys;
 }

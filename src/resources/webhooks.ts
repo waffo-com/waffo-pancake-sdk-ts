@@ -1,17 +1,21 @@
 import { verifyWebhook } from "../webhooks.js";
 
-import type { VerifyWebhookOptions, WebhookEvent } from "../types.js";
+import type { VerifyWebhookOptions, WebhookEvent, WebhookPublicKeys } from "../types.js";
 
 /** Webhook signature verification resource. */
 export class WebhooksResource {
-  /** @param publicKey - Optional custom RSA public key (PEM or raw base64) */
-  constructor(private readonly publicKey: string | undefined) {}
+  /** @param publicKeys - Optional config-level public key(s) from WaffoPancakeConfig */
+  constructor(private readonly publicKeys: WebhookPublicKeys | undefined) {}
 
   /**
    * Verify and parse an incoming webhook event.
    *
-   * When the client was created with a `webhookPublicKey`, that key is used
-   * automatically. You can still override per-call via `options.publicKey`.
+   * Key resolution order:
+   * 1. `options.publicKey` — per-call override (highest priority)
+   * 2. `config.webhookPublicKey[env]` or `config.webhookPublicKey` (string)
+   * 3. `WAFFO_WEBHOOK_{TEST|PROD}_PUBLIC_KEY` environment variable
+   * 4. `WAFFO_WEBHOOK_PUBLIC_KEY` environment variable
+   * 5. Built-in hardcoded key
    *
    * @param payload - Raw request body string (must be unparsed)
    * @param signatureHeader - Value of the `X-Waffo-Signature` header
@@ -23,8 +27,12 @@ export class WebhooksResource {
    * const event = client.webhooks.verify(rawBody, signatureHeader);
    *
    * @example
-   * // Override tolerance per call
-   * const event = client.webhooks.verify(rawBody, sig, { toleranceMs: 0 });
+   * // Specify environment
+   * const event = client.webhooks.verify(rawBody, sig, { environment: "test" });
+   *
+   * @example
+   * // Per-call key override
+   * const event = client.webhooks.verify(rawBody, sig, { publicKey: oneOffKey });
    */
   verify<T = Record<string, unknown>>(
     payload: string,
@@ -33,7 +41,7 @@ export class WebhooksResource {
   ): WebhookEvent<T> {
     const mergedOptions: VerifyWebhookOptions = {
       ...options,
-      publicKey: options?.publicKey ?? this.publicKey,
+      publicKeys: options?.publicKeys ?? this.publicKeys,
     };
     return verifyWebhook<T>(payload, signatureHeader, mergedOptions);
   }
