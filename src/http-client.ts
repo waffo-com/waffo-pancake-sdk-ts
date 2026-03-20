@@ -10,6 +10,9 @@ const DEFAULT_BASE_URL = "https://waffo-pancake-auth-service.vercel.app";
 /**
  * Internal HTTP client that auto-signs requests and attaches idempotency keys.
  *
+ * The `X-Merchant-Id` header is sent in `mer_{base62}` format as provided by the user.
+ * The gateway decodes it to a raw UUID before forwarding to downstream services.
+ *
  * Not exported publicly — used by resource classes via {@link WaffoPancake}.
  */
 export class HttpClient {

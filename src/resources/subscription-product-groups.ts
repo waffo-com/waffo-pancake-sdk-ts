@@ -19,10 +19,10 @@ export class SubscriptionProductGroupsResource {
    *
    * @example
    * const { group } = await client.subscriptionProductGroups.create({
-   *   storeId: "store_xxx",
+   *   storeId: "sto_xxx",
    *   name: "Pro Plans",
    *   rules: { sharedTrial: true },
-   *   productIds: ["prod_aaa", "prod_bbb"],
+   *   productIds: ["sbp_aaa", "sbp_bbb"],
    * });
    */
   async create(params: CreateSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
@@ -37,8 +37,8 @@ export class SubscriptionProductGroupsResource {
    *
    * @example
    * const { group } = await client.subscriptionProductGroups.update({
-   *   id: "group_xxx",
-   *   productIds: ["prod_aaa", "prod_bbb", "prod_ccc"],
+   *   id: "spg_xxx",
+   *   productIds: ["sbp_aaa", "sbp_bbb", "sbp_ccc"],
    * });
    */
   async update(params: UpdateSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
@@ -52,7 +52,7 @@ export class SubscriptionProductGroupsResource {
    * @returns Deleted group entity
    *
    * @example
-   * const { group } = await client.subscriptionProductGroups.delete({ id: "group_xxx" });
+   * const { group } = await client.subscriptionProductGroups.delete({ id: "spg_xxx" });
    */
   async delete(params: DeleteSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
     return this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/delete-group", params);
@@ -65,7 +65,7 @@ export class SubscriptionProductGroupsResource {
    * @returns Published group entity
    *
    * @example
-   * const { group } = await client.subscriptionProductGroups.publish({ id: "group_xxx" });
+   * const { group } = await client.subscriptionProductGroups.publish({ id: "spg_xxx" });
    */
   async publish(params: PublishSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
     return this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/publish-group", params);

@@ -41,7 +41,7 @@ Remove `taxIncluded` from all `PriceInfo` / `Prices` objects:
 
 ```diff
  const { product } = await client.onetimeProducts.create({
-   storeId: "store_xxx",
+   storeId: "sto_xxx",
    name: "My Product",
    prices: {
 -    USD: { amount: 2900, taxIncluded: false, taxCategory: "digital_goods" },
@@ -54,7 +54,7 @@ Remove `isPublic` from `stores.update()` calls:
 
 ```diff
  const { store } = await client.stores.update({
-   id: "store_xxx",
+   id: "sto_xxx",
 -  isPublic: true,
    name: "Updated Name",
  });

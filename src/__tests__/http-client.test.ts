@@ -135,6 +135,21 @@ describe("HttpClient", () => {
       expect(url).toBe("https://api.test.com/v1/test");
     });
 
+    it("should pass mer_{base62} format merchantId in X-Merchant-Id header", async () => {
+      const mockFetch = createMockFetch({ data: {} });
+      const base62MerchantId = "mer_1mEbVHMBjMiSuPq6SNSkfm";
+      const client = new HttpClient({
+        merchantId: base62MerchantId,
+        privateKey: TEST_PRIVATE_KEY,
+        fetch: mockFetch as unknown as typeof fetch,
+      });
+
+      await client.post("/v1/test", { foo: "bar" });
+
+      const headers = mockFetch.mock.calls[0][1].headers;
+      expect(headers["X-Merchant-Id"]).toBe(base62MerchantId);
+    });
+
     it("should use default baseUrl when not provided", async () => {
       const mockFetch = createMockFetch({ data: {} });
       const client = new HttpClient({

@@ -13,7 +13,7 @@ export class AuthResource {
    *
    * @example
    * const { token, expiresAt } = await client.auth.issueSessionToken({
-   *   storeId: "store_xxx",
+   *   storeId: "sto_xxx",
    *   buyerIdentity: "customer@example.com",
    * });
    */

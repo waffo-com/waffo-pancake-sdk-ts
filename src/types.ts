@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 export interface WaffoPancakeConfig {
-  /** Merchant ID (X-Merchant-Id header) */
+  /** Merchant ID in `mer_{base62}` format (sent as X-Merchant-Id header) */
   merchantId: string;
   /** RSA private key in PEM format for request signing */
   privateKey: string;

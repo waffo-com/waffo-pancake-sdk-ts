@@ -190,7 +190,7 @@ Pass an object with `test` and/or `prod` fields to `WaffoPancakeConfig.webhookPu
 
 ```typescript
 const client = new WaffoPancake({
-  merchantId: "m_1",
+  merchantId: "mer_xxx",
   privateKey: "...",
   webhookPublicKey: {
     test: process.env.MY_TEST_PUB_KEY!,
@@ -223,7 +223,7 @@ A single string key applies to **both** environments. Useful when you use the sa
 
 ```typescript
 const client = new WaffoPancake({
-  merchantId: "m_1",
+  merchantId: "mer_xxx",
   privateKey: "...",
   webhookPublicKey: process.env.WAFFO_PUB_KEY!, // used for both test and prod
 });
@@ -253,7 +253,7 @@ const event = verifyWebhook(body, sig);
 
 // Or via client — also zero code change
 const client = new WaffoPancake({
-  merchantId: "m_1",
+  merchantId: "mer_xxx",
   privateKey: "...",
   // No webhookPublicKey needed — env vars take effect automatically
 });

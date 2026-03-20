@@ -19,22 +19,24 @@ npm install @waffo/pancake-ts
 import { WaffoPancake } from "@waffo/pancake-ts";
 
 const client = new WaffoPancake({
-  merchantId: process.env.WAFFO_MERCHANT_ID!,
+  merchantId: "mer_2D5F8G3H1K4M6N9P0Q7R8S", // mer_{base62} format
   privateKey: process.env.WAFFO_PRIVATE_KEY!,
 });
 
-// Create a store
+// Create a store — IDs are returned in {prefix}_{base62} format
 const { store } = await client.stores.create({ name: "My Store" });
+// => store.id = "sto_..."
 
 // Create a one-time product with multi-currency pricing
 const { product } = await client.onetimeProducts.create({
-  storeId: store.id,
+  storeId: store.id, // "sto_..."
   name: "E-Book: TypeScript Handbook",
   prices: {
     USD: { amount: 2900, taxCategory: "digital_goods" },
     EUR: { amount: 2700, taxCategory: "digital_goods" },
   },
 });
+// => product.id = "otp_..."
 
 // Create a checkout session and redirect the buyer
 const session = await client.checkout.createSession({
@@ -55,7 +57,7 @@ const result = await client.graphql.query<{ stores: Array<{ id: string; name: st
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `merchantId` | `string` | Yes | Merchant ID, sent as `X-Merchant-Id` header |
+| `merchantId` | `string` | Yes | Merchant ID in `mer_{base62}` format (sent as `X-Merchant-Id` header) |
 | `privateKey` | `string` | Yes | RSA private key (see [Private Key Formats](#private-key-formats) below) |
 | `baseUrl` | `string` | No | API base URL (default: `https://waffo-pancake-auth-service.vercel.app`) |
 | `fetch` | `typeof fetch` | No | Custom fetch implementation |
@@ -78,9 +80,9 @@ If the key is invalid or empty, the constructor throws a descriptive error immed
 
 ```typescript
 // All of these work:
-new WaffoPancake({ merchantId: "m_1", privateKey: process.env.PRIVATE_KEY! });         // .env with literal \n
-new WaffoPancake({ merchantId: "m_1", privateKey: fs.readFileSync("key.pem", "utf8") }); // file read
-new WaffoPancake({ merchantId: "m_1", privateKey: rawBase64String });                   // raw base64
+new WaffoPancake({ merchantId: "mer_xxx", privateKey: process.env.PRIVATE_KEY! });         // .env with literal \n
+new WaffoPancake({ merchantId: "mer_xxx", privateKey: fs.readFileSync("key.pem", "utf8") }); // file read
+new WaffoPancake({ merchantId: "mer_xxx", privateKey: rawBase64String });                   // raw base64
 ```
 
 ### Webhook Public Key Resolution
@@ -98,11 +100,11 @@ The SDK resolves the webhook verification public key per environment using a mul
 
 ```typescript
 // Shared key for both environments
-new WaffoPancake({ merchantId: "m_1", privateKey: "...", webhookPublicKey: "MIIBIjAN..." });
+new WaffoPancake({ merchantId: "mer_xxx", privateKey: "...", webhookPublicKey: "MIIBIjAN..." });
 
 // Per-environment keys
 new WaffoPancake({
-  merchantId: "m_1",
+  merchantId: "mer_xxx",
   privateKey: "...",
   webhookPublicKey: {
     test: process.env.WAFFO_TEST_PUB_KEY!,
@@ -113,7 +115,7 @@ new WaffoPancake({
 // Or rely on environment variables (no config needed)
 // export WAFFO_WEBHOOK_TEST_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n..."
 // export WAFFO_WEBHOOK_PROD_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n..."
-new WaffoPancake({ merchantId: "m_1", privateKey: "..." });
+new WaffoPancake({ merchantId: "mer_xxx", privateKey: "..." });
 // => SDK auto-reads from env vars, falls back to built-in keys
 ```
 
@@ -163,7 +165,7 @@ Your backend requests a Session Token on behalf of the buyer. The token carries 
 
 ```typescript
 const { token } = await client.auth.issueSessionToken({
-  storeId: "store_xxx",
+  storeId: "sto_xxx",
   buyerIdentity: "customer@example.com",
 });
 ```
@@ -176,8 +178,8 @@ Create a checkout session with your API Key. The response includes a checkout UR
 import { CheckoutSessionProductType } from "@waffo/pancake-ts";
 
 const session = await client.checkout.createSession({
-  storeId: "store_xxx",
-  productId: "prod_xxx",
+  storeId: "sto_xxx",
+  productId: "otp_xxx",
   productType: CheckoutSessionProductType.Onetime,
   currency: "USD",
   buyerEmail: "customer@example.com",
@@ -225,13 +227,13 @@ app.post("/api/checkout", async (req, res) => {
 
   // Step 1: Issue session token
   const { token } = await client.auth.issueSessionToken({
-    storeId: "store_xxx",
+    storeId: "sto_xxx",
     buyerIdentity: buyerEmail,
   });
 
   // Step 2: Create checkout session
   const session = await client.checkout.createSession({
-    storeId: "store_xxx",
+    storeId: "sto_xxx",
     productId,
     productType: CheckoutSessionProductType.Onetime,
     currency,
@@ -249,7 +251,7 @@ app.post("/api/checkout", async (req, res) => {
 const res = await fetch("/api/checkout", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ productId: "prod_xxx", currency: "USD", buyerEmail: "customer@example.com" }),
+  body: JSON.stringify({ productId: "otp_xxx", currency: "USD", buyerEmail: "customer@example.com" }),
 });
 const { checkoutUrl } = await res.json();
 window.open(checkoutUrl, "_blank", "noopener,noreferrer");
@@ -261,7 +263,7 @@ window.open(checkoutUrl, "_blank", "noopener,noreferrer");
 
 ```typescript
 const { token, expiresAt } = await client.auth.issueSessionToken({
-  storeId: "store_xxx",
+  storeId: "sto_xxx",
   buyerIdentity: "customer@example.com",
 });
 ```
@@ -305,7 +307,7 @@ import { TaxCategory, ProductVersionStatus } from "@waffo/pancake-ts";
 
 // Create with multi-currency pricing
 const { product } = await client.onetimeProducts.create({
-  storeId: "store_xxx",
+  storeId: "sto_xxx",
   name: "E-Book: TypeScript Handbook",
   description: "Complete TypeScript guide for developers",
   prices: {
@@ -337,7 +339,7 @@ await client.onetimeProducts.updateStatus({ id: product.id, status: ProductVersi
 import { BillingPeriod, TaxCategory } from "@waffo/pancake-ts";
 
 const { product } = await client.subscriptionProducts.create({
-  storeId: "store_xxx",
+  storeId: "sto_xxx",
   name: "Pro Plan",
   billingPeriod: BillingPeriod.Monthly,
   prices: { USD: { amount: 999, taxCategory: TaxCategory.SaaS } },
@@ -353,16 +355,16 @@ await client.subscriptionProducts.publish({ id: product.id });
 ```typescript
 // Create a group linking related subscription tiers
 const { group } = await client.subscriptionProductGroups.create({
-  storeId: "store_xxx",
+  storeId: "sto_xxx",
   name: "Pro Plans",
   rules: { sharedTrial: true },
-  productIds: ["prod_aaa", "prod_bbb"],
+  productIds: ["sbp_aaa", "sbp_bbb"],
 });
 
 // Update members (full replacement, not merge)
 await client.subscriptionProductGroups.update({
   id: group.id,
-  productIds: ["prod_aaa", "prod_bbb", "prod_ccc"],
+  productIds: ["sbp_aaa", "sbp_bbb", "sbp_ccc"],
 });
 
 // Publish / delete
@@ -374,7 +376,7 @@ await client.subscriptionProductGroups.delete({ id: group.id });
 
 ```typescript
 const { orderId, status } = await client.orders.cancelSubscription({
-  orderId: "order_xxx",
+  orderId: "sbo_xxx",
 });
 // status: "canceled" (was pending) or "canceling" (was active, PSP notified)
 ```
@@ -386,8 +388,8 @@ import { CheckoutSessionProductType } from "@waffo/pancake-ts";
 
 // One-time product checkout
 const session = await client.checkout.createSession({
-  storeId: "store_xxx",
-  productId: "prod_xxx",
+  storeId: "sto_xxx",
+  productId: "otp_xxx",
   productType: CheckoutSessionProductType.Onetime,
   currency: "USD",
   buyerEmail: "customer@example.com",
@@ -397,8 +399,8 @@ const session = await client.checkout.createSession({
 
 // Subscription with trial and billing detail
 const subSession = await client.checkout.createSession({
-  storeId: "store_xxx",
-  productId: "prod_yyy",
+  storeId: "sto_xxx",
+  productId: "sbp_yyy",
   productType: CheckoutSessionProductType.Subscription,
   currency: "USD",
   withTrial: true,
@@ -420,7 +422,7 @@ const result = await client.graphql.query<StoresQuery>({
 // Query with variables
 const product = await client.graphql.query({
   query: `query ($id: ID!) { onetimeProduct(id: $id) { id name prices } }`,
-  variables: { id: "prod_xxx" },
+  variables: { id: "otp_xxx" },
 });
 
 // Nested relationships in a single request
@@ -432,7 +434,7 @@ const detail = await client.graphql.query({
       subscriptionProducts { id name billingPeriod status }
     }
   }`,
-  variables: { id: "store_xxx" },
+  variables: { id: "sto_xxx" },
 });
 ```
 

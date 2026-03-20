@@ -69,7 +69,7 @@ const { data } = await client.graphql.query<StoreQuery>({
       id name slug status supportEmail createdAt
     }
   }`,
-  variables: { id: "store_xxx" },
+  variables: { id: "sto_xxx" },
 });
 
 // Fetch a one-time product by ID
@@ -87,7 +87,7 @@ const product = await client.graphql.query<ProductQuery>({
       id name status prices
     }
   }`,
-  variables: { id: "prod_xxx" },
+  variables: { id: "otp_xxx" },
 });
 ```
 
@@ -172,7 +172,7 @@ const storeDetail = await client.graphql.query<StoreWithProductsQuery>({
       subscriptionProducts { id name billingPeriod status }
     }
   }`,
-  variables: { storeId: "store_xxx" },
+  variables: { storeId: "sto_xxx" },
 });
 
 // Order → Payments → Refunds
@@ -199,7 +199,7 @@ const orderDetail = await client.graphql.query<OrderDetailQuery>({
       }
     }
   }`,
-  variables: { orderId: "order_xxx" },
+  variables: { orderId: "oto_xxx" },
 });
 ```
 
@@ -250,7 +250,7 @@ const overview = await client.graphql.query<OverviewQuery>({
     subscriptionProducts(limit: 5) { id name billingPeriod }
     orders(limit: 10, offset: 0) { id status totalAmount currency }
   }`,
-  variables: { storeId: "store_xxx" },
+  variables: { storeId: "sto_xxx" },
 });
 ```
 
