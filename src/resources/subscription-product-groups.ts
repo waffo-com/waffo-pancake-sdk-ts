@@ -37,7 +37,7 @@ export class SubscriptionProductGroupsResource {
    *
    * @example
    * const { group } = await client.subscriptionProductGroups.update({
-   *   id: "spg_xxx",
+   *   id: "grp_xxx",
    *   productIds: ["prod_aaa", "prod_bbb", "prod_ccc"],
    * });
    */
@@ -52,7 +52,7 @@ export class SubscriptionProductGroupsResource {
    * @returns Deleted group entity
    *
    * @example
-   * const { group } = await client.subscriptionProductGroups.delete({ id: "spg_xxx" });
+   * const { group } = await client.subscriptionProductGroups.delete({ id: "grp_xxx" });
    */
   async delete(params: DeleteSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
     return this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/delete-group", params);
@@ -65,7 +65,7 @@ export class SubscriptionProductGroupsResource {
    * @returns Published group entity
    *
    * @example
-   * const { group } = await client.subscriptionProductGroups.publish({ id: "spg_xxx" });
+   * const { group } = await client.subscriptionProductGroups.publish({ id: "grp_xxx" });
    */
   async publish(params: PublishSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
     return this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/publish-group", params);

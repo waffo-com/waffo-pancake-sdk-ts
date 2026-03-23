@@ -821,8 +821,8 @@ export interface WebhookEventData {
  *   id: "550e8400-...",
  *   timestamp: "2026-03-10T08:30:00.000Z",
  *   eventType: "order.completed",
- *   eventId: "pay_660e8400-...",
- *   storeId: "770e8400-...",
+ *   eventId: "pay_5xK9mRtYvWnPqLsJ3hBfDe",
+ *   storeId: "sto_2aUyqjCzEIiEcYMKj7TZtw",
  *   mode: "prod",
  *   data: { orderId: "...", buyerEmail: "...", currency: "USD", amount: 2900, taxAmount: 290, productName: "Pro Plan" }
  * }
