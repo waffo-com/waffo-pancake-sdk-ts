@@ -18,7 +18,7 @@ Issue a buyer session token (JWT) for storefront authentication.
 
 ```typescript
 const { token, expiresAt } = await client.auth.issueSessionToken({
-  storeId: "sto_xxx",
+  storeId: "STO_xxx",
   buyerIdentity: "customer@example.com",
 });
 ```
@@ -63,7 +63,7 @@ Update store settings including webhook endpoints, notification preferences, and
 
 ```typescript
 const { store } = await client.stores.update({
-  id: "sto_xxx",
+  id: "STO_xxx",
   name: "Updated Name",
   supportEmail: "help@example.com",
   webhookSettings: {
@@ -124,7 +124,7 @@ const { store } = await client.stores.update({
 Soft-delete a store. Only the store owner can perform this operation.
 
 ```typescript
-const { store } = await client.stores.delete({ id: "sto_xxx" });
+const { store } = await client.stores.delete({ id: "STO_xxx" });
 ```
 
 **Parameters `DeleteStoreParams`**:
@@ -147,7 +147,7 @@ Add a merchant to a store with a specified role.
 
 ```typescript
 const result = await client.storeMerchants.add({
-  storeId: "sto_xxx",
+  storeId: "STO_xxx",
   email: "member@example.com",
   role: "admin",
 });
@@ -178,8 +178,8 @@ Remove a merchant from a store.
 
 ```typescript
 const result = await client.storeMerchants.remove({
-  storeId: "sto_xxx",
-  merchantId: "mer_xxx",
+  storeId: "STO_xxx",
+  merchantId: "MER_xxx",
 });
 ```
 
@@ -203,8 +203,8 @@ Update a merchant's role within a store.
 
 ```typescript
 const result = await client.storeMerchants.updateRole({
-  storeId: "sto_xxx",
-  merchantId: "mer_xxx",
+  storeId: "STO_xxx",
+  merchantId: "MER_xxx",
   role: "member",
 });
 ```
@@ -238,7 +238,7 @@ Create a one-time product with multi-currency pricing.
 import { TaxCategory } from "@waffo/pancake-ts";
 
 const { product } = await client.onetimeProducts.create({
-  storeId: "sto_xxx",
+  storeId: "STO_xxx",
   name: "E-Book: TypeScript Handbook",
   description: "Complete TypeScript guide for developers",
   prices: {
@@ -272,7 +272,7 @@ Update a one-time product. Creates a new immutable version; skips if content is 
 
 ```typescript
 const { product } = await client.onetimeProducts.update({
-  id: "prod_xxx",
+  id: "PROD_xxx",
   name: "E-Book: TypeScript Handbook v2",
   prices: { USD: { amount: 3900, taxCategory: "digital_goods" } },
 });
@@ -297,7 +297,7 @@ const { product } = await client.onetimeProducts.update({
 Publish the test version to production.
 
 ```typescript
-const { product } = await client.onetimeProducts.publish({ id: "prod_xxx" });
+const { product } = await client.onetimeProducts.publish({ id: "PROD_xxx" });
 ```
 
 **Parameters `PublishOnetimeProductParams`**:
@@ -316,7 +316,7 @@ Activate or deactivate a product.
 import { ProductVersionStatus } from "@waffo/pancake-ts";
 
 const { product } = await client.onetimeProducts.updateStatus({
-  id: "prod_xxx",
+  id: "PROD_xxx",
   status: ProductVersionStatus.Inactive,
 });
 ```
@@ -342,7 +342,7 @@ Create a subscription product with a billing period and multi-currency pricing.
 import { BillingPeriod, TaxCategory } from "@waffo/pancake-ts";
 
 const { product } = await client.subscriptionProducts.create({
-  storeId: "sto_xxx",
+  storeId: "STO_xxx",
   name: "Pro Plan",
   billingPeriod: BillingPeriod.Monthly,
   prices: { USD: { amount: 999, taxCategory: TaxCategory.SaaS } },
@@ -371,7 +371,7 @@ Update a subscription product. Creates a new immutable version; skips if unchang
 
 ```typescript
 const { product } = await client.subscriptionProducts.update({
-  id: "prod_xxx",
+  id: "PROD_xxx",
   name: "Pro Plan v2",
   billingPeriod: BillingPeriod.Monthly,
   prices: { USD: { amount: 1499, taxCategory: "saas" } },
@@ -387,7 +387,7 @@ const { product } = await client.subscriptionProducts.update({
 Publish the test version to production.
 
 ```typescript
-const { product } = await client.subscriptionProducts.publish({ id: "prod_xxx" });
+const { product } = await client.subscriptionProducts.publish({ id: "PROD_xxx" });
 ```
 
 **Returns `{ product: SubscriptionProductDetail }`**
@@ -398,7 +398,7 @@ Activate or deactivate a subscription product.
 
 ```typescript
 const { product } = await client.subscriptionProducts.updateStatus({
-  id: "prod_xxx",
+  id: "PROD_xxx",
   status: ProductVersionStatus.Active,
 });
 ```
@@ -415,11 +415,11 @@ Groups enable **shared trial periods** and **plan switching** across related sub
 
 ```typescript
 const { group } = await client.subscriptionProductGroups.create({
-  storeId: "sto_xxx",
+  storeId: "STO_xxx",
   name: "Pro Plans",
   description: "All Pro tier plans",
   rules: { sharedTrial: true },
-  productIds: ["prod_aaa", "prod_bbb"],
+  productIds: ["PROD_aaa", "PROD_bbb"],
 });
 ```
 
@@ -442,7 +442,7 @@ Update a group. `productIds` is a **full replacement** (not a merge).
 ```typescript
 const { group } = await client.subscriptionProductGroups.update({
   id: "spg_xxx",
-  productIds: ["prod_aaa", "prod_bbb", "prod_ccc"],
+  productIds: ["PROD_aaa", "PROD_bbb", "PROD_ccc"],
 });
 ```
 
@@ -483,7 +483,7 @@ Cancel a subscription order. The resulting status depends on the current order s
 
 ```typescript
 const { orderId, status } = await client.orders.cancelSubscription({
-  orderId: "ord_xxx",
+  orderId: "ORD_xxx",
 });
 // status: "canceled" or "canceling"
 ```
@@ -514,8 +514,8 @@ import { CheckoutSessionProductType } from "@waffo/pancake-ts";
 
 // One-time product checkout
 const session = await client.checkout.createSession({
-  storeId: "sto_xxx",
-  productId: "prod_xxx",
+  storeId: "STO_xxx",
+  productId: "PROD_xxx",
   productType: CheckoutSessionProductType.Onetime,
   currency: "USD",
   buyerEmail: "customer@example.com",
@@ -525,7 +525,7 @@ const session = await client.checkout.createSession({
 
 // Subscription with trial
 const subSession = await client.checkout.createSession({
-  productId: "prod_yyy",
+  productId: "PROD_yyy",
   productType: CheckoutSessionProductType.Subscription,
   currency: "USD",
   withTrial: true,
@@ -534,7 +534,7 @@ const subSession = await client.checkout.createSession({
 
 // With price snapshot override
 const snapshotSession = await client.checkout.createSession({
-  productId: "prod_xxx",
+  productId: "PROD_xxx",
   productType: "onetime",
   currency: "USD",
   priceSnapshot: { amount: 1999, taxCategory: "digital_goods" },
@@ -583,7 +583,7 @@ const result = await client.graphql.query<StoresQuery>({
 
 const productResult = await client.graphql.query({
   query: `query ($id: ID!) { onetimeProduct(id: $id) { id name prices } }`,
-  variables: { id: "prod_xxx" },
+  variables: { id: "PROD_xxx" },
 });
 ```
 

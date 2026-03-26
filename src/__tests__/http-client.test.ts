@@ -135,9 +135,9 @@ describe("HttpClient", () => {
       expect(url).toBe("https://api.test.com/v1/test");
     });
 
-    it("should pass mer_{base62} format merchantId in X-Merchant-Id header", async () => {
+    it("should pass MER_{base62} format merchantId in X-Merchant-Id header", async () => {
       const mockFetch = createMockFetch({ data: {} });
-      const base62MerchantId = "mer_1mEbVHMBjMiSuPq6SNSkfm";
+      const base62MerchantId = "MER_1mEbVHMBjMiSuPq6SNSkfm";
       const client = new HttpClient({
         merchantId: base62MerchantId,
         privateKey: TEST_PRIVATE_KEY,

@@ -19,10 +19,10 @@ export class SubscriptionProductGroupsResource {
    *
    * @example
    * const { group } = await client.subscriptionProductGroups.create({
-   *   storeId: "sto_xxx",
+   *   storeId: "STO_xxx",
    *   name: "Pro Plans",
    *   rules: { sharedTrial: true },
-   *   productIds: ["prod_aaa", "prod_bbb"],
+   *   productIds: ["PROD_aaa", "PROD_bbb"],
    * });
    */
   async create(params: CreateSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
@@ -37,8 +37,8 @@ export class SubscriptionProductGroupsResource {
    *
    * @example
    * const { group } = await client.subscriptionProductGroups.update({
-   *   id: "grp_xxx",
-   *   productIds: ["prod_aaa", "prod_bbb", "prod_ccc"],
+   *   id: "GRP_xxx",
+   *   productIds: ["PROD_aaa", "PROD_bbb", "PROD_ccc"],
    * });
    */
   async update(params: UpdateSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
@@ -52,7 +52,7 @@ export class SubscriptionProductGroupsResource {
    * @returns Deleted group entity
    *
    * @example
-   * const { group } = await client.subscriptionProductGroups.delete({ id: "grp_xxx" });
+   * const { group } = await client.subscriptionProductGroups.delete({ id: "GRP_xxx" });
    */
   async delete(params: DeleteSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
     return this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/delete-group", params);
@@ -65,7 +65,7 @@ export class SubscriptionProductGroupsResource {
    * @returns Published group entity
    *
    * @example
-   * const { group } = await client.subscriptionProductGroups.publish({ id: "grp_xxx" });
+   * const { group } = await client.subscriptionProductGroups.publish({ id: "GRP_xxx" });
    */
   async publish(params: PublishSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup }> {
     return this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/publish-group", params);

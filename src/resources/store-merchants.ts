@@ -20,7 +20,7 @@ export class StoreMerchantsResource {
    *
    * @example
    * const result = await client.storeMerchants.add({
-   *   storeId: "sto_xxx",
+   *   storeId: "STO_xxx",
    *   email: "member@example.com",
    *   role: "admin",
    * });
@@ -37,8 +37,8 @@ export class StoreMerchantsResource {
    *
    * @example
    * const result = await client.storeMerchants.remove({
-   *   storeId: "sto_xxx",
-   *   merchantId: "mer_xxx",
+   *   storeId: "STO_xxx",
+   *   merchantId: "MER_xxx",
    * });
    */
   async remove(params: RemoveMerchantParams): Promise<RemoveMerchantResult> {
@@ -53,8 +53,8 @@ export class StoreMerchantsResource {
    *
    * @example
    * const result = await client.storeMerchants.updateRole({
-   *   storeId: "sto_xxx",
-   *   merchantId: "mer_xxx",
+   *   storeId: "STO_xxx",
+   *   merchantId: "MER_xxx",
    *   role: "member",
    * });
    */

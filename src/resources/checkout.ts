@@ -13,8 +13,8 @@ export class CheckoutResource {
    *
    * @example
    * const session = await client.checkout.createSession({
-   *   storeId: "sto_xxx",
-   *   productId: "prod_xxx",
+   *   storeId: "STO_xxx",
+   *   productId: "PROD_xxx",
    *   productType: "onetime",
    *   currency: "USD",
    *   buyerEmail: "customer@example.com",

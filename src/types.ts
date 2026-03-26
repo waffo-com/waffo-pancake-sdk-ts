@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 
 export interface WaffoPancakeConfig {
-  /** Merchant ID in `mer_{base62}` format (sent as X-Merchant-Id header) */
+  /** Merchant ID in `MER_{base62}` format (sent as X-Merchant-Id header) */
   merchantId: string;
   /** RSA private key in PEM format for request signing */
   privateKey: string;
@@ -821,8 +821,8 @@ export interface WebhookEventData {
  *   id: "550e8400-...",
  *   timestamp: "2026-03-10T08:30:00.000Z",
  *   eventType: "order.completed",
- *   eventId: "pay_5xK9mRtYvWnPqLsJ3hBfDe",
- *   storeId: "sto_2aUyqjCzEIiEcYMKj7TZtw",
+ *   eventId: "PAY_5xK9mRtYvWnPqLsJ3hBfDe",
+ *   storeId: "STO_2aUyqjCzEIiEcYMKj7TZtw",
  *   mode: "prod",
  *   data: { orderId: "...", buyerEmail: "...", currency: "USD", amount: 2900, taxAmount: 290, productName: "Pro Plan" }
  * }

@@ -31,7 +31,7 @@ export class StoresResource {
    *
    * @example
    * const { store } = await client.stores.update({
-   *   id: "sto_xxx",
+   *   id: "STO_xxx",
    *   name: "Updated Name",
    * });
    */
@@ -46,7 +46,7 @@ export class StoresResource {
    * @returns Deleted store entity (with `deletedAt` set)
    *
    * @example
-   * const { store } = await client.stores.delete({ id: "sto_xxx" });
+   * const { store } = await client.stores.delete({ id: "STO_xxx" });
    */
   async delete(params: DeleteStoreParams): Promise<{ store: Store }> {
     return this.http.post<{ store: Store }>("/v1/actions/store/delete-store", params);

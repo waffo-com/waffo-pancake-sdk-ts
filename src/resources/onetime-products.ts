@@ -19,7 +19,7 @@ export class OnetimeProductsResource {
    *
    * @example
    * const { product } = await client.onetimeProducts.create({
-   *   storeId: "sto_xxx",
+   *   storeId: "STO_xxx",
    *   name: "E-Book",
    *   prices: { USD: { amount: 2900, taxCategory: "digital_goods" } },
    * });
@@ -36,7 +36,7 @@ export class OnetimeProductsResource {
    *
    * @example
    * const { product } = await client.onetimeProducts.update({
-   *   id: "prod_xxx",
+   *   id: "PROD_xxx",
    *   name: "E-Book v2",
    *   prices: { USD: { amount: 3900, taxCategory: "digital_goods" } },
    * });
@@ -52,7 +52,7 @@ export class OnetimeProductsResource {
    * @returns Published product detail
    *
    * @example
-   * const { product } = await client.onetimeProducts.publish({ id: "prod_xxx" });
+   * const { product } = await client.onetimeProducts.publish({ id: "PROD_xxx" });
    */
   async publish(params: PublishOnetimeProductParams): Promise<{ product: OnetimeProductDetail }> {
     return this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/publish-product", params);
@@ -66,7 +66,7 @@ export class OnetimeProductsResource {
    *
    * @example
    * const { product } = await client.onetimeProducts.updateStatus({
-   *   id: "prod_xxx",
+   *   id: "PROD_xxx",
    *   status: ProductVersionStatus.Inactive,
    * });
    */

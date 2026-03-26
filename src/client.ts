@@ -22,21 +22,21 @@ import type { WaffoPancakeConfig } from "./types.js";
  * import { WaffoPancake } from "@waffo/pancake-ts";
  *
  * const client = new WaffoPancake({
- *   merchantId: "mer_2D5F8G3H1K4M6N9P0Q7R8S", // mer_{base62} format
+ *   merchantId: "MER_2D5F8G3H1K4M6N9P0Q7R8S", // MER_{base62} format
  *   privateKey: process.env.WAFFO_PRIVATE_KEY!,
  * });
  *
  * // Create a store — IDs are returned in {prefix}_{base62} format
  * const { store } = await client.stores.create({ name: "My Store" });
- * // => store.id = "sto_..."
+ * // => store.id = "STO_..."
  *
  * // Create a product
  * const { product } = await client.onetimeProducts.create({
- *   storeId: store.id, // "sto_..."
+ *   storeId: store.id, // "STO_..."
  *   name: "E-Book",
  *   prices: { USD: { amount: 2900, taxCategory: "digital_goods" } },
  * });
- * // => product.id = "prod_..."
+ * // => product.id = "PROD_..."
  *
  * // Create a checkout session
  * const session = await client.checkout.createSession({

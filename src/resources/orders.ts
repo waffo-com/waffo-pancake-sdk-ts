@@ -16,7 +16,7 @@ export class OrdersResource {
    *
    * @example
    * const { orderId, status } = await client.orders.cancelSubscription({
-   *   orderId: "ord_xxx",
+   *   orderId: "ORD_xxx",
    * });
    * // status: "canceled" or "canceling"
    */
