@@ -111,7 +111,7 @@ const eslintConfig = defineConfig([
         {
           require: {
             FunctionDeclaration: true,
-            MethodDefinition: false,
+            MethodDefinition: true,
             ClassDeclaration: true,
             ArrowFunctionExpression: false,
             FunctionExpression: false,

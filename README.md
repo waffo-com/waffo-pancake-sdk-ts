@@ -147,7 +147,7 @@ All public key inputs (config, env vars, per-call) accept the same flexible form
 | `client.graphql` | `query<T>()` | Typed GraphQL queries (Query only, no Mutations) |
 | `client.webhooks` | `verify<T>()` | Webhook signature verification (uses configured `webhookPublicKey` or built-in keys) |
 
-See [API Reference](docs/api-reference.md) for complete parameter tables and return types.
+See the API Reference for complete parameter tables and return types.
 
 ## Checkout Integration
 
@@ -438,7 +438,7 @@ const detail = await client.graphql.query({
 });
 ```
 
-See [GraphQL Guide](docs/graphql-guide.md) for introspection, filters, pagination, and more examples.
+See the GraphQL Guide for introspection, filters, pagination, and more examples.
 
 ## Webhook Verification
 
@@ -525,7 +525,7 @@ const event2 = client2.webhooks.verify(rawBody, sig); // auto-detect environment
 const event3 = client.webhooks.verify(rawBody, sig, { publicKey: oneOffKey });
 ```
 
-See [Webhook Guide](docs/webhook-guide.md) for event types, signature algorithm, public key resolution, and best practices.
+See the Webhook Guide for event types, signature algorithm, public key resolution, and best practices.
 
 ## Error Handling
 
@@ -573,7 +573,7 @@ Runtime-accessible values. Both `Enum.Value` and string literal syntax are suppo
 | `EntityStatus` | `Active`, `Inactive`, `Suspended` |
 | `StoreRole` | `Owner`, `Admin`, `Member` |
 | `OnetimeOrderStatus` | `Pending`, `Completed`, `Canceled` |
-| `SubscriptionOrderStatus` | `Pending`, `Active`, `Canceling`, `Canceled`, `PastDue`, `Expired` |
+| `SubscriptionOrderStatus` | `Pending`, `Active`, `Canceling`, `PastDue`, `Closed`, `Canceled`, `Expired` |
 | `PaymentStatus` | `Pending`, `Succeeded`, `Failed`, `Canceled` |
 | `RefundTicketStatus` | `Pending`, `Approved`, `Rejected`, `Processing`, `Succeeded`, `Failed` |
 | `RefundStatus` | `Succeeded`, `Failed` |
@@ -584,7 +584,7 @@ Runtime-accessible values. Both `Enum.Value` and string literal syntax are suppo
 
 ### Types
 
-Key types: `WaffoPancakeConfig`, `WebhookPublicKeys`, `VerifyWebhookOptions`, `WebhookEvent<T>`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `CheckoutSessionResult`, `GraphQLResponse<T>`, and 30+ more. See [API Reference — Types](docs/api-reference.md#types) for the full list.
+Key types: `WaffoPancakeConfig`, `WebhookPublicKeys`, `VerifyWebhookOptions`, `WebhookEvent<T>`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `CheckoutSessionResult`, `GraphQLResponse<T>`, and 30+ more. See the API Reference for the full list.
 
 ## Development
 
@@ -619,10 +619,6 @@ src/
     ├── checkout.ts
     ├── graphql.ts
     └── webhooks.ts
-docs/
-├── api-reference.md       # Complete API reference
-├── graphql-guide.md       # GraphQL usage guide
-└── webhook-guide.md       # Webhook verification guide
 ```
 
 ## License
