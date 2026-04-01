@@ -419,22 +419,22 @@ export interface UpdateRoleResult {
 /**
  * Price for a single currency.
  *
- * Amounts are stored in the smallest currency unit (e.g. cents, yen)
- * to avoid floating-point precision issues.
+ * Amounts are represented as display strings (e.g., "9.99" for USD, "1000" for JPY).
+ * The server handles conversion to/from smallest currency units internally.
  *
  * @see waffo-pancake-product-service/app/lib/resources/types.ts
  *
  * @example
  * // USD $9.99
- * { amount: 999, taxCategory: "saas" }
+ * { amount: "9.99", taxCategory: "saas" }
  *
  * @example
  * // JPY ¥1000
  * { amount: 1000, taxCategory: "software" }
  */
 export interface PriceInfo {
-  /** Price amount in smallest currency unit */
-  amount: number;
+  /** Price amount as display string (e.g., "9.99" for USD, "1000" for JPY) */
+  amount: string;
   /** Tax category */
   taxCategory: TaxCategory;
 }
@@ -446,7 +446,7 @@ export interface PriceInfo {
  *
  * @example
  * {
- *   "USD": { amount: 999, taxCategory: "saas" },
+ *   "USD": { amount: "9.99", taxCategory: "saas" },
  *   "EUR": { amount: 899, taxCategory: "saas" }
  * }
  */
@@ -806,10 +806,10 @@ export interface WebhookEventData {
   orderId: string;
   buyerEmail: string;
   currency: string;
-  /** Amount in smallest currency unit */
-  amount: number;
-  /** Tax amount in smallest currency unit */
-  taxAmount: number;
+  /** Amount as display string (e.g., "9.99" for USD, "1000" for JPY) */
+  amount: string;
+  /** Tax amount as display string (e.g., "0.91" for USD) */
+  taxAmount: string;
   productName: string;
 }
 

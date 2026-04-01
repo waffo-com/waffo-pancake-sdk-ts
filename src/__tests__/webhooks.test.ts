@@ -103,7 +103,7 @@ describe("verifyWebhook", () => {
         eventId: "PAY_456",
         storeId: "store_789",
         mode: "prod",
-        data: { orderId: "order_abc", buyerEmail: "test@example.com", currency: "USD", amount: 2900, taxAmount: 290, productName: "Pro Plan" },
+        data: { orderId: "order_abc", buyerEmail: "test@example.com", currency: "USD", amount: "29.00", taxAmount: "2.90", productName: "Pro Plan" },
       };
 
       const payload = JSON.stringify(event);
@@ -123,7 +123,7 @@ describe("verifyWebhook", () => {
         eventId: "PAY_789",
         storeId: "store_abc",
         mode: "prod",
-        data: { orderId: "order_xyz", buyerEmail: "a@b.com", currency: "USD", amount: 100, taxAmount: 10, productName: "Test" },
+        data: { orderId: "order_xyz", buyerEmail: "a@b.com", currency: "USD", amount: "1.00", taxAmount: "0.10", productName: "Test" },
       };
 
       const payload = JSON.stringify(event);
