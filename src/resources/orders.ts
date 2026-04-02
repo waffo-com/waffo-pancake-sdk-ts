@@ -1,3 +1,5 @@
+import { validateShortId } from "../validation.js";
+
 import type { HttpClient } from "../http-client.js";
 import type { CancelSubscriptionParams, CancelSubscriptionResult } from "../types.js";
 
@@ -21,6 +23,7 @@ export class OrdersResource {
    * // status: "canceled" or "canceling"
    */
   async cancelSubscription(params: CancelSubscriptionParams): Promise<CancelSubscriptionResult> {
+    validateShortId("orderId", params.orderId, "ORD");
     return this.http.post<CancelSubscriptionResult>("/v1/actions/subscription-order/cancel-order", params);
   }
 }

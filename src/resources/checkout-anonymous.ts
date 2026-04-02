@@ -1,3 +1,5 @@
+import { validateCheckoutCommon } from "../validation.js";
+
 import type { HttpClient } from "../http-client.js";
 import type { AnonymousCheckoutParams, CheckoutSessionResult } from "../types.js";
 
@@ -26,6 +28,7 @@ export class CheckoutAnonymousResource {
    * // Redirect to result.checkoutUrl
    */
   async create(params: AnonymousCheckoutParams): Promise<CheckoutSessionResult> {
+    validateCheckoutCommon(params);
     return this.http.post<CheckoutSessionResult>(
       "/v1/actions/checkout/create-session",
       params,

@@ -176,11 +176,14 @@ export enum PaymentStatus {
  */
 export enum RefundTicketStatus {
   Pending = "pending",
+  UnderReview = "under_review",
   Approved = "approved",
   Rejected = "rejected",
+  Returned = "returned",
   Processing = "processing",
   Succeeded = "succeeded",
   Failed = "failed",
+  Cancelled = "cancelled",
 }
 
 /**
@@ -222,6 +225,8 @@ export enum ErrorLayer {
   Resource = "resource",
   /** SDK-specific layer for email delivery errors (not part of the service-side error layers). */
   Email = "email",
+  /** SDK-side input validation (caught before network request). */
+  Sdk = "sdk",
 }
 
 // ---------------------------------------------------------------------------
@@ -430,7 +435,7 @@ export interface UpdateRoleResult {
  *
  * @example
  * // JPY ¥1000
- * { amount: 1000, taxCategory: "software" }
+ * { amount: "1000", taxCategory: "software" }
  */
 export interface PriceInfo {
   /** Price amount as display string (e.g., "9.99" for USD, "1000" for JPY) */
@@ -447,7 +452,7 @@ export interface PriceInfo {
  * @example
  * {
  *   "USD": { amount: "9.99", taxCategory: "saas" },
- *   "EUR": { amount: 899, taxCategory: "saas" }
+ *   "EUR": { amount: "8.99", taxCategory: "saas" }
  * }
  */
 export type Prices = Record<string, PriceInfo>;
@@ -824,7 +829,7 @@ export interface RefundTicket {
   /** Submitter type (e.g., `"customer"`, `"merchant"`) */
   submitterType: string;
   /** Current version ID */
-  currentVersionId: string;
+  currentVersionId: string | null;
   /** Reviewer ID (null if not yet reviewed) */
   reviewerId: string | null;
   /** Review timestamp (ISO 8601, null if not yet reviewed) */
@@ -838,9 +843,13 @@ export interface RefundTicket {
   /** Custom metadata */
   metadata: Record<string, unknown>;
   /** Current version number */
-  versionNumber: number;
+  versionNumber: number | null;
   /** Current version data (includes reason, amount, etc.) */
-  versionData: Record<string, unknown>;
+  versionData: Record<string, unknown> | null;
+  /** Creation timestamp (ISO 8601) */
+  createdAt: string;
+  /** Last update timestamp (ISO 8601) */
+  updatedAt: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -1029,7 +1038,7 @@ export interface WebhookEventData {
  *   eventId: "PAY_5xK9mRtYvWnPqLsJ3hBfDe",
  *   storeId: "STO_2aUyqjCzEIiEcYMKj7TZtw",
  *   mode: "prod",
- *   data: { orderId: "...", buyerEmail: "...", currency: "USD", amount: 2900, taxAmount: 290, productName: "Pro Plan" }
+ *   data: { orderId: "...", buyerEmail: "...", currency: "USD", amount: "29.00", taxAmount: "2.90", productName: "Pro Plan" }
  * }
  */
 export interface WebhookEvent<T = WebhookEventData> {

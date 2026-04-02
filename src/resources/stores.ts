@@ -1,3 +1,5 @@
+import { validateRequired, validateShortId } from "../validation.js";
+
 import type { HttpClient } from "../http-client.js";
 import type {
   CreateStoreParams,
@@ -20,6 +22,7 @@ export class StoresResource {
    * const { store } = await client.stores.create({ name: "My Store" });
    */
   async create(params: CreateStoreParams): Promise<{ store: Store }> {
+    validateRequired("name", params.name);
     return this.http.post<{ store: Store }>("/v1/actions/store/create-store", params);
   }
 
@@ -36,6 +39,7 @@ export class StoresResource {
    * });
    */
   async update(params: UpdateStoreParams): Promise<{ store: Store }> {
+    validateShortId("id", params.id, "STO");
     return this.http.post<{ store: Store }>("/v1/actions/store/update-store", params);
   }
 
@@ -49,6 +53,7 @@ export class StoresResource {
    * const { store } = await client.stores.delete({ id: "STO_xxx" });
    */
   async delete(params: DeleteStoreParams): Promise<{ store: Store }> {
+    validateShortId("id", params.id, "STO");
     return this.http.post<{ store: Store }>("/v1/actions/store/delete-store", params);
   }
 }

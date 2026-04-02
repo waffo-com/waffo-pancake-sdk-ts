@@ -1,3 +1,5 @@
+import { validateCheckoutCommon, validateRequired } from "../validation.js";
+
 import type { HttpClient } from "../http-client.js";
 import type {
   AuthenticatedCheckoutParams,
@@ -39,6 +41,8 @@ export class CheckoutAuthenticatedResource {
    * // Redirect to result.checkoutUrl (includes #token=...)
    */
   async create(params: AuthenticatedCheckoutParams): Promise<AuthenticatedCheckoutResult> {
+    validateCheckoutCommon(params);
+    validateRequired("buyerIdentity", params.buyerIdentity);
     const { buyerIdentity, buyerEmail, ...sessionFields } = params;
 
     const [tokenResult, sessionResult] = await Promise.all([

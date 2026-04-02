@@ -1,3 +1,5 @@
+import { validateRequired, validateShortId } from "../validation.js";
+
 import type { HttpClient } from "../http-client.js";
 import type { IssueSessionTokenParams, SessionToken } from "../types.js";
 
@@ -18,6 +20,8 @@ export class AuthResource {
    * });
    */
   async issueSessionToken(params: IssueSessionTokenParams): Promise<SessionToken> {
+    validateShortId("storeId", params.storeId, "STO");
+    validateRequired("buyerIdentity", params.buyerIdentity);
     return this.http.post<SessionToken>("/v1/actions/auth/issue-session-token", params);
   }
 }

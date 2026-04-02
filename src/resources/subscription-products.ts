@@ -1,3 +1,5 @@
+import { validateEnum, validatePrices, validateRequired, validateShortId } from "../validation.js";
+
 import type { HttpClient } from "../http-client.js";
 import type {
   CreateSubscriptionProductParams,
@@ -26,6 +28,10 @@ export class SubscriptionProductsResource {
    * });
    */
   async create(params: CreateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {
+    validateShortId("storeId", params.storeId, "STO");
+    validateRequired("name", params.name);
+    validateEnum("billingPeriod", params.billingPeriod, ["weekly", "monthly", "quarterly", "yearly"]);
+    validatePrices("prices", params.prices);
     return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/create-product", params);
   }
 
@@ -44,6 +50,10 @@ export class SubscriptionProductsResource {
    * });
    */
   async update(params: UpdateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {
+    validateShortId("id", params.id, "PROD");
+    validateRequired("name", params.name);
+    validateEnum("billingPeriod", params.billingPeriod, ["weekly", "monthly", "quarterly", "yearly"]);
+    validatePrices("prices", params.prices);
     return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-product", params);
   }
 
@@ -57,6 +67,7 @@ export class SubscriptionProductsResource {
    * const { product } = await client.subscriptionProducts.publish({ id: "PROD_xxx" });
    */
   async publish(params: PublishSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {
+    validateShortId("id", params.id, "PROD");
     return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/publish-product", params);
   }
 
@@ -73,6 +84,8 @@ export class SubscriptionProductsResource {
    * });
    */
   async updateStatus(params: UpdateSubscriptionStatusParams): Promise<{ product: SubscriptionProductDetail }> {
+    validateShortId("id", params.id, "PROD");
+    validateEnum("status", params.status, ["active", "inactive"]);
     return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-status", params);
   }
 }

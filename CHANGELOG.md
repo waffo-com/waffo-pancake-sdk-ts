@@ -4,6 +4,22 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-04-02
+
+### Added
+
+- **Client-side input validation** — All resource methods now validate inputs before sending network requests. Checks include: required field presence, Short ID format (`STO_xxx`, `PROD_xxx`, etc.), ISO 4217 currency codes, ISO 3166-1 country codes, display-format amount strings, enum value ranges, and positive integers. Validation errors throw `WaffoPancakeError` with `status: 400` and `layer: "sdk"`, so developers catch them uniformly with API errors.
+- **`ErrorLayer.Sdk`** — New `"sdk"` value in the `ErrorLayer` enum for client-side validation errors.
+
+### Fixed
+
+- **Types** — `RefundTicketStatus` enum now includes all 9 statuses: added `UnderReview`, `Returned`, `Cancelled` (previously missing 3 values)
+- **Types** — `RefundTicket.currentVersionId` corrected to `string | null` (was `string`)
+- **Types** — `RefundTicket.versionNumber` corrected to `number | null` (was `number`)
+- **Types** — `RefundTicket.versionData` corrected to `Record<string, unknown> | null` (was non-nullable)
+- **Types** — `RefundTicket` now includes `createdAt` and `updatedAt` fields (previously missing)
+- **Types** — `PriceInfo`, `Prices`, `WebhookEvent` JSDoc examples corrected from numeric amounts to display-format strings
+
 ## [0.2.0] - 2026-04-02
 
 ### Added

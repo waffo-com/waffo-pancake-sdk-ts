@@ -1,3 +1,5 @@
+import { validateRequired } from "../validation.js";
+
 import type { HttpClient } from "../http-client.js";
 import type { GraphQLParams, GraphQLResponse } from "../types.js";
 
@@ -24,6 +26,7 @@ export class GraphQLResource {
    * });
    */
   async query<T = Record<string, unknown>>(params: GraphQLParams): Promise<GraphQLResponse<T>> {
+    validateRequired("query", params.query);
     return this.http.post<GraphQLResponse<T>>("/v1/graphql", params);
   }
 }

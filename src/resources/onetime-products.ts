@@ -1,3 +1,5 @@
+import { validateEnum, validatePrices, validateRequired, validateShortId } from "../validation.js";
+
 import type { HttpClient } from "../http-client.js";
 import type {
   CreateOnetimeProductParams,
@@ -25,6 +27,9 @@ export class OnetimeProductsResource {
    * });
    */
   async create(params: CreateOnetimeProductParams): Promise<{ product: OnetimeProductDetail }> {
+    validateShortId("storeId", params.storeId, "STO");
+    validateRequired("name", params.name);
+    validatePrices("prices", params.prices);
     return this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/create-product", params);
   }
 
@@ -42,6 +47,9 @@ export class OnetimeProductsResource {
    * });
    */
   async update(params: UpdateOnetimeProductParams): Promise<{ product: OnetimeProductDetail }> {
+    validateShortId("id", params.id, "PROD");
+    validateRequired("name", params.name);
+    validatePrices("prices", params.prices);
     return this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/update-product", params);
   }
 
@@ -55,6 +63,7 @@ export class OnetimeProductsResource {
    * const { product } = await client.onetimeProducts.publish({ id: "PROD_xxx" });
    */
   async publish(params: PublishOnetimeProductParams): Promise<{ product: OnetimeProductDetail }> {
+    validateShortId("id", params.id, "PROD");
     return this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/publish-product", params);
   }
 
@@ -71,6 +80,8 @@ export class OnetimeProductsResource {
    * });
    */
   async updateStatus(params: UpdateOnetimeStatusParams): Promise<{ product: OnetimeProductDetail }> {
+    validateShortId("id", params.id, "PROD");
+    validateEnum("status", params.status, ["active", "inactive"]);
     return this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/update-status", params);
   }
 }

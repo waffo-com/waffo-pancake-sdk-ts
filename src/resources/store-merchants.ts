@@ -1,3 +1,5 @@
+import { validateEnum, validateRequired, validateShortId } from "../validation.js";
+
 import type { HttpClient } from "../http-client.js";
 import type {
   AddMerchantParams,
@@ -26,6 +28,9 @@ export class StoreMerchantsResource {
    * });
    */
   async add(params: AddMerchantParams): Promise<AddMerchantResult> {
+    validateShortId("storeId", params.storeId, "STO");
+    validateRequired("email", params.email);
+    validateEnum("role", params.role, ["admin", "member"]);
     return this.http.post<AddMerchantResult>("/v1/actions/store-merchant/add-merchant", params);
   }
 
@@ -42,6 +47,8 @@ export class StoreMerchantsResource {
    * });
    */
   async remove(params: RemoveMerchantParams): Promise<RemoveMerchantResult> {
+    validateShortId("storeId", params.storeId, "STO");
+    validateShortId("merchantId", params.merchantId, "MER");
     return this.http.post<RemoveMerchantResult>("/v1/actions/store-merchant/remove-merchant", params);
   }
 
@@ -59,6 +66,9 @@ export class StoreMerchantsResource {
    * });
    */
   async updateRole(params: UpdateRoleParams): Promise<UpdateRoleResult> {
+    validateShortId("storeId", params.storeId, "STO");
+    validateShortId("merchantId", params.merchantId, "MER");
+    validateEnum("role", params.role, ["admin", "member"]);
     return this.http.post<UpdateRoleResult>("/v1/actions/store-merchant/update-role", params);
   }
 }
