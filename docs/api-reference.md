@@ -53,7 +53,7 @@ const { store } = await client.stores.create({ name: "My Store" });
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | `string` | Yes | Store name |
+| `name` | `string` | Yes | Store name (1–48 characters, trimmed automatically) |
 
 **Returns `{ store: Store }`**
 
@@ -108,9 +108,9 @@ const { store } = await client.stores.update({
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | `string` | Yes | Store ID |
-| `name` | `string` | No | Store name |
+| `name` | `string` | No | Store name (1–100 characters) |
 | `status` | `EntityStatus` | No | Store status |
-| `logo` | `string \| null` | No | Logo URL |
+| `logo` | `string \| null` | No | Logo (Base64 encoded image) |
 | `supportEmail` | `string \| null` | No | Support email address |
 | `website` | `string \| null` | No | Store website URL |
 | `webhookSettings` | `WebhookSettings \| null` | No | Webhook endpoint configuration (test/prod URLs and subscribed event types) |
@@ -242,9 +242,9 @@ const { product } = await client.onetimeProducts.create({
   name: "E-Book: TypeScript Handbook",
   description: "Complete TypeScript guide for developers",
   prices: {
-    USD: { amount: 2900, taxCategory: TaxCategory.DigitalGoods },
-    EUR: { amount: 2700, taxCategory: TaxCategory.DigitalGoods },
-    JPY: { amount: 4500, taxCategory: TaxCategory.DigitalGoods },
+    USD: { amount: "29.00", taxCategory: TaxCategory.DigitalGoods },
+    EUR: { amount: "27.00", taxCategory: TaxCategory.DigitalGoods },
+    JPY: { amount: "4500", taxCategory: TaxCategory.DigitalGoods },
   },
   media: [{ type: "image", url: "https://example.com/cover.jpg", alt: "Book cover" }],
   successUrl: "https://example.com/thank-you",
@@ -274,7 +274,7 @@ Update a one-time product. Creates a new immutable version; skips if content is 
 const { product } = await client.onetimeProducts.update({
   id: "PROD_xxx",
   name: "E-Book: TypeScript Handbook v2",
-  prices: { USD: { amount: 3900, taxCategory: "digital_goods" } },
+  prices: { USD: { amount: "39.00", taxCategory: "digital_goods" } },
 });
 ```
 
@@ -345,7 +345,7 @@ const { product } = await client.subscriptionProducts.create({
   storeId: "STO_xxx",
   name: "Pro Plan",
   billingPeriod: BillingPeriod.Monthly,
-  prices: { USD: { amount: 999, taxCategory: TaxCategory.SaaS } },
+  prices: { USD: { amount: "9.99", taxCategory: TaxCategory.SaaS } },
   description: "Unlimited access to all features",
 });
 ```
@@ -374,7 +374,7 @@ const { product } = await client.subscriptionProducts.update({
   id: "PROD_xxx",
   name: "Pro Plan v2",
   billingPeriod: BillingPeriod.Monthly,
-  prices: { USD: { amount: 1499, taxCategory: "saas" } },
+  prices: { USD: { amount: "14.99", taxCategory: "saas" } },
 });
 ```
 
@@ -410,6 +410,8 @@ const { product } = await client.subscriptionProducts.updateStatus({
 ## Subscription Product Groups
 
 Groups enable **shared trial periods** and **plan switching** across related subscription products (e.g. Free / Pro / Enterprise tiers).
+
+> **Note**: Group IDs are UUIDs (not Short IDs). The `id` field in responses and the `id` parameter in requests use raw UUID format.
 
 ### `client.subscriptionProductGroups.create(params)`
 
@@ -505,39 +507,132 @@ const { orderId, status } = await client.orders.cancelSubscription({
 
 ## Checkout
 
-### `client.checkout.createSession(params)`
+Waffo supports two checkout modes based on whether the merchant knows the buyer's identity at checkout time:
 
-Create a checkout session. Returns a URL to redirect the buyer to the hosted checkout page.
+- **Authenticated** — the merchant has a user system or collects buyer info before checkout. The buyer's identity is provided upfront, the checkout form is pre-filled, and a session token is automatically issued.
+- **Anonymous** — the buyer arrives via a template store or shared link with no prior context. They fill in billing details manually on the checkout page.
+
+> **Authenticated checkout is recommended.** The key advantage: the order is bound to the `buyerIdentity` you provide — a **merchant-controlled stable identifier**. Even if the buyer changes the email on the checkout form, the order stays tied to your identifier. In anonymous mode, the buyer self-reports their email, and a different address means a different user — **previous orders become unlinked** and **subscription trial periods can be exploited** (new email = new user = fresh trial). Additionally, anonymous checkout uses the `shopper` role which can **only create orders** (no cancellation, subscription management, or refund tickets) and has a **1-minute single-use session**.
+
+For advanced use cases, the low-level `createSession()` is also available.
+
+### `client.checkout.authenticated.create(params)`
+
+Authenticated checkout — the merchant provides buyer identity. The SDK issues a session token, creates a checkout session, and returns a checkout URL with the token appended as a URL fragment (`#token=...`). The checkout page pre-fills buyer information from the token.
+
+Internally calls `POST /v1/actions/auth/issue-session-token` and `POST /v1/actions/checkout/create-session` in parallel.
 
 ```typescript
-import { CheckoutSessionProductType } from "@waffo/pancake-ts";
-
-// One-time product checkout
-const session = await client.checkout.createSession({
+// One-time product with buyer identity
+const result = await client.checkout.authenticated.create({
   storeId: "STO_xxx",
-  productId: "PROD_xxx",
-  productType: CheckoutSessionProductType.Onetime,
-  currency: "USD",
-  buyerEmail: "customer@example.com",
-  successUrl: "https://example.com/thank-you",
-});
-// => redirect buyer to session.checkoutUrl
-
-// Subscription with trial
-const subSession = await client.checkout.createSession({
-  productId: "PROD_yyy",
-  productType: CheckoutSessionProductType.Subscription,
-  currency: "USD",
-  withTrial: true,
-  billingDetail: { country: "US", isBusiness: false, state: "CA", postcode: "94105" },
-});
-
-// With price snapshot override
-const snapshotSession = await client.checkout.createSession({
   productId: "PROD_xxx",
   productType: "onetime",
   currency: "USD",
-  priceSnapshot: { amount: 1999, taxCategory: "digital_goods" },
+  buyerIdentity: "customer@example.com",
+  successUrl: "https://example.com/thank-you",
+});
+// => redirect buyer to result.checkoutUrl (includes #token=...)
+
+// Subscription with trial and billing detail
+const subResult = await client.checkout.authenticated.create({
+  storeId: "STO_xxx",
+  productId: "PROD_yyy",
+  productType: "subscription",
+  currency: "USD",
+  buyerIdentity: "customer@example.com",
+  withTrial: true,
+  billingDetail: { country: "US", isBusiness: false, state: "CA", postcode: "94105" },
+});
+```
+
+**Parameters `AuthenticatedCheckoutParams`**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `storeId` | `string` | Yes | Store ID |
+| `productId` | `string` | Yes | Product ID |
+| `productType` | `CheckoutSessionProductType` | Yes | `"onetime"` or `"subscription"` |
+| `currency` | `string` | Yes | Currency code (ISO 4217) |
+| `buyerIdentity` | `string` | Yes | Buyer identity (email or merchant-defined identifier) |
+| `buyerEmail` | `string` | No | Pre-filled buyer email (defaults to `buyerIdentity`) |
+| `billingDetail` | `BillingDetail` | No | Pre-filled billing details (country, tax ID, etc.) |
+| `priceSnapshot` | `PriceInfo` | No | Price snapshot override (reads from DB if omitted) |
+| `withTrial` | `boolean` | No | Enable trial period (subscription only) |
+| `successUrl` | `string` | No | Redirect URL after successful payment |
+| `expiresInSeconds` | `number` | No | Session expiry in seconds (default: 45 minutes) |
+| `darkMode` | `boolean` | No | Dark mode override (true=dark, false=light, omit=store default) |
+| `metadata` | `Record<string, string>` | No | Custom metadata |
+
+**Returns `AuthenticatedCheckoutResult`**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `sessionId` | `string` | Session ID |
+| `checkoutUrl` | `string` | Checkout URL with `#token=...` appended |
+| `expiresAt` | `string` | Session expiration time |
+| `token` | `string` | Issued JWT token |
+| `tokenExpiresAt` | `string` | Token expiration time |
+
+### `client.checkout.anonymous.create(params)`
+
+Anonymous checkout — visitor enters without a session token. The buyer fills in billing details manually on the checkout page.
+
+Internally calls `POST /v1/actions/checkout/create-session`.
+
+```typescript
+const result = await client.checkout.anonymous.create({
+  storeId: "STO_xxx",
+  productId: "PROD_xxx",
+  productType: "onetime",
+  currency: "USD",
+});
+// => redirect buyer to result.checkoutUrl (buyer fills form manually)
+
+// With price snapshot override
+const snapshotResult = await client.checkout.anonymous.create({
+  storeId: "STO_xxx",
+  productId: "PROD_xxx",
+  productType: "onetime",
+  currency: "USD",
+  priceSnapshot: { amount: "19.99", taxCategory: "digital_goods" },
+});
+```
+
+**Parameters `AnonymousCheckoutParams`**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `storeId` | `string` | Yes | Store ID |
+| `productId` | `string` | Yes | Product ID |
+| `productType` | `CheckoutSessionProductType` | Yes | `"onetime"` or `"subscription"` |
+| `currency` | `string` | Yes | Currency code (ISO 4217) |
+| `priceSnapshot` | `PriceInfo` | No | Price snapshot override (reads from DB if omitted) |
+| `withTrial` | `boolean` | No | Enable trial period (subscription only) |
+| `successUrl` | `string` | No | Redirect URL after successful payment |
+| `expiresInSeconds` | `number` | No | Session expiry in seconds (default: 45 minutes) |
+| `darkMode` | `boolean` | No | Dark mode override (true=dark, false=light, omit=store default) |
+| `metadata` | `Record<string, string>` | No | Custom metadata |
+
+**Returns `CheckoutSessionResult`**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `sessionId` | `string` | Session ID |
+| `checkoutUrl` | `string` | Hosted checkout page URL |
+| `expiresAt` | `string` | Session expiration time |
+
+### `client.checkout.createSession(params)` (low-level)
+
+Create a checkout session directly. For most use cases, prefer `checkout.authenticated.create()` or `checkout.anonymous.create()`.
+
+```typescript
+const session = await client.checkout.createSession({
+  storeId: "STO_xxx",
+  productId: "PROD_xxx",
+  productType: "onetime",
+  currency: "USD",
+  buyerEmail: "customer@example.com",
 });
 ```
 
@@ -545,17 +640,29 @@ const snapshotSession = await client.checkout.createSession({
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `storeId` | `string` | Yes | Store ID |
 | `productId` | `string` | Yes | Product ID |
 | `productType` | `CheckoutSessionProductType` | Yes | `"onetime"` or `"subscription"` |
 | `currency` | `string` | Yes | Currency code (ISO 4217) |
-| `storeId` | `string` | No | Store ID |
 | `priceSnapshot` | `PriceInfo` | No | Price snapshot override (reads from DB if omitted) |
 | `withTrial` | `boolean` | No | Enable trial period (subscription only) |
 | `buyerEmail` | `string` | No | Pre-filled buyer email |
 | `billingDetail` | `BillingDetail` | No | Pre-filled billing details (country, tax ID, etc.) |
 | `successUrl` | `string` | No | Redirect URL after successful payment |
 | `expiresInSeconds` | `number` | No | Session expiry in seconds (default: 45 minutes) |
+| `darkMode` | `boolean` | No | Dark mode override |
 | `metadata` | `Record<string, string>` | No | Custom metadata |
+
+**`BillingDetail` fields**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `country` | `string` | Yes | Country code (ISO 3166-1 alpha-2) |
+| `isBusiness` | `boolean` | Yes | Whether this is a business purchase |
+| `postcode` | `string` | No | Postal / ZIP code |
+| `state` | `string` | Conditional | State / province code (required when `country` is `US` or `CA`) |
+| `businessName` | `string` | Conditional | Business name (required when `isBusiness` is `true`) |
+| `taxId` | `string` | Conditional | Tax ID / VAT number (required for EU countries when `isBusiness` is `true`; triggers reverse charge 0%) |
 
 **Returns `CheckoutSessionResult`**:
 
@@ -665,7 +772,10 @@ All exported type interfaces:
 | `CancelSubscriptionResult` | Cancel subscription response |
 | `BillingDetail` | Buyer billing details (country, tax ID, etc.) |
 | **Checkout** | |
-| `CreateCheckoutSessionParams` | Create checkout session request |
+| `AuthenticatedCheckoutParams` | Authenticated checkout request (with buyer identity) |
+| `AuthenticatedCheckoutResult` | Authenticated checkout response (URL with token + expiry) |
+| `AnonymousCheckoutParams` | Anonymous checkout request (no identity) |
+| `CreateCheckoutSessionParams` | Low-level checkout session request |
 | `CheckoutSessionResult` | Checkout session response (URL + expiry) |
 | **GraphQL** | |
 | `GraphQLParams` | GraphQL query parameters |

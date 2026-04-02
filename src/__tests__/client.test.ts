@@ -25,6 +25,8 @@ describe("WaffoPancake", () => {
     expect(client.subscriptionProductGroups).toBeDefined();
     expect(client.orders).toBeDefined();
     expect(client.checkout).toBeDefined();
+    expect(client.checkout.anonymous).toBeDefined();
+    expect(client.checkout.authenticated).toBeDefined();
     expect(client.graphql).toBeDefined();
     expect(client.webhooks).toBeDefined();
   });

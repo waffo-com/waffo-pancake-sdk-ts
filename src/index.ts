@@ -86,6 +86,11 @@ export type {
   SubscriptionProductGroup,
   UpdateSubscriptionProductGroupParams,
 
+  // Checkout convenience
+  AnonymousCheckoutParams,
+  AuthenticatedCheckoutParams,
+  AuthenticatedCheckoutResult,
+
   // Order
   BillingDetail,
   CancelSubscriptionParams,

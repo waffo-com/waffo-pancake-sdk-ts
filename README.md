@@ -15,95 +15,174 @@ npm install @waffo/pancake-ts
 
 ## Quick Start
 
+> Most merchants create stores and products in the [Dashboard](https://pancake.waffo.ai/dashboard). The SDK is primarily used for **checkout integration** — redirecting buyers from your site to the Waffo checkout page.
+
 ```typescript
 import { WaffoPancake } from "@waffo/pancake-ts";
 
+// Merchant ID and API Key are available in Dashboard > Settings > Developers
 const client = new WaffoPancake({
-  merchantId: "MER_2D5F8G3H1K4M6N9P0Q7R8S", // MER_{base62} format
+  merchantId: process.env.WAFFO_MERCHANT_ID!,  // MER_{base62} format
   privateKey: process.env.WAFFO_PRIVATE_KEY!,
 });
 
-// Create a store — IDs are returned in {prefix}_{base62} format
-const { store } = await client.stores.create({ name: "My Store" });
-// => store.id = "STO_..."
-
-// Create a one-time product with multi-currency pricing
-const { product } = await client.onetimeProducts.create({
-  storeId: store.id, // "STO_..."
-  name: "E-Book: TypeScript Handbook",
-  prices: {
-    USD: { amount: 2900, taxCategory: "digital_goods" },
-    EUR: { amount: 2700, taxCategory: "digital_goods" },
-  },
-});
-// => product.id = "PROD_..."
-
-// Create a checkout session and redirect the buyer
-const session = await client.checkout.createSession({
-  storeId: store.id,
-  productId: product.id,
+// Create a checkout session — one call handles token + session + URL
+const result = await client.checkout.authenticated.create({
+  storeId: "STO_xxx",      // from Dashboard > Stores
+  productId: "PROD_xxx",   // from Dashboard > Products
   productType: "onetime",
   currency: "USD",
+  buyerIdentity: req.user.email,  // your user's identity
 });
-// => redirect buyer to session.checkoutUrl
 
-// Query data via GraphQL (Query only, no Mutations)
-const result = await client.graphql.query<{ stores: Array<{ id: string; name: string }> }>({
-  query: `query { stores { id name status } }`,
-});
+// Redirect buyer to the checkout page (opens in new tab)
+res.json({ checkoutUrl: result.checkoutUrl });
+// => checkoutUrl includes #token=... (form pre-filled)
 ```
 
 ## Configuration
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `merchantId` | `string` | Yes | Merchant ID in `MER_{base62}` format (sent as `X-Merchant-Id` header) |
-| `privateKey` | `string` | Yes | RSA private key (see [Private Key Formats](#private-key-formats) below) |
-| `baseUrl` | `string` | No | API base URL (default: `https://waffo-pancake-auth-service.vercel.app`) |
+| `merchantId` | `string` | Yes | Merchant ID in `MER_{base62}` format |
+| `privateKey` | `string` | Yes | RSA private key in PEM format (auto-normalized, see [docs](docs/api-reference.md)) |
+| `baseUrl` | `string` | No | API base URL override |
 | `fetch` | `typeof fetch` | No | Custom fetch implementation |
-| `webhookPublicKey` | `string \| { test?, prod? }` | No | Custom webhook public key(s) (see [Webhook Public Key Resolution](#webhook-public-key-resolution) below) |
+| `webhookPublicKey` | `string \| { test?, prod? }` | No | Custom webhook public key(s) |
 
-### Private Key Formats
+The SDK auto-normalizes key formats: standard PEM, PKCS#1, literal `\n` from env vars, raw base64, and Windows line endings are all accepted.
 
-The SDK automatically normalizes `privateKey` at construction time, so all of the following formats are accepted:
+## Checkout Integration
 
-| Format | Example | Notes |
-|--------|---------|-------|
-| Standard PKCS#8 PEM | `-----BEGIN PRIVATE KEY-----\n...` | Recommended |
-| PKCS#1 PEM | `-----BEGIN RSA PRIVATE KEY-----\n...` | Also accepted |
-| Literal `\n` (env vars) | `"-----BEGIN PRIVATE KEY-----\\nMIIE..."` | Common when stored in `.env` or CI secrets |
-| Windows line endings | `\r\n` | Converted to `\n` |
-| Raw base64 (no headers) | `MIIEvQIBADANBgkqhki...` | Wrapped with PKCS#8 headers automatically |
-| Single-line base64 with headers | Header + all base64 on one line + footer | Re-wrapped to 64-char lines |
+Waffo supports two checkout modes based on whether the merchant knows the buyer's identity:
 
-If the key is invalid or empty, the constructor throws a descriptive error immediately rather than failing silently on the first API call.
+- **Merchants with their own sites** know who the buyer is — they have user accounts, login systems, or collect buyer info before checkout. The merchant provides the buyer's identity upfront, and the checkout form arrives pre-filled.
+- **Template stores and shared links** have no prior buyer context — the buyer arrives directly at the checkout page and fills in their own details.
+
+| Mode | Method | Buyer Identity | Form State | Use Case |
+|------|--------|---------------|------------|----------|
+| **Authenticated** | `checkout.authenticated.create()` | Merchant provides | Pre-filled | Merchant sites with user accounts |
+| **Anonymous** | `checkout.anonymous.create()` | Not provided | Empty | Template stores, one-time purchase links |
+
+> **We recommend authenticated checkout whenever possible.** The most important reason: authenticated checkout binds the order to the `buyerIdentity` you provide, which is a **merchant-controlled stable identifier**. Even if the buyer changes the email on the checkout form, the order is still tied to the identity you specified. In anonymous mode, the buyer self-reports their email on the form — if they enter a different address, the system treats them as a new user, which means **previous orders become unlinked** and **subscription trial periods can be exploited** (a new email = a new user = a fresh trial).
+>
+> Anonymous checkout also uses the `shopper` role, which can **only create orders** (no cancellation, subscription management, or refund tickets) with a **1-minute single-use session**.
+>
+> | | Authenticated (`customer`) | Anonymous (`shopper`) |
+> |---|---|---|
+> | **Identity** | Merchant-provided, stable across orders | Self-reported email, may vary |
+> | **Permissions** | Create orders, cancel orders, manage subscriptions, submit refund tickets | Create orders **only** |
+> | **Session** | 5-minute TTL, auto-refreshes on each API call | 1-minute TTL, **single-use** (consumed on first API call) |
+> | **Subscriptions** | Fully supported — buyers can manage, cancel, or reactivate | Not practical — buyer has no session to manage the subscription afterward |
+
+### Authenticated Checkout (Recommended)
+
+The merchant provides buyer identity — the SDK issues a session token, creates a checkout session, and returns a checkout URL with the token appended as a URL fragment. One call does everything.
 
 ```typescript
-// All of these work:
-new WaffoPancake({ merchantId: "MER_xxx", privateKey: process.env.PRIVATE_KEY! });         // .env with literal \n
-new WaffoPancake({ merchantId: "MER_xxx", privateKey: fs.readFileSync("key.pem", "utf8") }); // file read
-new WaffoPancake({ merchantId: "MER_xxx", privateKey: rawBase64String });                   // raw base64
+const result = await client.checkout.authenticated.create({
+  storeId: "STO_xxx",
+  productId: "PROD_xxx",
+  productType: "onetime",
+  currency: "USD",
+  buyerIdentity: "customer@example.com",
+  // Optional: pre-fill billing details
+  billingDetail: { country: "US", isBusiness: false },
+});
+// result.checkoutUrl = "https://pancake.waffo.ai/store/{slug}/checkout/{sessionId}#token={JWT}"
+
+// Frontend — open in a new tab (recommended)
+window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
 ```
 
-### Webhook Public Key Resolution
+The token is passed via the URL fragment (after `#`), which is never sent to the server and never appears in the `Referer` header.
 
-The SDK resolves the webhook verification public key per environment using a multi-level fallback chain:
+### Anonymous Checkout
 
-| Priority | Source | Description |
-|----------|--------|-------------|
-| 1 | `options.publicKey` | Per-call override (highest priority, skips all resolution) |
-| 2 | `config.webhookPublicKey[env]` | Config object per-environment key |
-| 3 | `config.webhookPublicKey` (string) | Config shared key (both environments) |
-| 4 | `WAFFO_WEBHOOK_TEST_PUBLIC_KEY` / `WAFFO_WEBHOOK_PROD_PUBLIC_KEY` | Environment variable per-environment |
-| 5 | `WAFFO_WEBHOOK_PUBLIC_KEY` | Environment variable shared |
-| 6 | Built-in hardcoded key | SDK-embedded Waffo public key (default) |
+No buyer identity required — the buyer fills in billing details manually on the checkout page.
 
 ```typescript
-// Shared key for both environments
-new WaffoPancake({ merchantId: "MER_xxx", privateKey: "...", webhookPublicKey: "MIIBIjAN..." });
+const result = await client.checkout.anonymous.create({
+  storeId: "STO_xxx",
+  productId: "PROD_xxx",
+  productType: "onetime",
+  currency: "USD",
+});
+// result.checkoutUrl = "https://pancake.waffo.ai/store/{slug}/checkout/{sessionId}"
 
-// Per-environment keys
-new WaffoPancake({
+window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
+```
+
+### Opening the Checkout Page
+
+**We recommend opening the checkout page in a new tab** rather than navigating in the current page:
+
+- Buyers can return to your site immediately after payment or if they close the checkout tab
+- Merchant page state (cart, forms, scroll position) is preserved
+- Payment flow is decoupled from the browsing experience, reducing checkout abandonment
+
+```typescript
+// Recommended: open in a new tab
+window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
+
+// Or via an <a> tag
+// <a href={checkoutUrl} target="_blank" rel="noopener noreferrer">Proceed to Checkout</a>
+```
+
+> **Not recommended:** `window.location.href = result.checkoutUrl` replaces the current page, preventing buyers from returning to your site without browser back navigation.
+
+See [API Reference — Checkout](docs/api-reference.md#checkout) for full parameter tables and `BillingDetail` field requirements.
+
+## Webhook Verification
+
+After a buyer completes payment, Waffo sends webhook events to your server. The SDK provides two ways to verify signatures:
+
+### Standalone Function (built-in keys)
+
+```typescript
+import { verifyWebhook, WebhookEventType } from "@waffo/pancake-ts";
+
+// Express (IMPORTANT: use raw body — parsed JSON breaks signature verification)
+app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
+  try {
+    const event = verifyWebhook(
+      req.body.toString("utf-8"),
+      req.headers["x-waffo-signature"] as string,
+    );
+
+    // Respond immediately, process asynchronously
+    res.status(200).send("OK");
+
+    switch (event.eventType) {
+      case WebhookEventType.OrderCompleted:
+        console.log(`Order ${event.data.orderId} completed`);
+        break;
+      case WebhookEventType.SubscriptionActivated:
+        console.log(`Subscription activated for ${event.data.buyerEmail}`);
+        break;
+    }
+  } catch {
+    res.status(401).send("Invalid signature");
+  }
+});
+
+// Next.js App Router
+export async function POST(request: Request) {
+  const body = await request.text();
+  const sig = request.headers.get("x-waffo-signature");
+  try {
+    const event = verifyWebhook(body, sig);
+    return new Response("OK");
+  } catch {
+    return new Response("Invalid signature", { status: 401 });
+  }
+}
+```
+
+### Client Instance Method (multi-level key resolution)
+
+```typescript
+const client = new WaffoPancake({
   merchantId: "MER_xxx",
   privateKey: "...",
   webhookPublicKey: {
@@ -111,164 +190,48 @@ new WaffoPancake({
     prod: process.env.WAFFO_PROD_PUB_KEY!,
   },
 });
-
-// Or rely on environment variables (no config needed)
-// export WAFFO_WEBHOOK_TEST_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n..."
-// export WAFFO_WEBHOOK_PROD_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n..."
-new WaffoPancake({ merchantId: "MER_xxx", privateKey: "..." });
-// => SDK auto-reads from env vars, falls back to built-in keys
+const event = client.webhooks.verify(rawBody, sig, { environment: "prod" });
 ```
 
-### Public Key Formats
+See [Webhook Guide](docs/webhook-guide.md) for event types, dual-environment key architecture, key resolution chain, retry mechanism, and best practices.
 
-All public key inputs (config, env vars, per-call) accept the same flexible formats as private keys:
-
-| Format | Example | Notes |
-|--------|---------|-------|
-| Standard SPKI PEM | `-----BEGIN PUBLIC KEY-----\n...` | Recommended |
-| PKCS#1 PEM | `-----BEGIN RSA PUBLIC KEY-----\n...` | Also accepted |
-| Literal `\n` (env vars) | `"-----BEGIN PUBLIC KEY-----\\nMIIB..."` | Common when stored in `.env` or CI secrets |
-| Windows line endings | `\r\n` | Converted to `\n` |
-| Raw base64 (no headers) | `MIIBIjANBgkqhki...` | Wrapped with SPKI headers automatically |
-| Single-line base64 with headers | Header + all base64 on one line + footer | Re-wrapped to 64-char lines |
-
-## Resources
-
-| Namespace | Methods | Description |
-|-----------|---------|-------------|
-| `client.auth` | `issueSessionToken()` | Issue a buyer session token (JWT) |
-| `client.stores` | `create()` `update()` `delete()` | Store management (webhook, notification, checkout settings) |
-| `client.storeMerchants` | `add()` `remove()` `updateRole()` | Store member management (coming soon, returns 501) |
-| `client.onetimeProducts` | `create()` `update()` `publish()` `updateStatus()` | One-time product CRUD with multi-currency pricing and version management |
-| `client.subscriptionProducts` | `create()` `update()` `publish()` `updateStatus()` | Subscription product CRUD with billing period and version management |
-| `client.subscriptionProductGroups` | `create()` `update()` `delete()` `publish()` | Product groups for shared trial and plan switching |
-| `client.orders` | `cancelSubscription()` | Order management (pending→canceled, active→canceling) |
-| `client.checkout` | `createSession()` | Create a checkout session with trial toggle, billing detail, and price snapshot |
-| `client.graphql` | `query<T>()` | Typed GraphQL queries (Query only, no Mutations) |
-| `client.webhooks` | `verify<T>()` | Webhook signature verification (uses configured `webhookPublicKey` or built-in keys) |
-
-See the API Reference for complete parameter tables and return types.
-
-## Checkout Integration
-
-Guide buyers from your site to the Waffo checkout page in three steps:
-
-```
-1. Issue Session Token      →  Obtain a buyer identity credential (JWT)
-2. Create Checkout Session  →  Create a session and get the checkout URL
-3. Open Checkout Page       →  Open the checkout in a new browser tab
-```
-
-### Step 1 — Issue a Session Token
-
-Your backend requests a Session Token on behalf of the buyer. The token carries the buyer's identity and is used by the checkout page to load order details and place orders.
+## GraphQL — Typed Queries
 
 ```typescript
-const { token } = await client.auth.issueSessionToken({
-  storeId: "STO_xxx",
-  buyerIdentity: "customer@example.com",
+// Simple query
+interface StoresQuery {
+  stores: Array<{ id: string; name: string; status: string }>;
+}
+const result = await client.graphql.query<StoresQuery>({
+  query: `query { stores { id name status } }`,
+});
+
+// Query with variables
+const product = await client.graphql.query({
+  query: `query ($id: ID!) { onetimeProduct(id: $id) { id name prices } }`,
+  variables: { id: "PROD_xxx" },
+});
+
+// Nested relationships in a single request
+const detail = await client.graphql.query({
+  query: `query ($id: ID!) {
+    store(id: $id) {
+      id name
+      onetimeProducts { id name status prices }
+      subscriptionProducts { id name billingPeriod status }
+    }
+  }`,
+  variables: { id: "STO_xxx" },
 });
 ```
 
-### Step 2 — Create a Checkout Session
+See [GraphQL Guide](docs/graphql-guide.md) for filters, analytics queries, delivery logs, and more.
 
-Create a checkout session with your API Key. The response includes a checkout URL with the token embedded in the URL fragment.
+## Programmatic Store & Product Management
 
-```typescript
-import { CheckoutSessionProductType } from "@waffo/pancake-ts";
+> Most merchants manage stores and products in the [Dashboard](https://pancake.waffo.ai/dashboard). The following APIs are for merchants who need programmatic automation.
 
-const session = await client.checkout.createSession({
-  storeId: "STO_xxx",
-  productId: "PROD_xxx",
-  productType: CheckoutSessionProductType.Onetime,
-  currency: "USD",
-  buyerEmail: "customer@example.com",
-  successUrl: "https://example.com/thank-you",
-});
-// session.checkoutUrl format:
-// https://waffo.ai/store/{slug}/checkout/{sessionId}#token={JWT}
-```
-
-The token is passed via the URL fragment (after `#`), which is never sent to the server and never appears in the `Referer` header.
-
-### Step 3 — Open Checkout Page (New Tab)
-
-**We recommend opening the checkout page in a new tab** rather than navigating in the current page. Benefits:
-
-- Buyers can return to your site immediately after payment or if they close the checkout tab
-- Merchant page state (cart, forms, scroll position) is preserved
-- Payment flow is decoupled from the browsing experience, reducing checkout abandonment
-
-```typescript
-// Frontend — recommended: open in a new tab
-window.open(session.checkoutUrl, "_blank", "noopener,noreferrer");
-
-// Or via an <a> tag
-// <a href={checkoutUrl} target="_blank" rel="noopener noreferrer">Proceed to Checkout</a>
-```
-
-> **Not recommended:** `window.location.href = session.checkoutUrl` replaces the current page, preventing buyers from returning to your site without browser back navigation.
-
-### Complete Example (Express)
-
-```typescript
-import express from "express";
-import { WaffoPancake, CheckoutSessionProductType } from "@waffo/pancake-ts";
-
-const client = new WaffoPancake({
-  merchantId: process.env.WAFFO_MERCHANT_ID!,
-  privateKey: process.env.WAFFO_PRIVATE_KEY!,
-});
-
-const app = express();
-
-app.post("/api/checkout", async (req, res) => {
-  const { productId, currency, buyerEmail } = req.body;
-
-  // Step 1: Issue session token
-  const { token } = await client.auth.issueSessionToken({
-    storeId: "STO_xxx",
-    buyerIdentity: buyerEmail,
-  });
-
-  // Step 2: Create checkout session
-  const session = await client.checkout.createSession({
-    storeId: "STO_xxx",
-    productId,
-    productType: CheckoutSessionProductType.Onetime,
-    currency,
-    buyerEmail,
-    successUrl: "https://example.com/thank-you",
-  });
-
-  // Return URL to frontend (frontend opens in new tab)
-  res.json({ checkoutUrl: session.checkoutUrl });
-});
-```
-
-```typescript
-// Frontend
-const res = await fetch("/api/checkout", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ productId: "PROD_xxx", currency: "USD", buyerEmail: "customer@example.com" }),
-});
-const { checkoutUrl } = await res.json();
-window.open(checkoutUrl, "_blank", "noopener,noreferrer");
-```
-
-## Usage Examples
-
-### Auth — Issue a Buyer Session Token
-
-```typescript
-const { token, expiresAt } = await client.auth.issueSessionToken({
-  storeId: "STO_xxx",
-  buyerIdentity: "customer@example.com",
-});
-```
-
-### Stores — Create, Update, Delete
+### Stores
 
 ```typescript
 // Create a store
@@ -300,20 +263,20 @@ const { store: updated } = await client.stores.update({
 const { store: deleted } = await client.stores.delete({ id: store.id });
 ```
 
-### Onetime Products — Create, Update, Publish
+### Products
 
 ```typescript
-import { TaxCategory, ProductVersionStatus } from "@waffo/pancake-ts";
+import { TaxCategory, BillingPeriod, ProductVersionStatus } from "@waffo/pancake-ts";
 
-// Create with multi-currency pricing
+// One-time product with multi-currency pricing
 const { product } = await client.onetimeProducts.create({
   storeId: "STO_xxx",
   name: "E-Book: TypeScript Handbook",
   description: "Complete TypeScript guide for developers",
   prices: {
-    USD: { amount: 2900, taxCategory: TaxCategory.DigitalGoods },
-    EUR: { amount: 2700, taxCategory: TaxCategory.DigitalGoods },
-    JPY: { amount: 4500, taxCategory: TaxCategory.DigitalGoods },
+    USD: { amount: "29.00", taxCategory: TaxCategory.DigitalGoods },
+    EUR: { amount: "27.00", taxCategory: TaxCategory.DigitalGoods },
+    JPY: { amount: "4500", taxCategory: TaxCategory.DigitalGoods },
   },
   media: [{ type: "image", url: "https://example.com/cover.jpg", alt: "Book cover" }],
   metadata: { sku: "ebook-ts-001" },
@@ -323,7 +286,7 @@ const { product } = await client.onetimeProducts.create({
 await client.onetimeProducts.update({
   id: product.id,
   name: "E-Book: TypeScript Handbook v2",
-  prices: { USD: { amount: 3900, taxCategory: "digital_goods" } },
+  prices: { USD: { amount: "39.00", taxCategory: "digital_goods" } },
 });
 
 // Publish test version → production
@@ -331,26 +294,18 @@ await client.onetimeProducts.publish({ id: product.id });
 
 // Deactivate
 await client.onetimeProducts.updateStatus({ id: product.id, status: ProductVersionStatus.Inactive });
-```
 
-### Subscription Products — Create with Billing Period
-
-```typescript
-import { BillingPeriod, TaxCategory } from "@waffo/pancake-ts";
-
-const { product } = await client.subscriptionProducts.create({
+// Subscription product
+const { product: sub } = await client.subscriptionProducts.create({
   storeId: "STO_xxx",
   name: "Pro Plan",
   billingPeriod: BillingPeriod.Monthly,
-  prices: { USD: { amount: 999, taxCategory: TaxCategory.SaaS } },
-  description: "Unlimited access to all features",
+  prices: { USD: { amount: "9.99", taxCategory: TaxCategory.SaaS } },
 });
-
-// Same update/publish/updateStatus pattern as onetime products
-await client.subscriptionProducts.publish({ id: product.id });
+await client.subscriptionProducts.publish({ id: sub.id });
 ```
 
-### Subscription Product Groups — Shared Trial & Plan Switching
+### Subscription Product Groups
 
 ```typescript
 // Create a group linking related subscription tiers
@@ -372,7 +327,7 @@ await client.subscriptionProductGroups.publish({ id: group.id });
 await client.subscriptionProductGroups.delete({ id: group.id });
 ```
 
-### Orders — Cancel a Subscription
+### Orders
 
 ```typescript
 const { orderId, status } = await client.orders.cancelSubscription({
@@ -380,152 +335,6 @@ const { orderId, status } = await client.orders.cancelSubscription({
 });
 // status: "canceled" (was pending) or "canceling" (was active, PSP notified)
 ```
-
-### Checkout — Create a Session
-
-```typescript
-import { CheckoutSessionProductType } from "@waffo/pancake-ts";
-
-// One-time product checkout
-const session = await client.checkout.createSession({
-  storeId: "STO_xxx",
-  productId: "PROD_xxx",
-  productType: CheckoutSessionProductType.Onetime,
-  currency: "USD",
-  buyerEmail: "customer@example.com",
-  successUrl: "https://example.com/thank-you",
-});
-// => redirect buyer to session.checkoutUrl
-
-// Subscription with trial and billing detail
-const subSession = await client.checkout.createSession({
-  storeId: "STO_xxx",
-  productId: "PROD_yyy",
-  productType: CheckoutSessionProductType.Subscription,
-  currency: "USD",
-  withTrial: true,
-  billingDetail: { country: "US", isBusiness: false, state: "CA", postcode: "94105" },
-});
-```
-
-### GraphQL — Typed Queries
-
-```typescript
-// Simple query
-interface StoresQuery {
-  stores: Array<{ id: string; name: string; status: string }>;
-}
-const result = await client.graphql.query<StoresQuery>({
-  query: `query { stores { id name status } }`,
-});
-
-// Query with variables
-const product = await client.graphql.query({
-  query: `query ($id: ID!) { onetimeProduct(id: $id) { id name prices } }`,
-  variables: { id: "PROD_xxx" },
-});
-
-// Nested relationships in a single request
-const detail = await client.graphql.query({
-  query: `query ($id: ID!) {
-    store(id: $id) {
-      id name
-      onetimeProducts { id name status prices }
-      subscriptionProducts { id name billingPeriod status }
-    }
-  }`,
-  variables: { id: "STO_xxx" },
-});
-```
-
-See the GraphQL Guide for introspection, filters, pagination, and more examples.
-
-## Webhook Verification
-
-Two ways to verify webhooks: the **standalone function** `verifyWebhook()` with built-in public keys, or the **client instance method** `client.webhooks.verify()` which uses the configured `webhookPublicKey`.
-
-### Option A — Standalone Function (built-in keys)
-
-```typescript
-import { verifyWebhook, WebhookEventType } from "@waffo/pancake-ts";
-
-// Express (IMPORTANT: use raw body — parsed JSON breaks signature verification)
-app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
-  try {
-    const event = verifyWebhook(
-      req.body.toString("utf-8"),
-      req.headers["x-waffo-signature"] as string,
-    );
-
-    // Respond immediately, process asynchronously
-    res.status(200).send("OK");
-
-    // Use event.id for idempotent deduplication
-    switch (event.eventType) {
-      case WebhookEventType.OrderCompleted:
-        console.log(`Order ${event.data.orderId} completed`);
-        break;
-      case WebhookEventType.SubscriptionActivated:
-        console.log(`Subscription activated for ${event.data.buyerEmail}`);
-        break;
-      case WebhookEventType.SubscriptionCanceled:
-        console.log(`Subscription canceled: ${event.data.orderId}`);
-        break;
-      case WebhookEventType.RefundSucceeded:
-        console.log(`Refund ${event.data.amount} ${event.data.currency}`);
-        break;
-    }
-  } catch {
-    res.status(401).send("Invalid signature");
-  }
-});
-
-// Next.js App Router
-export async function POST(request: Request) {
-  const body = await request.text();
-  const sig = request.headers.get("x-waffo-signature");
-  try {
-    const event = verifyWebhook(body, sig);
-    // handle event ...
-    return new Response("OK");
-  } catch {
-    return new Response("Invalid signature", { status: 401 });
-  }
-}
-
-// Options: specify environment, disable/customize replay protection
-const event = verifyWebhook(body, sig, { environment: "prod" });
-const event = verifyWebhook(body, sig, { toleranceMs: 0 }); // disable replay check
-```
-
-### Option B — Client Instance Method (multi-level key resolution)
-
-`client.webhooks.verify()` uses the [multi-level fallback chain](#webhook-public-key-resolution) automatically: config keys → env vars → built-in keys.
-
-```typescript
-// Per-environment keys via config
-const client = new WaffoPancake({
-  merchantId: process.env.WAFFO_MERCHANT_ID!,
-  privateKey: process.env.WAFFO_PRIVATE_KEY!,
-  webhookPublicKey: {
-    test: process.env.WAFFO_TEST_PUB_KEY!,
-    prod: process.env.WAFFO_PROD_PUB_KEY!,
-  },
-});
-const event = client.webhooks.verify(rawBody, sig, { environment: "prod" });
-
-// Or rely on env vars (WAFFO_WEBHOOK_TEST_PUBLIC_KEY / WAFFO_WEBHOOK_PROD_PUBLIC_KEY)
-const client2 = new WaffoPancake({
-  merchantId: process.env.WAFFO_MERCHANT_ID!,
-  privateKey: process.env.WAFFO_PRIVATE_KEY!,
-});
-const event2 = client2.webhooks.verify(rawBody, sig); // auto-detect environment
-
-// Per-call override (highest priority, skips all resolution)
-const event3 = client.webhooks.verify(rawBody, sig, { publicKey: oneOffKey });
-```
-
-See the Webhook Guide for event types, signature algorithm, public key resolution, and best practices.
 
 ## Error Handling
 
@@ -545,24 +354,43 @@ try {
 }
 ```
 
+## Resources
+
+| Namespace | Methods | Description |
+|-----------|---------|-------------|
+| `client.checkout.authenticated` | `create()` | Authenticated checkout (recommended) |
+| `client.checkout.anonymous` | `create()` | Anonymous checkout |
+| `client.checkout` | `createSession()` | Low-level checkout session |
+| `client.webhooks` | `verify<T>()` | Webhook signature verification |
+| `client.graphql` | `query<T>()` | Typed GraphQL queries |
+| `client.auth` | `issueSessionToken()` | Issue a buyer session token (JWT) |
+| `client.stores` | `create()` `update()` `delete()` | Store management |
+| `client.storeMerchants` | `add()` `remove()` `updateRole()` | Store members (coming soon) |
+| `client.onetimeProducts` | `create()` `update()` `publish()` `updateStatus()` | One-time products |
+| `client.subscriptionProducts` | `create()` `update()` `publish()` `updateStatus()` | Subscription products |
+| `client.subscriptionProductGroups` | `create()` `update()` `delete()` `publish()` | Product groups |
+| `client.orders` | `cancelSubscription()` | Order management |
+
+## Documentation
+
+| Document | Content |
+|----------|---------|
+| [API Reference](docs/api-reference.md) | Complete method reference — parameters, return types, `BillingDetail` fields |
+| [GraphQL Guide](docs/graphql-guide.md) | Queries, filters, analytics, introspection, delivery logs |
+| [Webhook Guide](docs/webhook-guide.md) | Signature verification, event types, key resolution, retry mechanism |
+| [Changelog](CHANGELOG.md) | Version history and migration guides |
+
 ## Exports
 
-### Classes
+### Classes & Functions
 
 | Export | Description |
 |--------|-------------|
 | `WaffoPancake` | SDK client with auto-signed requests |
 | `WaffoPancakeError` | API error with status and call-stack errors |
-
-### Functions
-
-| Export | Description |
-|--------|-------------|
-| `verifyWebhook` | RSA-SHA256 webhook signature verification |
+| `verifyWebhook` | Standalone webhook signature verification |
 
 ### Enums
-
-Runtime-accessible values. Both `Enum.Value` and string literal syntax are supported.
 
 | Export | Values |
 |--------|--------|
@@ -584,7 +412,7 @@ Runtime-accessible values. Both `Enum.Value` and string literal syntax are suppo
 
 ### Types
 
-Key types: `WaffoPancakeConfig`, `WebhookPublicKeys`, `VerifyWebhookOptions`, `WebhookEvent<T>`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `CheckoutSessionResult`, `GraphQLResponse<T>`, and 30+ more. See the API Reference for the full list.
+Key types: `WaffoPancakeConfig`, `AuthenticatedCheckoutParams`, `AuthenticatedCheckoutResult`, `AnonymousCheckoutParams`, `CheckoutSessionResult`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `WebhookEvent<T>`, `GraphQLResponse<T>`, and 30+ more. See [API Reference](docs/api-reference.md#types) for the full list.
 
 ## Development
 
@@ -593,7 +421,7 @@ npm run lint            # ESLint 9 (TypeScript ESLint + import order + JSDoc)
 npm run test            # Vitest
 npm run test:watch      # Vitest in watch mode
 npm run test:coverage   # Vitest with v8 coverage
-npm run build           # TypeScript compilation to dist/
+npm run build           # tsup → ESM + CJS + DTS
 ```
 
 ## Project Structure
@@ -617,8 +445,14 @@ src/
     ├── subscription-product-groups.ts
     ├── orders.ts
     ├── checkout.ts
+    ├── checkout-anonymous.ts
+    ├── checkout-authenticated.ts
     ├── graphql.ts
     └── webhooks.ts
+docs/
+├── api-reference.md       # Complete API reference
+├── graphql-guide.md       # GraphQL queries & analytics
+└── webhook-guide.md       # Webhook verification guide
 ```
 
 ## License

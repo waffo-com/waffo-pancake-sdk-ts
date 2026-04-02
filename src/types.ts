@@ -7,7 +7,7 @@ export interface WaffoPancakeConfig {
   merchantId: string;
   /** RSA private key in PEM format for request signing */
   privateKey: string;
-  /** Base URL override (default: https://waffo-pancake-auth-service.vercel.app) */
+  /** Base URL override (default: https://api.waffo.ai) */
   baseUrl?: string;
   /** Custom fetch implementation (default: global fetch) */
   fetch?: typeof fetch;
@@ -743,6 +743,111 @@ export interface CheckoutSessionResult {
   checkoutUrl: string;
   /** Session expiration time (ISO 8601 UTC) */
   expiresAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Checkout — convenience wrappers
+// ---------------------------------------------------------------------------
+
+/**
+ * Parameters for anonymous checkout (visitor → shopper).
+ *
+ * The buyer enters the checkout page without a session token and fills in
+ * billing details manually. No identity is provided upfront.
+ *
+ * @example
+ * const result = await client.checkout.anonymous.create({
+ *   storeId: "STO_xxx",
+ *   productId: "PROD_xxx",
+ *   productType: "onetime",
+ *   currency: "USD",
+ * });
+ * // Redirect to result.checkoutUrl
+ */
+export interface AnonymousCheckoutParams {
+  /** Store ID */
+  storeId: string;
+  /** Product ID */
+  productId: string;
+  /** Product type */
+  productType: `${CheckoutSessionProductType}`;
+  /** Currency code (ISO 4217) */
+  currency: string;
+  /** Optional price snapshot override (reads from DB if omitted) */
+  priceSnapshot?: PriceInfo;
+  /** Trial toggle override (subscription only) */
+  withTrial?: boolean;
+  /** Redirect URL after successful payment */
+  successUrl?: string;
+  /** Session expiration in seconds (default: 45 minutes) */
+  expiresInSeconds?: number;
+  /** Dark mode override (true=dark, false=light, omit=use store default) */
+  darkMode?: boolean;
+  /** Custom metadata */
+  metadata?: Record<string, string>;
+}
+
+/**
+ * Parameters for authenticated checkout (customer).
+ *
+ * The merchant provides a buyer identity; the SDK issues a session token
+ * and appends it to the checkout URL as a URL fragment.
+ *
+ * @example
+ * const result = await client.checkout.authenticated.create({
+ *   storeId: "STO_xxx",
+ *   productId: "PROD_xxx",
+ *   productType: "onetime",
+ *   currency: "USD",
+ *   buyerIdentity: "customer@example.com",
+ * });
+ * // Redirect to result.checkoutUrl (includes #token=...)
+ */
+export interface AuthenticatedCheckoutParams {
+  /** Store ID */
+  storeId: string;
+  /** Product ID */
+  productId: string;
+  /** Product type */
+  productType: `${CheckoutSessionProductType}`;
+  /** Currency code (ISO 4217) */
+  currency: string;
+  /** Buyer identity (email or merchant-provided identifier) */
+  buyerIdentity: string;
+  /** Pre-filled buyer email (defaults to `buyerIdentity` when omitted) */
+  buyerEmail?: string;
+  /** Pre-filled billing details */
+  billingDetail?: BillingDetail;
+  /** Optional price snapshot override (reads from DB if omitted) */
+  priceSnapshot?: PriceInfo;
+  /** Trial toggle override (subscription only) */
+  withTrial?: boolean;
+  /** Redirect URL after successful payment */
+  successUrl?: string;
+  /** Session expiration in seconds (default: 45 minutes) */
+  expiresInSeconds?: number;
+  /** Dark mode override (true=dark, false=light, omit=use store default) */
+  darkMode?: boolean;
+  /** Custom metadata */
+  metadata?: Record<string, string>;
+}
+
+/**
+ * Result of an authenticated checkout creation.
+ *
+ * Extends the base session result with the issued token details.
+ */
+export interface AuthenticatedCheckoutResult {
+  /** Session ID */
+  sessionId: string;
+  /** Checkout URL with session token appended as URL fragment (`#token=...`) */
+  checkoutUrl: string;
+  /** Session expiration time (ISO 8601 UTC) */
+  expiresAt: string;
+  /** Issued JWT token */
+  token: string;
+  /** Token expiration time (ISO 8601 UTC) */
+  tokenExpiresAt: string;
 }
 
 // ---------------------------------------------------------------------------

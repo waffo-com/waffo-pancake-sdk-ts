@@ -161,7 +161,7 @@ describe("HttpClient", () => {
       await client.post("/v1/test", {});
 
       const url = mockFetch.mock.calls[0][0];
-      expect(url).toBe("https://waffo-pancake-auth-service.vercel.app/v1/test");
+      expect(url).toBe("https://api.waffo.ai/v1/test");
     });
   });
 });

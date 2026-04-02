@@ -5,7 +5,7 @@ import { normalizePrivateKey, signRequest } from "./signing.js";
 
 import type { ApiResponse, WaffoPancakeConfig } from "./types.js";
 
-const DEFAULT_BASE_URL = "https://waffo-pancake-auth-service.vercel.app";
+const DEFAULT_BASE_URL = "https://api.waffo.ai";
 
 /**
  * Internal HTTP client that auto-signs requests and attaches idempotency keys.

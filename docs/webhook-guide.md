@@ -374,8 +374,8 @@ Both APIs share the same underlying verification logic and resolution chain.
 | `orderId` | `string` | Associated order ID |
 | `buyerEmail` | `string` | Buyer email address |
 | `currency` | `string` | Currency code (ISO 4217) |
-| `amount` | `number` | Amount in smallest currency unit |
-| `taxAmount` | `number` | Tax amount in smallest currency unit |
+| `amount` | `string` | Amount in display format (e.g., `"29.00"` for $29.00 USD, `"4500"` for ¥4500 JPY) |
+| `taxAmount` | `string` | Tax amount in display format (e.g., `"2.90"`) |
 | `productName` | `string` | Product name |
 
 ## Event Types
@@ -430,6 +430,20 @@ When rotating keys, the old key remains valid for a transition period:
 | Self-hosted deployment | Level 2/3 (config) | Custom keys are part of your app config |
 | Testing a new key | Level 1 (per-call) | One-off override, no permanent change |
 | CI/CD with different keys | Level 4 (env var) | Each environment sets its own env var |
+
+## Retry Mechanism
+
+When delivery fails (non-2xx response or timeout), the system automatically retries using **exponential backoff** (managed by the underlying message queue). Default: 3 retries.
+
+| Delivery Status | Description |
+|----------------|-------------|
+| `pending` | Created, waiting for delivery or retrying |
+| `success` | Delivery successful (server returned 2xx) |
+| `failed` | All retries exhausted, final failure |
+
+You can view each delivery's status, HTTP status code, and response content in the dashboard's Webhook logs.
+
+> **Note**: The same business event (same `eventType` + `eventId`) creates only one delivery record and won't be duplicated. However, the same delivery may arrive multiple times due to retries — always deduplicate using `event.id`.
 
 ## Best Practices
 
