@@ -2,7 +2,7 @@ import type { HttpClient } from "../http-client.js";
 import type { AnonymousCheckoutParams, CheckoutSessionResult } from "../types.js";
 
 /**
- * Anonymous checkout — visitor enters without a session token.
+ * Anonymous checkout — no buyer identity provided.
  *
  * The buyer fills in billing details manually on the checkout page.
  * Internally creates a checkout session and returns the redirect URL.

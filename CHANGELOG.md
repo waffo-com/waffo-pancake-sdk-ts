@@ -4,22 +4,23 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.9] - 2026-04-02
+## [0.2.0] - 2026-04-02
 
 ### Added
 
 - **Checkout convenience methods** — `client.checkout.authenticated.create()` and `client.checkout.anonymous.create()` wrap the full checkout flow into a single call. Authenticated mode issues a session token, creates a checkout session, and returns a URL with the token appended as a URL fragment. Anonymous mode creates a session directly.
-- **Types** — `AuthenticatedCheckoutParams`, `AuthenticatedCheckoutResult`, `AnonymousCheckoutParams`
-- **Resources** — `CheckoutAnonymousResource`, `CheckoutAuthenticatedResource` (accessed via `client.checkout.anonymous` / `client.checkout.authenticated`)
+- **Buyer self-service** — `client.buyer(token)` creates a session-token-authenticated buyer session with methods: `cancelSubscription()`, `cancelOnetimeOrder()`, `reactivateSubscription()`, `createRefundTicket()`, `resubmitRefundTicket()`, and `graphql.query()`.
+- **Types** — `AuthenticatedCheckoutParams`, `AuthenticatedCheckoutResult`, `AnonymousCheckoutParams`, `CancelOnetimeOrderParams`, `CancelOnetimeOrderResult`, `ReactivateSubscriptionParams`, `ReactivateSubscriptionResult`, `CreateRefundTicketParams`, `ResubmitRefundTicketParams`, `RefundTicket`, `RequestedAmount`
+- **Resources** — `CheckoutAnonymousResource`, `CheckoutAuthenticatedResource`, `BuyerSession`, `BuyerHttpClient`
 
 ### Changed
 
 - **Base URL** — Default API endpoint changed from `waffo-pancake-auth-service.vercel.app` to `api.waffo.ai`
 - **Package** — `docs/` directory now included in npm package (`files` field)
-- **Docs** — `docs/api-reference.md` synced with endpoint docs: fixed `storeId` required status, added `BillingDetail` conditional field rules, fixed price amount format (display string, not integer), added subscription product group UUID note
+- **Docs** — `docs/api-reference.md` synced with endpoint docs: fixed `storeId` required status, added `BillingDetail` conditional field rules, fixed price amount format (display string, not integer), added subscription product group UUID note, added Buyer Self-Service section
 - **Docs** — `docs/graphql-guide.md` rewritten: corrected query names (`onetimeOrders` / `subscriptionOrders`), added product version queries, exchange rate query, webhook/email delivery log queries, 9 analytics queries (`orderStatistics`, `paymentStatistics`, `productStatistics`, `trendAnalysis`, `distributionAnalysis`, `customerAnalysis`, `taxAnalysis`, `subscriptionAnalysis`, `refundTicketAnalysis`), updated count query list and filter examples
 - **Docs** — `docs/webhook-guide.md` fixed `amount` / `taxAmount` type from `number` to `string` (display format), added retry mechanism section with delivery status table
-- **README** — Reorganized by use-case priority (checkout → webhooks → GraphQL → programmatic management), added checkout mode comparison and recommendation rationale
+- **README** — Reorganized by use-case priority (checkout → webhooks → buyer self-service → GraphQL → programmatic management), added checkout mode comparison and recommendation rationale
 
 ## [0.1.8] - 2026-03-20
 

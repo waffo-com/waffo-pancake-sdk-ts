@@ -29,6 +29,7 @@ describe("WaffoPancake", () => {
     expect(client.checkout.authenticated).toBeDefined();
     expect(client.graphql).toBeDefined();
     expect(client.webhooks).toBeDefined();
+    expect(client.buyer).toBeTypeOf("function");
   });
 
   it("should accept custom baseUrl", () => {

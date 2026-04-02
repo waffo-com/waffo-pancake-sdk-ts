@@ -86,6 +86,16 @@ export type {
   SubscriptionProductGroup,
   UpdateSubscriptionProductGroupParams,
 
+  // Buyer self-service
+  CancelOnetimeOrderParams,
+  CancelOnetimeOrderResult,
+  CreateRefundTicketParams,
+  ReactivateSubscriptionParams,
+  ReactivateSubscriptionResult,
+  RefundTicket,
+  RequestedAmount,
+  ResubmitRefundTicketParams,
+
   // Checkout convenience
   AnonymousCheckoutParams,
   AuthenticatedCheckoutParams,

@@ -1,5 +1,7 @@
+import { BuyerHttpClient } from "./buyer-http-client.js";
 import { HttpClient } from "./http-client.js";
 import { AuthResource } from "./resources/auth.js";
+import { BuyerSession } from "./resources/buyer.js";
 import { CheckoutResource } from "./resources/checkout.js";
 import { GraphQLResource } from "./resources/graphql.js";
 import { OnetimeProductsResource } from "./resources/onetime-products.js";
@@ -34,7 +36,7 @@ import type { WaffoPancakeConfig } from "./types.js";
  * const { product } = await client.onetimeProducts.create({
  *   storeId: store.id, // "STO_..."
  *   name: "E-Book",
- *   prices: { USD: { amount: 2900, taxCategory: "digital_goods" } },
+ *   prices: { USD: { amount: "29.00", taxCategory: "digital_goods" } },
  * });
  * // => product.id = "PROD_..."
  *
@@ -66,6 +68,7 @@ import type { WaffoPancakeConfig } from "./types.js";
  */
 export class WaffoPancake {
   private readonly http: HttpClient;
+  private readonly config: WaffoPancakeConfig;
 
   readonly auth: AuthResource;
   readonly stores: StoresResource;
@@ -79,6 +82,7 @@ export class WaffoPancake {
   readonly webhooks: WebhooksResource;
 
   constructor(config: WaffoPancakeConfig) {
+    this.config = config;
     this.http = new HttpClient(config);
 
     this.auth = new AuthResource(this.http);
@@ -91,5 +95,31 @@ export class WaffoPancake {
     this.checkout = new CheckoutResource(this.http);
     this.graphql = new GraphQLResource(this.http);
     this.webhooks = new WebhooksResource(config.webhookPublicKey);
+  }
+
+  /**
+   * Create a buyer session for self-service operations.
+   *
+   * The returned session uses Bearer token authentication and provides
+   * methods for order cancellation, subscription management, refund tickets,
+   * and scoped GraphQL queries.
+   *
+   * @param token - Session token from `client.auth.issueSessionToken()`
+   * @returns A buyer session with self-service methods
+   *
+   * @example
+   * const { token } = await client.auth.issueSessionToken({
+   *   storeId: "STO_xxx",
+   *   buyerIdentity: "customer@example.com",
+   * });
+   * const buyer = client.buyer(token);
+   * await buyer.cancelSubscription({ orderId: "ORD_xxx" });
+   */
+  buyer(token: string): BuyerSession {
+    const buyerHttp = new BuyerHttpClient(token, {
+      baseUrl: this.config.baseUrl,
+      fetch: this.config.fetch,
+    });
+    return new BuyerSession(buyerHttp);
   }
 }

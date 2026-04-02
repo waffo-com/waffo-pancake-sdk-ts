@@ -66,32 +66,54 @@ Waffo supports two checkout modes based on whether the merchant knows the buyer'
 
 > **We recommend authenticated checkout whenever possible.** The most important reason: authenticated checkout binds the order to the `buyerIdentity` you provide, which is a **merchant-controlled stable identifier**. Even if the buyer changes the email on the checkout form, the order is still tied to the identity you specified. In anonymous mode, the buyer self-reports their email on the form — if they enter a different address, the system treats them as a new user, which means **previous orders become unlinked** and **subscription trial periods can be exploited** (a new email = a new user = a fresh trial).
 >
-> Anonymous checkout also uses the `shopper` role, which can **only create orders** (no cancellation, subscription management, or refund tickets) with a **1-minute single-use session**.
->
-> | | Authenticated (`customer`) | Anonymous (`shopper`) |
+> | | Authenticated | Anonymous |
 > |---|---|---|
 > | **Identity** | Merchant-provided, stable across orders | Self-reported email, may vary |
-> | **Permissions** | Create orders, cancel orders, manage subscriptions, submit refund tickets | Create orders **only** |
-> | **Session** | 5-minute TTL, auto-refreshes on each API call | 1-minute TTL, **single-use** (consumed on first API call) |
-> | **Subscriptions** | Fully supported — buyers can manage, cancel, or reactivate | Not practical — buyer has no session to manage the subscription afterward |
+> | **Form** | Pre-filled from merchant-provided identity | Empty, buyer fills manually |
+> | **Post-purchase** | Full self-service (see [Buyer Self-Service](#buyer-self-service)) | Create orders only — no post-purchase self-service |
+> | **Session** | 5-minute TTL, auto-refreshes | 1-minute, single-use |
+
+Both modes support **dynamic pricing** and **trial control** at checkout time:
+
+- `priceSnapshot` — override the product's stored price with a custom amount (e.g., coupon, volume discount)
+- `withTrial` — explicitly enable or disable the trial period for subscriptions (`true` = force trial, `false` = skip trial, omit = use default rules)
 
 ### Authenticated Checkout (Recommended)
 
 The merchant provides buyer identity — the SDK issues a session token, creates a checkout session, and returns a checkout URL with the token appended as a URL fragment. One call does everything.
 
 ```typescript
+// Basic — buyer identity only
 const result = await client.checkout.authenticated.create({
   storeId: "STO_xxx",
   productId: "PROD_xxx",
   productType: "onetime",
   currency: "USD",
   buyerIdentity: "customer@example.com",
-  // Optional: pre-fill billing details
+});
+
+// With dynamic pricing — override stored price (e.g., coupon, volume discount)
+const result = await client.checkout.authenticated.create({
+  storeId: "STO_xxx",
+  productId: "PROD_xxx",
+  productType: "onetime",
+  currency: "USD",
+  buyerIdentity: "customer@example.com",
+  priceSnapshot: { amount: "19.99", taxCategory: "digital_goods" },
+});
+
+// Subscription with trial control + billing detail pre-fill
+const result = await client.checkout.authenticated.create({
+  storeId: "STO_xxx",
+  productId: "PROD_xxx",
+  productType: "subscription",
+  currency: "USD",
+  buyerIdentity: "customer@example.com",
+  withTrial: true,  // force enable trial (false = skip, omit = default rules)
   billingDetail: { country: "US", isBusiness: false },
 });
-// result.checkoutUrl = "https://pancake.waffo.ai/store/{slug}/checkout/{sessionId}#token={JWT}"
 
-// Frontend — open in a new tab (recommended)
+// result.checkoutUrl = "https://pancake.waffo.ai/store/{slug}/checkout/{sessionId}#token={JWT}"
 window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
 ```
 
@@ -108,7 +130,16 @@ const result = await client.checkout.anonymous.create({
   productType: "onetime",
   currency: "USD",
 });
-// result.checkoutUrl = "https://pancake.waffo.ai/store/{slug}/checkout/{sessionId}"
+
+// Also supports priceSnapshot and withTrial
+const result = await client.checkout.anonymous.create({
+  storeId: "STO_xxx",
+  productId: "PROD_xxx",
+  productType: "subscription",
+  currency: "USD",
+  priceSnapshot: { amount: "4.99", taxCategory: "saas" },
+  withTrial: false,  // skip trial for this session
+});
 
 window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
 ```
@@ -194,6 +225,57 @@ const event = client.webhooks.verify(rawBody, sig, { environment: "prod" });
 ```
 
 See [Webhook Guide](docs/webhook-guide.md) for event types, dual-environment key architecture, key resolution chain, retry mechanism, and best practices.
+
+## Buyer Self-Service
+
+Beyond checkout, you can let buyers manage their own orders and subscriptions — for example, embedding a "Cancel Subscription" or "Request Refund" button in your site.
+
+Issue a session token, then use `client.buyer(token)` to get a session with self-service methods:
+
+```typescript
+// Your backend — issue a session token for the buyer
+const { token } = await client.auth.issueSessionToken({
+  storeId: "STO_xxx",
+  buyerIdentity: req.user.email,
+});
+
+// Create a buyer session
+const buyer = client.buyer(token);
+
+// Cancel a subscription
+const { orderId, status } = await buyer.cancelSubscription({ orderId: "ORD_xxx" });
+// status: "canceling" (active) or "canceled" (pending)
+
+// Reactivate a canceled subscription
+await buyer.reactivateSubscription({ orderId: "ORD_xxx" });
+
+// Cancel a one-time order (while payment is pending)
+await buyer.cancelOnetimeOrder({ orderId: "ORD_yyy" });
+
+// Submit a refund request
+const { ticket } = await buyer.createRefundTicket({
+  paymentId: "PAY_xxx",
+  reason: "Product not as described",
+  requestedAmount: { amount: "29.00", currency: "USD" },
+});
+
+// Resubmit a rejected refund ticket
+await buyer.resubmitRefundTicket({
+  ticketId: "TKT_xxx",
+  paymentId: "PAY_xxx",
+  reason: "Updated reason with more detail",
+  requestedAmount: { amount: "29.00", currency: "USD" },
+});
+
+// Query the buyer's own orders via GraphQL
+const result = await buyer.graphql.query({
+  query: `query { orders { id status createdAt } }`,
+});
+```
+
+The token is scoped to the specified store and buyer identity — buyers can only access their own data. Token TTL is 5 minutes and auto-refreshes on each API call.
+
+> **Note**: This uses the same `buyerIdentity` as `checkout.authenticated.create()`. Orders placed via authenticated checkout are automatically tied to this identity, so the buyer can manage them later with a token issued here.
 
 ## GraphQL — Typed Queries
 
@@ -361,8 +443,10 @@ try {
 | `client.checkout.authenticated` | `create()` | Authenticated checkout (recommended) |
 | `client.checkout.anonymous` | `create()` | Anonymous checkout |
 | `client.checkout` | `createSession()` | Low-level checkout session |
+| `client.buyer(token)` | `cancelSubscription()` `cancelOnetimeOrder()` `reactivateSubscription()` `createRefundTicket()` `resubmitRefundTicket()` | Buyer self-service |
+| `client.buyer(token).graphql` | `query<T>()` | Buyer-scoped GraphQL queries |
 | `client.webhooks` | `verify<T>()` | Webhook signature verification |
-| `client.graphql` | `query<T>()` | Typed GraphQL queries |
+| `client.graphql` | `query<T>()` | Merchant GraphQL queries |
 | `client.auth` | `issueSessionToken()` | Issue a buyer session token (JWT) |
 | `client.stores` | `create()` `update()` `delete()` | Store management |
 | `client.storeMerchants` | `add()` `remove()` `updateRole()` | Store members (coming soon) |
@@ -430,7 +514,8 @@ npm run build           # tsup → ESM + CJS + DTS
 src/
 ├── index.ts               # Unified export entry
 ├── client.ts              # WaffoPancake main class
-├── http-client.ts         # HTTP client (auto-signing + idempotency)
+├── http-client.ts         # HTTP client (API Key, auto-signing + idempotency)
+├── buyer-http-client.ts   # HTTP client (Bearer token, buyer self-service)
 ├── signing.ts             # RSA-SHA256 request signing
 ├── errors.ts              # WaffoPancakeError
 ├── webhooks.ts            # Webhook verification (embedded keys)
@@ -443,6 +528,7 @@ src/
     ├── onetime-products.ts
     ├── subscription-products.ts
     ├── subscription-product-groups.ts
+    ├── buyer.ts
     ├── orders.ts
     ├── checkout.ts
     ├── checkout-anonymous.ts

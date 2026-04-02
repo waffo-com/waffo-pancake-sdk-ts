@@ -505,6 +505,88 @@ const { orderId, status } = await client.orders.cancelSubscription({
 
 ---
 
+## Buyer Self-Service
+
+Issue a session token and create a buyer session to let buyers manage their own orders.
+
+### `client.buyer(token)`
+
+Create a buyer session from a session token issued by `client.auth.issueSessionToken()`.
+
+```typescript
+const { token } = await client.auth.issueSessionToken({
+  storeId: "STO_xxx",
+  buyerIdentity: "customer@example.com",
+});
+const buyer = client.buyer(token);
+```
+
+### `buyer.cancelSubscription(params)`
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `orderId` | `string` | Yes | Subscription order ID |
+
+**Returns `CancelSubscriptionResult`**: `{ orderId, status }` — status is `"canceling"` (active) or `"canceled"` (pending)
+
+### `buyer.cancelOnetimeOrder(params)`
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `orderId` | `string` | Yes | One-time order ID |
+
+**Returns `CancelOnetimeOrderResult`**: `{ orderId, status }` — status is `"canceled"`
+
+### `buyer.reactivateSubscription(params)`
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `orderId` | `string` | Yes | Subscription order ID (must be in `canceling` status) |
+
+**Returns `ReactivateSubscriptionResult`**: `{ orderId, status }` — status is `"active"`
+
+### `buyer.createRefundTicket(params)`
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `paymentId` | `string` | Yes | Payment ID to refund |
+| `reason` | `string` | Yes | Reason for the refund request |
+| `requestedAmount` | `RequestedAmount` | Yes | Refund amount (`{ amount, currency }`) |
+| `metadata` | `Record<string, unknown>` | No | Custom metadata |
+
+**`RequestedAmount`**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `amount` | `string` | Amount in display format (e.g., `"29.00"`) |
+| `currency` | `string` | Currency code (ISO 4217) |
+
+**Returns `{ ticket: RefundTicket }`**
+
+### `buyer.resubmitRefundTicket(params)`
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `ticketId` | `string` | Yes | Existing ticket ID |
+| `paymentId` | `string` | Yes | Payment ID |
+| `reason` | `string` | Yes | Updated reason |
+| `requestedAmount` | `RequestedAmount` | Yes | Updated refund amount |
+
+**Returns `{ ticket: RefundTicket }`**
+
+### `buyer.graphql.query<T>(params)`
+
+Same parameters as `client.graphql.query<T>()` but scoped to the buyer's own data via session token.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `query` | `string` | Yes | GraphQL query string |
+| `variables` | `Record<string, unknown>` | No | Query variables |
+
+**Returns `GraphQLResponse<T>`**: `{ data, errors? }`
+
+---
+
 ## Checkout
 
 Waffo supports two checkout modes based on whether the merchant knows the buyer's identity at checkout time:
@@ -512,7 +594,7 @@ Waffo supports two checkout modes based on whether the merchant knows the buyer'
 - **Authenticated** — the merchant has a user system or collects buyer info before checkout. The buyer's identity is provided upfront, the checkout form is pre-filled, and a session token is automatically issued.
 - **Anonymous** — the buyer arrives via a template store or shared link with no prior context. They fill in billing details manually on the checkout page.
 
-> **Authenticated checkout is recommended.** The key advantage: the order is bound to the `buyerIdentity` you provide — a **merchant-controlled stable identifier**. Even if the buyer changes the email on the checkout form, the order stays tied to your identifier. In anonymous mode, the buyer self-reports their email, and a different address means a different user — **previous orders become unlinked** and **subscription trial periods can be exploited** (new email = new user = fresh trial). Additionally, anonymous checkout uses the `shopper` role which can **only create orders** (no cancellation, subscription management, or refund tickets) and has a **1-minute single-use session**.
+> **Authenticated checkout is recommended.** The key advantage: the order is bound to the `buyerIdentity` you provide — a **merchant-controlled stable identifier**. Even if the buyer changes the email on the checkout form, the order stays tied to your identifier. In anonymous mode, the buyer self-reports their email, and a different address means a different user — **previous orders become unlinked** and **subscription trial periods can be exploited** (new email = new user = fresh trial). Additionally, anonymous checkout only supports creating orders — buyers cannot cancel orders, manage subscriptions, or submit refund tickets afterward.
 
 For advanced use cases, the low-level `createSession()` is also available.
 
@@ -771,6 +853,15 @@ All exported type interfaces:
 | `CancelSubscriptionParams` | Cancel subscription request |
 | `CancelSubscriptionResult` | Cancel subscription response |
 | `BillingDetail` | Buyer billing details (country, tax ID, etc.) |
+| **Buyer Self-Service** | |
+| `CancelOnetimeOrderParams` | Cancel one-time order request |
+| `CancelOnetimeOrderResult` | Cancel one-time order response |
+| `ReactivateSubscriptionParams` | Reactivate subscription request |
+| `ReactivateSubscriptionResult` | Reactivate subscription response |
+| `CreateRefundTicketParams` | Create refund ticket request |
+| `ResubmitRefundTicketParams` | Resubmit refund ticket request |
+| `RefundTicket` | Refund ticket entity |
+| `RequestedAmount` | Refund amount (`{ amount, currency }`) |
 | **Checkout** | |
 | `AuthenticatedCheckoutParams` | Authenticated checkout request (with buyer identity) |
 | `AuthenticatedCheckoutResult` | Authenticated checkout response (URL with token + expiry) |

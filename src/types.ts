@@ -746,11 +746,109 @@ export interface CheckoutSessionResult {
 }
 
 // ---------------------------------------------------------------------------
+// Buyer self-service
+// ---------------------------------------------------------------------------
+
+/** Parameters for canceling a one-time order (buyer-side). */
+export interface CancelOnetimeOrderParams {
+  /** Order ID */
+  orderId: string;
+}
+
+/** Result of canceling a one-time order. */
+export interface CancelOnetimeOrderResult {
+  /** Order ID */
+  orderId: string;
+  /** Resulting status (`"canceled"`) */
+  status: string;
+}
+
+/** Parameters for reactivating a subscription (buyer-side). */
+export interface ReactivateSubscriptionParams {
+  /** Subscription order ID */
+  orderId: string;
+}
+
+/** Result of reactivating a subscription. */
+export interface ReactivateSubscriptionResult {
+  /** Order ID */
+  orderId: string;
+  /** Resulting status (`"active"`) */
+  status: string;
+}
+
+/** Requested refund amount. */
+export interface RequestedAmount {
+  /** Refund amount in display format (e.g., `"29.00"`) */
+  amount: string;
+  /** Currency code (ISO 4217) */
+  currency: string;
+}
+
+/** Parameters for creating a refund ticket (buyer-side). */
+export interface CreateRefundTicketParams {
+  /** Payment ID to refund */
+  paymentId: string;
+  /** Reason for the refund request */
+  reason: string;
+  /** Requested refund amount */
+  requestedAmount: RequestedAmount;
+  /** Custom metadata */
+  metadata?: Record<string, unknown>;
+}
+
+/** Parameters for resubmitting a rejected refund ticket (buyer-side). */
+export interface ResubmitRefundTicketParams {
+  /** Existing ticket ID */
+  ticketId: string;
+  /** Payment ID */
+  paymentId: string;
+  /** Updated reason */
+  reason: string;
+  /** Updated requested amount */
+  requestedAmount: RequestedAmount;
+}
+
+/** Refund ticket entity returned from create/resubmit operations. */
+export interface RefundTicket {
+  /** Ticket ID */
+  id: string;
+  /** Ticket type (e.g., `"refund"`) */
+  type: string;
+  /** Ticket status (e.g., `"pending"`, `"approved"`, `"rejected"`) */
+  status: string;
+  /** Associated payment ID */
+  subjectId: string;
+  /** Submitter identifier (email or merchant ID) */
+  submitterId: string;
+  /** Submitter type (e.g., `"customer"`, `"merchant"`) */
+  submitterType: string;
+  /** Current version ID */
+  currentVersionId: string;
+  /** Reviewer ID (null if not yet reviewed) */
+  reviewerId: string | null;
+  /** Review timestamp (ISO 8601, null if not yet reviewed) */
+  reviewedAt: string | null;
+  /** Reviewer's note */
+  reviewNote: string | null;
+  /** Rejection reason (null if approved or pending) */
+  rejectReason: string | null;
+  /** Execution timestamp (ISO 8601, null if not yet executed) */
+  executedAt: string | null;
+  /** Custom metadata */
+  metadata: Record<string, unknown>;
+  /** Current version number */
+  versionNumber: number;
+  /** Current version data (includes reason, amount, etc.) */
+  versionData: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
 // Checkout — convenience wrappers
 // ---------------------------------------------------------------------------
 
 /**
- * Parameters for anonymous checkout (visitor → shopper).
+ * Parameters for anonymous checkout.
  *
  * The buyer enters the checkout page without a session token and fills in
  * billing details manually. No identity is provided upfront.
@@ -788,7 +886,7 @@ export interface AnonymousCheckoutParams {
 }
 
 /**
- * Parameters for authenticated checkout (customer).
+ * Parameters for authenticated checkout.
  *
  * The merchant provides a buyer identity; the SDK issues a session token
  * and appends it to the checkout URL as a URL fragment.
