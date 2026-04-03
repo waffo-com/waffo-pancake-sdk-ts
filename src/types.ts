@@ -24,6 +24,23 @@ export interface WaffoPancakeConfig {
 }
 
 // ---------------------------------------------------------------------------
+// Internal HTTP options
+// ---------------------------------------------------------------------------
+
+/**
+ * Options for {@link HttpClient.post}.
+ * Not exported publicly — used by resource classes.
+ */
+export interface PostOptions {
+  /**
+   * Time window in seconds for idempotency key rotation.
+   * When set, a floored timestamp is mixed into the key so identical params
+   * produce a new key after the window elapses (e.g. 60 = per-minute dedup).
+   */
+  idempotencyWindow?: number;
+}
+
+// ---------------------------------------------------------------------------
 // API response envelope
 // ---------------------------------------------------------------------------
 

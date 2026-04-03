@@ -32,6 +32,7 @@ export class CheckoutAnonymousResource {
     return this.http.post<CheckoutSessionResult>(
       "/v1/actions/checkout/create-session",
       params,
+      { idempotencyWindow: 60 },
     );
   }
 }

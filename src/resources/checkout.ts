@@ -64,6 +64,6 @@ export class CheckoutResource {
    * // Redirect to session.checkoutUrl
    */
   async createSession(params: CreateCheckoutSessionParams): Promise<CheckoutSessionResult> {
-    return this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params);
+    return this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, { idempotencyWindow: 60 });
   }
 }

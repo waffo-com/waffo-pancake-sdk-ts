@@ -84,6 +84,67 @@ describe("HttpClient", () => {
       expect(key1).toBe(expected);
     });
 
+    it("should include time window in idempotency key when idempotencyWindow is set", async () => {
+      const mockFetch = createMockFetch({ data: {} });
+      const client = new HttpClient({
+        merchantId: MERCHANT_ID,
+        privateKey: TEST_PRIVATE_KEY,
+        fetch: mockFetch as unknown as typeof fetch,
+      });
+
+      await client.post("/v1/test", { foo: "bar" }, { idempotencyWindow: 60 });
+
+      const key = mockFetch.mock.calls[0][1].headers["X-Idempotency-Key"];
+      const bodyStr = JSON.stringify({ foo: "bar" });
+      const windowSlot = Math.floor(Date.now() / 1000 / 60);
+      const expected = createHash("sha256")
+        .update(`${MERCHANT_ID}:/v1/test:${bodyStr}:${windowSlot}`)
+        .digest("hex");
+      expect(key).toBe(expected);
+    });
+
+    it("should produce same idempotency key within the same time window", async () => {
+      const mockFetch = createMockFetch({ data: {} });
+      const client = new HttpClient({
+        merchantId: MERCHANT_ID,
+        privateKey: TEST_PRIVATE_KEY,
+        fetch: mockFetch as unknown as typeof fetch,
+      });
+
+      await client.post("/v1/test", { foo: "bar" }, { idempotencyWindow: 60 });
+      await client.post("/v1/test", { foo: "bar" }, { idempotencyWindow: 60 });
+
+      const key1 = mockFetch.mock.calls[0][1].headers["X-Idempotency-Key"];
+      const key2 = mockFetch.mock.calls[1][1].headers["X-Idempotency-Key"];
+      expect(key1).toBe(key2);
+    });
+
+    it("should produce different idempotency key in different time windows", async () => {
+      const mockFetch = createMockFetch({ data: {} });
+      const client = new HttpClient({
+        merchantId: MERCHANT_ID,
+        privateKey: TEST_PRIVATE_KEY,
+        fetch: mockFetch as unknown as typeof fetch,
+      });
+
+      const now = Date.now();
+      const spy = vi.spyOn(Date, "now");
+
+      // First call: Date.now() called once (shared for timestamp + idempotency)
+      spy.mockReturnValueOnce(now);
+      await client.post("/v1/test", { foo: "bar" }, { idempotencyWindow: 60 });
+
+      // Second call: 61s later to cross window boundary
+      spy.mockReturnValueOnce(now + 61_000);
+      await client.post("/v1/test", { foo: "bar" }, { idempotencyWindow: 60 });
+
+      const key1 = mockFetch.mock.calls[0][1].headers["X-Idempotency-Key"];
+      const key2 = mockFetch.mock.calls[1][1].headers["X-Idempotency-Key"];
+      expect(key1).not.toBe(key2);
+
+      spy.mockRestore();
+    });
+
     it("should produce different idempotency keys for different bodies", async () => {
       const mockFetch = createMockFetch({ data: {} });
       const client = new HttpClient({

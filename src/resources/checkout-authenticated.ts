@@ -49,11 +49,11 @@ export class CheckoutAuthenticatedResource {
       this.http.post<SessionToken>("/v1/actions/auth/issue-session-token", {
         storeId: params.storeId,
         buyerIdentity,
-      }),
+      }, { idempotencyWindow: 60 }),
       this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", {
         ...sessionFields,
         buyerEmail: buyerEmail ?? buyerIdentity,
-      }),
+      }, { idempotencyWindow: 60 }),
     ]);
 
     return {

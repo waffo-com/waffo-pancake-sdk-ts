@@ -4,6 +4,17 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-04-03
+
+### Fixed
+
+- **Checkout idempotency** — Checkout methods (`anonymous.create()`, `authenticated.create()`, `createSession()`) now use time-windowed idempotency keys (60-second window) instead of fully deterministic keys. Previously, identical checkout params always produced the same `X-Idempotency-Key`, causing the gateway to return cached (and potentially expired) sessions. Now, same params within the same minute are still deduped (protects against network retries), but a new key is generated after the window elapses.
+- **Timestamp consistency** — `Date.now()` is now called once per request and shared between signature timestamp and idempotency key calculation, eliminating a theoretical edge case where the two could land in different seconds.
+
+### Internal
+
+- **`PostOptions` interface** — Extracted inline `{ idempotencyWindow?: number }` into a named type in `types.ts` (not publicly exported).
+
 ## [0.2.1] - 2026-04-02
 
 ### Added
