@@ -233,18 +233,10 @@ describe("validateBillingDetail", () => {
 });
 
 describe("validateCheckoutCommon", () => {
-  const valid = { storeId: "STO_xxx", productId: "PROD_xxx", productType: "onetime" as const, currency: "USD" };
+  const valid = { productId: "PROD_xxx", currency: "USD" };
 
   it("should pass for valid params", () => {
     expect(() => validateCheckoutCommon(valid)).not.toThrow();
-  });
-
-  it("should throw for invalid storeId", () => {
-    expect(() => validateCheckoutCommon({ ...valid, storeId: "bad" })).toThrow(WaffoPancakeError);
-  });
-
-  it("should throw for invalid productType", () => {
-    expect(() => validateCheckoutCommon({ ...valid, productType: "bad" })).toThrow(WaffoPancakeError);
   });
 
   it("should validate priceSnapshot when present", () => {
@@ -276,7 +268,13 @@ describe("integration: validation prevents network request", () => {
     return { client, mockFetch };
   }
 
-  it("auth.issueSessionToken — invalid storeId", async () => {
+  it("auth.issueSessionToken — missing storeId and productId", async () => {
+    const { client, mockFetch } = createClient();
+    await expect(client.auth.issueSessionToken({ buyerIdentity: "a@b.com" })).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("auth.issueSessionToken — invalid storeId format", async () => {
     const { client, mockFetch } = createClient();
     await expect(client.auth.issueSessionToken({ storeId: "bad", buyerIdentity: "a@b.com" })).rejects.toThrow(WaffoPancakeError);
     expect(mockFetch).not.toHaveBeenCalled();
@@ -299,7 +297,7 @@ describe("integration: validation prevents network request", () => {
   it("checkout.authenticated.create — missing buyerIdentity", async () => {
     const { client, mockFetch } = createClient();
     await expect(client.checkout.authenticated.create({
-      storeId: "STO_xxx", productId: "PROD_xxx", productType: "onetime", currency: "USD",
+      productId: "PROD_xxx", currency: "USD",
       buyerIdentity: "",
     })).rejects.toThrow(WaffoPancakeError);
     expect(mockFetch).not.toHaveBeenCalled();
@@ -308,7 +306,7 @@ describe("integration: validation prevents network request", () => {
   it("checkout.anonymous.create — invalid currency", async () => {
     const { client, mockFetch } = createClient();
     await expect(client.checkout.anonymous.create({
-      storeId: "STO_xxx", productId: "PROD_xxx", productType: "onetime", currency: "usd",
+      productId: "PROD_xxx", currency: "usd",
     })).rejects.toThrow(WaffoPancakeError);
     expect(mockFetch).not.toHaveBeenCalled();
   });

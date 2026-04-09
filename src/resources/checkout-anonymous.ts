@@ -20,9 +20,7 @@ export class CheckoutAnonymousResource {
    *
    * @example
    * const result = await client.checkout.anonymous.create({
-   *   storeId: "STO_xxx",
    *   productId: "PROD_xxx",
-   *   productType: "onetime",
    *   currency: "USD",
    * });
    * // Redirect to result.checkoutUrl

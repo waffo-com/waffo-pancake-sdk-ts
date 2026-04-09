@@ -32,9 +32,7 @@ export class CheckoutAuthenticatedResource {
    *
    * @example
    * const result = await client.checkout.authenticated.create({
-   *   storeId: "STO_xxx",
    *   productId: "PROD_xxx",
-   *   productType: "onetime",
    *   currency: "USD",
    *   buyerIdentity: "customer@example.com",
    * });
@@ -47,7 +45,7 @@ export class CheckoutAuthenticatedResource {
 
     const [tokenResult, sessionResult] = await Promise.all([
       this.http.post<SessionToken>("/v1/actions/auth/issue-session-token", {
-        storeId: params.storeId,
+        productId: params.productId,
         buyerIdentity,
       }, { idempotencyWindow: 60 }),
       this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", {

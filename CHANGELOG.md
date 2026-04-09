@@ -4,6 +4,26 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-04-09
+
+### Breaking Changes
+
+- **Checkout params simplified** — `storeId` and `productType` removed from `CreateCheckoutSessionParams`, `AnonymousCheckoutParams`, and `AuthenticatedCheckoutParams`. The server now derives both from `productId` automatically. Only `productId` + `currency` are required.
+- **`CheckoutSessionProductType` enum removed** — No longer exported. Product type is determined server-side.
+- **`IssueSessionTokenParams.storeId` now optional** — Provide either `storeId` or `productId` (at least one required). When `productId` is given, the server derives the store from the product.
+
+### Added
+
+- **`IssueSessionTokenParams.productId`** — New optional field. When provided without `storeId`, the server derives the store from the product.
+
+### Changed
+
+- **`checkout.authenticated.create()`** — Now sends `productId` (instead of `storeId`) to `issue-session-token` endpoint for parallel session token + checkout session creation.
+
+### Documentation
+
+- **GraphQL type difference warning** — Added warnings in `graphql-guide.md`, `api-reference.md`, and external docs (EN/ZH/JA) clarifying that SDK TypeScript types reflect the REST API shape and differ from GraphQL schema types (e.g. `prices` is `Record<string, PriceInfo>` in REST but `[CurrencyPrice!]!` in GraphQL). Users should always use introspection for GraphQL queries.
+
 ## [0.2.2] - 2026-04-03
 
 ### Fixed

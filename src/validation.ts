@@ -136,17 +136,13 @@ export function validateBillingDetail(detail: { country: string; isBusiness: boo
  * Validate checkout session common fields.
  */
 export function validateCheckoutCommon(params: {
-  storeId: string;
   productId: string;
-  productType: string;
   currency: string;
   priceSnapshot?: { amount: string; taxCategory: string };
   billingDetail?: { country: string; isBusiness: boolean };
   expiresInSeconds?: number;
 }): void {
-  validateShortId("storeId", params.storeId, "STO");
   validateShortId("productId", params.productId, "PROD");
-  validateEnum("productType", params.productType, ["onetime", "subscription"]);
   validateCurrencyCode("currency", params.currency);
   if (params.priceSnapshot) {
     validateAmountString("priceSnapshot.amount", params.priceSnapshot.amount);

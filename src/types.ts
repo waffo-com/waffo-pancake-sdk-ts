@@ -221,15 +221,6 @@ export enum MediaType {
   Video = "video",
 }
 
-/**
- * Checkout session product type.
- * @see waffo-pancake-order-service/app/lib/types.ts
- */
-export enum CheckoutSessionProductType {
-  Onetime = "onetime",
-  Subscription = "subscription",
-}
-
 /** Error layer identifier in the call stack. */
 export enum ErrorLayer {
   Gateway = "gateway",
@@ -252,13 +243,19 @@ export enum ErrorLayer {
 
 /**
  * Parameters for issuing a buyer session token.
+ *
+ * Provide either `storeId` or `productId` (at least one required).
+ * When `productId` is given without `storeId`, the server derives the store from the product.
+ *
  * @see waffo-pancake-user-service/app/lib/utils/jwt.ts IssueSessionTokenRequest
  */
 export interface IssueSessionTokenParams {
   /** Buyer identity (email or any merchant-provided identifier string) */
   buyerIdentity: string;
-  /** Store ID */
-  storeId: string;
+  /** Store ID (optional when `productId` is provided) */
+  storeId?: string;
+  /** Product ID — used to derive the store when `storeId` is omitted */
+  productId?: string;
 }
 
 /**
@@ -731,12 +728,8 @@ export interface BillingDetail {
  * @see waffo-pancake-order-service/app/lib/types.ts CreateCheckoutSessionRequest
  */
 export interface CreateCheckoutSessionParams {
-  /** Store ID */
-  storeId: string;
   /** Product ID */
   productId: string;
-  /** Product type */
-  productType: `${CheckoutSessionProductType}`;
   /** Currency code (ISO 4217) */
   currency: string;
   /** Optional price snapshot override (reads from DB if omitted) */
@@ -881,20 +874,14 @@ export interface RefundTicket {
  *
  * @example
  * const result = await client.checkout.anonymous.create({
- *   storeId: "STO_xxx",
  *   productId: "PROD_xxx",
- *   productType: "onetime",
  *   currency: "USD",
  * });
  * // Redirect to result.checkoutUrl
  */
 export interface AnonymousCheckoutParams {
-  /** Store ID */
-  storeId: string;
   /** Product ID */
   productId: string;
-  /** Product type */
-  productType: `${CheckoutSessionProductType}`;
   /** Currency code (ISO 4217) */
   currency: string;
   /** Optional price snapshot override (reads from DB if omitted) */
@@ -919,21 +906,15 @@ export interface AnonymousCheckoutParams {
  *
  * @example
  * const result = await client.checkout.authenticated.create({
- *   storeId: "STO_xxx",
  *   productId: "PROD_xxx",
- *   productType: "onetime",
  *   currency: "USD",
  *   buyerIdentity: "customer@example.com",
  * });
  * // Redirect to result.checkoutUrl (includes #token=...)
  */
 export interface AuthenticatedCheckoutParams {
-  /** Store ID */
-  storeId: string;
   /** Product ID */
   productId: string;
-  /** Product type */
-  productType: `${CheckoutSessionProductType}`;
   /** Currency code (ISO 4217) */
   currency: string;
   /** Buyer identity (email or merchant-provided identifier) */

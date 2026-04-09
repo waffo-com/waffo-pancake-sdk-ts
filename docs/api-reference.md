@@ -17,8 +17,15 @@ Complete reference for all `@waffo/pancake-ts` resources, parameters, and return
 Issue a buyer session token (JWT) for storefront authentication.
 
 ```typescript
+// With storeId
 const { token, expiresAt } = await client.auth.issueSessionToken({
   storeId: "STO_xxx",
+  buyerIdentity: "customer@example.com",
+});
+
+// With productId (server derives storeId from the product)
+const { token, expiresAt } = await client.auth.issueSessionToken({
+  productId: "PROD_xxx",
   buyerIdentity: "customer@example.com",
 });
 ```
@@ -27,7 +34,8 @@ const { token, expiresAt } = await client.auth.issueSessionToken({
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `storeId` | `string` | Yes | Store ID |
+| `storeId` | `string` | No | Store ID (at least one of `storeId` / `productId` required) |
+| `productId` | `string` | No | Product ID (at least one of `storeId` / `productId` required; server derives store from product) |
 | `buyerIdentity` | `string` | Yes | Buyer identity (email or merchant-defined identifier) |
 
 **Returns `SessionToken`**:
@@ -607,9 +615,7 @@ Internally calls `POST /v1/actions/auth/issue-session-token` and `POST /v1/actio
 ```typescript
 // One-time product with buyer identity
 const result = await client.checkout.authenticated.create({
-  storeId: "STO_xxx",
   productId: "PROD_xxx",
-  productType: "onetime",
   currency: "USD",
   buyerIdentity: "customer@example.com",
   successUrl: "https://example.com/thank-you",
@@ -618,9 +624,7 @@ const result = await client.checkout.authenticated.create({
 
 // Subscription with trial and billing detail
 const subResult = await client.checkout.authenticated.create({
-  storeId: "STO_xxx",
   productId: "PROD_yyy",
-  productType: "subscription",
   currency: "USD",
   buyerIdentity: "customer@example.com",
   withTrial: true,
@@ -632,9 +636,7 @@ const subResult = await client.checkout.authenticated.create({
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `storeId` | `string` | Yes | Store ID |
-| `productId` | `string` | Yes | Product ID |
-| `productType` | `CheckoutSessionProductType` | Yes | `"onetime"` or `"subscription"` |
+| `productId` | `string` | Yes | Product ID (product type is auto-detected server-side) |
 | `currency` | `string` | Yes | Currency code (ISO 4217) |
 | `buyerIdentity` | `string` | Yes | Buyer identity (email or merchant-defined identifier) |
 | `buyerEmail` | `string` | No | Pre-filled buyer email (defaults to `buyerIdentity`) |
@@ -664,18 +666,14 @@ Internally calls `POST /v1/actions/checkout/create-session`.
 
 ```typescript
 const result = await client.checkout.anonymous.create({
-  storeId: "STO_xxx",
   productId: "PROD_xxx",
-  productType: "onetime",
   currency: "USD",
 });
 // => redirect buyer to result.checkoutUrl (buyer fills form manually)
 
 // With price snapshot override
 const snapshotResult = await client.checkout.anonymous.create({
-  storeId: "STO_xxx",
   productId: "PROD_xxx",
-  productType: "onetime",
   currency: "USD",
   priceSnapshot: { amount: "19.99", taxCategory: "digital_goods" },
 });
@@ -685,9 +683,7 @@ const snapshotResult = await client.checkout.anonymous.create({
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `storeId` | `string` | Yes | Store ID |
-| `productId` | `string` | Yes | Product ID |
-| `productType` | `CheckoutSessionProductType` | Yes | `"onetime"` or `"subscription"` |
+| `productId` | `string` | Yes | Product ID (product type is auto-detected server-side) |
 | `currency` | `string` | Yes | Currency code (ISO 4217) |
 | `priceSnapshot` | `PriceInfo` | No | Price snapshot override (reads from DB if omitted) |
 | `withTrial` | `boolean` | No | Enable trial period (subscription only) |
@@ -710,9 +706,7 @@ Create a checkout session directly. For most use cases, prefer `checkout.authent
 
 ```typescript
 const session = await client.checkout.createSession({
-  storeId: "STO_xxx",
   productId: "PROD_xxx",
-  productType: "onetime",
   currency: "USD",
   buyerEmail: "customer@example.com",
 });
@@ -722,9 +716,7 @@ const session = await client.checkout.createSession({
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `storeId` | `string` | Yes | Store ID |
-| `productId` | `string` | Yes | Product ID |
-| `productType` | `CheckoutSessionProductType` | Yes | `"onetime"` or `"subscription"` |
+| `productId` | `string` | Yes | Product ID (product type is auto-detected server-side) |
 | `currency` | `string` | Yes | Currency code (ISO 4217) |
 | `priceSnapshot` | `PriceInfo` | No | Price snapshot override (reads from DB if omitted) |
 | `withTrial` | `boolean` | No | Enable trial period (subscription only) |
@@ -761,6 +753,8 @@ const session = await client.checkout.createSession({
 ### `client.graphql.query<T>(params)`
 
 Execute a typed GraphQL query. Only Query operations are supported — Mutations return a 403 error.
+
+> **Note**: GraphQL field names may differ from SDK TypeScript types. For example, `prices` is `Record<string, PriceInfo>` in REST but `[CurrencyPrice!]!` in GraphQL. Use introspection (`__schema` / `__type` queries) to discover the exact schema. See [GraphQL Guide](./graphql-guide.md) for details.
 
 ```typescript
 interface StoresQuery {

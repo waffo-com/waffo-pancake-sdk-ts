@@ -16,18 +16,14 @@ import type { CheckoutSessionResult, CreateCheckoutSessionParams } from "../type
  * @example
  * // Anonymous checkout (no identity)
  * const result = await client.checkout.anonymous.create({
- *   storeId: "STO_xxx",
  *   productId: "PROD_xxx",
- *   productType: "onetime",
  *   currency: "USD",
  * });
  *
  * @example
  * // Authenticated checkout (with buyer identity)
  * const result = await client.checkout.authenticated.create({
- *   storeId: "STO_xxx",
  *   productId: "PROD_xxx",
- *   productType: "onetime",
  *   currency: "USD",
  *   buyerIdentity: "customer@example.com",
  * });
@@ -55,9 +51,7 @@ export class CheckoutResource {
    *
    * @example
    * const session = await client.checkout.createSession({
-   *   storeId: "STO_xxx",
    *   productId: "PROD_xxx",
-   *   productType: "onetime",
    *   currency: "USD",
    *   buyerEmail: "customer@example.com",
    * });

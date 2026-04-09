@@ -28,9 +28,7 @@ const client = new WaffoPancake({
 
 // Create a checkout session — one call handles token + session + URL
 const result = await client.checkout.authenticated.create({
-  storeId: "STO_xxx",      // from Dashboard > Stores
   productId: "PROD_xxx",   // from Dashboard > Products
-  productType: "onetime",
   currency: "USD",
   buyerIdentity: req.user.email,  // your user's identity
 });
@@ -85,18 +83,14 @@ The merchant provides buyer identity — the SDK issues a session token, creates
 ```typescript
 // Basic — buyer identity only
 const result = await client.checkout.authenticated.create({
-  storeId: "STO_xxx",
   productId: "PROD_xxx",
-  productType: "onetime",
   currency: "USD",
   buyerIdentity: "customer@example.com",
 });
 
 // With dynamic pricing — override stored price (e.g., coupon, volume discount)
 const result = await client.checkout.authenticated.create({
-  storeId: "STO_xxx",
   productId: "PROD_xxx",
-  productType: "onetime",
   currency: "USD",
   buyerIdentity: "customer@example.com",
   priceSnapshot: { amount: "19.99", taxCategory: "digital_goods" },
@@ -104,9 +98,7 @@ const result = await client.checkout.authenticated.create({
 
 // Subscription with trial control + billing detail pre-fill
 const result = await client.checkout.authenticated.create({
-  storeId: "STO_xxx",
   productId: "PROD_xxx",
-  productType: "subscription",
   currency: "USD",
   buyerIdentity: "customer@example.com",
   withTrial: true,  // force enable trial (false = skip, omit = default rules)
@@ -125,17 +117,13 @@ No buyer identity required — the buyer fills in billing details manually on th
 
 ```typescript
 const result = await client.checkout.anonymous.create({
-  storeId: "STO_xxx",
   productId: "PROD_xxx",
-  productType: "onetime",
   currency: "USD",
 });
 
 // Also supports priceSnapshot and withTrial
 const result = await client.checkout.anonymous.create({
-  storeId: "STO_xxx",
   productId: "PROD_xxx",
-  productType: "subscription",
   currency: "USD",
   priceSnapshot: { amount: "4.99", taxCategory: "saas" },
   withTrial: false,  // skip trial for this session

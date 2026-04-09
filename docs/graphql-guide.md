@@ -7,6 +7,8 @@ The Waffo Pancake GraphQL API is **query-only** — Mutations are not supported 
 Introspection is **enabled by default**. Use it during development to explore the full schema, discover available types, fields, and filter conditions.
 
 > **Recommended**: Always use introspection to stay in sync with the server — this guide covers common queries, but the schema is the source of truth.
+>
+> **Important**: The SDK's TypeScript types (e.g. `Prices`, `MediaItem`) reflect the **REST API** shape. The GraphQL schema may represent the same data differently — for example, `prices` is a `Record<string, PriceInfo>` in REST but `[CurrencyPrice!]!` (array of `{currency, priceInfo}`) in GraphQL. Always use introspection or the examples below for GraphQL field names, not the SDK type definitions.
 
 ### Discover All Query Fields
 
