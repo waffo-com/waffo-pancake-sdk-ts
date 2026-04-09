@@ -10,7 +10,6 @@ export { verifyWebhook } from "./webhooks.js";
 // Enums (runtime values)
 export {
   BillingPeriod,
-  CheckoutSessionProductType,
   EntityStatus,
   Environment,
   ErrorLayer,

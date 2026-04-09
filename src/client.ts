@@ -42,9 +42,7 @@ import type { WaffoPancakeConfig } from "./types.js";
  *
  * // Create a checkout session
  * const session = await client.checkout.createSession({
- *   storeId: store.id,
  *   productId: product.id,
- *   productType: "onetime",
  *   currency: "USD",
  * });
  * // => redirect customer to session.checkoutUrl
