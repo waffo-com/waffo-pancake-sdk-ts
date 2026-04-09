@@ -5,7 +5,7 @@ Complete reference for all `@waffo/pancake-ts` resources, parameters, and return
 > **Conventions**:
 > - All amounts are in the **smallest currency unit** (e.g. 999 = $9.99 USD, 4500 = ¥4500 JPY)
 > - All timestamps are **ISO 8601 UTC** strings
-> - Product updates follow **immutable versioning** — each update creates a new version, skipped if content is unchanged
+> - Product updates follow **immutable versioning** — only provided fields are updated (omitted fields are preserved), each update creates a new version, skipped if content is unchanged
 > - The **publish** flow promotes a test version to production
 
 ---
@@ -278,10 +278,18 @@ const { product } = await client.onetimeProducts.create({
 
 Update a one-time product. Creates a new immutable version; skips if content is unchanged.
 
+> Only `id` is required. Omitted fields keep their current values.
+
 ```typescript
+// Update only the name
 const { product } = await client.onetimeProducts.update({
   id: "PROD_xxx",
   name: "E-Book: TypeScript Handbook v2",
+});
+
+// Update only the prices
+const { product: p2 } = await client.onetimeProducts.update({
+  id: "PROD_xxx",
   prices: { USD: { amount: "39.00", taxCategory: "digital_goods" } },
 });
 ```
@@ -291,8 +299,8 @@ const { product } = await client.onetimeProducts.update({
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | `string` | Yes | Product ID |
-| `name` | `string` | Yes | Product name |
-| `prices` | `Prices` | Yes | Multi-currency prices |
+| `name` | `string` | No | Product name |
+| `prices` | `Prices` | No | Multi-currency prices |
 | `description` | `string` | No | Product description |
 | `media` | `MediaItem[]` | No | Media assets |
 | `successUrl` | `string` | No | Redirect URL after successful payment |
@@ -377,16 +385,35 @@ const { product } = await client.subscriptionProducts.create({
 
 Update a subscription product. Creates a new immutable version; skips if unchanged.
 
+> Only `id` is required. Omitted fields keep their current values.
+
 ```typescript
+// Update only the name
 const { product } = await client.subscriptionProducts.update({
   id: "PROD_xxx",
   name: "Pro Plan v2",
-  billingPeriod: BillingPeriod.Monthly,
-  prices: { USD: { amount: "14.99", taxCategory: "saas" } },
+});
+
+// Update billing period and prices
+const { product: p2 } = await client.subscriptionProducts.update({
+  id: "PROD_xxx",
+  billingPeriod: BillingPeriod.Yearly,
+  prices: { USD: { amount: "99.00", taxCategory: "saas" } },
 });
 ```
 
-**Parameters `UpdateSubscriptionProductParams`**: Same as create, but `id` replaces `storeId`.
+**Parameters `UpdateSubscriptionProductParams`**:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | `string` | Yes | Product ID |
+| `name` | `string` | No | Product name |
+| `billingPeriod` | `BillingPeriod` | No | Billing period |
+| `prices` | `Prices` | No | Multi-currency prices |
+| `description` | `string` | No | Product description |
+| `media` | `MediaItem[]` | No | Media assets |
+| `successUrl` | `string` | No | Redirect URL after successful payment |
+| `metadata` | `Record<string, unknown>` | No | Custom metadata |
 
 **Returns `{ product: SubscriptionProductDetail }`**
 

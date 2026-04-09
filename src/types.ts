@@ -528,8 +528,8 @@ export interface CreateOnetimeProductParams {
  */
 export interface UpdateOnetimeProductParams {
   id: string;
-  name: string;
-  prices: Prices;
+  name?: string;
+  prices?: Prices;
   description?: string;
   media?: MediaItem[];
   successUrl?: string;
@@ -595,9 +595,9 @@ export interface CreateSubscriptionProductParams {
  */
 export interface UpdateSubscriptionProductParams {
   id: string;
-  name: string;
-  billingPeriod: BillingPeriod;
-  prices: Prices;
+  name?: string;
+  billingPeriod?: BillingPeriod;
+  prices?: Prices;
   description?: string;
   media?: MediaItem[];
   successUrl?: string;

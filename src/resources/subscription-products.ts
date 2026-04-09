@@ -38,22 +38,29 @@ export class SubscriptionProductsResource {
   /**
    * Update a subscription product. Creates a new version; skips if unchanged.
    *
-   * @param params - Product update parameters (all content fields required)
+   * @param params - Product update parameters (only `id` is required)
    * @returns Updated product detail
    *
    * @example
+   * // Update only the name
    * const { product } = await client.subscriptionProducts.update({
    *   id: "PROD_xxx",
    *   name: "Pro Plan v2",
-   *   billingPeriod: "monthly",
-   *   prices: { USD: { amount: "14.99", taxCategory: "saas" } },
+   * });
+   *
+   * @example
+   * // Update prices and billing period
+   * const { product } = await client.subscriptionProducts.update({
+   *   id: "PROD_xxx",
+   *   billingPeriod: "yearly",
+   *   prices: { USD: { amount: "99.00", taxCategory: "saas" } },
    * });
    */
   async update(params: UpdateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {
     validateShortId("id", params.id, "PROD");
-    validateRequired("name", params.name);
-    validateEnum("billingPeriod", params.billingPeriod, ["weekly", "monthly", "quarterly", "yearly"]);
-    validatePrices("prices", params.prices);
+    if (params.name !== undefined) validateRequired("name", params.name);
+    if (params.billingPeriod !== undefined) validateEnum("billingPeriod", params.billingPeriod, ["weekly", "monthly", "quarterly", "yearly"]);
+    if (params.prices) validatePrices("prices", params.prices);
     return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-product", params);
   }
 

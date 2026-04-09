@@ -36,20 +36,27 @@ export class OnetimeProductsResource {
   /**
    * Update a one-time product. Creates a new version; skips if unchanged.
    *
-   * @param params - Product update parameters (all content fields required)
+   * @param params - Product update parameters (only `id` is required)
    * @returns Updated product detail
    *
    * @example
+   * // Update only the name
    * const { product } = await client.onetimeProducts.update({
    *   id: "PROD_xxx",
    *   name: "E-Book v2",
+   * });
+   *
+   * @example
+   * // Update prices while preserving other fields
+   * const { product } = await client.onetimeProducts.update({
+   *   id: "PROD_xxx",
    *   prices: { USD: { amount: "39.00", taxCategory: "digital_goods" } },
    * });
    */
   async update(params: UpdateOnetimeProductParams): Promise<{ product: OnetimeProductDetail }> {
     validateShortId("id", params.id, "PROD");
-    validateRequired("name", params.name);
-    validatePrices("prices", params.prices);
+    if (params.name !== undefined) validateRequired("name", params.name);
+    if (params.prices) validatePrices("prices", params.prices);
     return this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/update-product", params);
   }
 

@@ -18,10 +18,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ### Changed
 
+- **Product update simplified** — `update()` only modifies provided fields; omitted fields are preserved. `name`, `prices`, and `billingPeriod` (subscription) are now optional.
 - **`checkout.authenticated.create()`** — Now sends `productId` (instead of `storeId`) to `issue-session-token` endpoint for parallel session token + checkout session creation.
 
 ### Documentation
 
+- **Update documentation** — Updated JSDoc and `api-reference.md` to reflect that omitted fields are preserved. Removed Safe Update Pattern section (no longer needed).
 - **GraphQL type difference warning** — Added warnings in `graphql-guide.md`, `api-reference.md`, and external docs (EN/ZH/JA) clarifying that SDK TypeScript types reflect the REST API shape and differ from GraphQL schema types (e.g. `prices` is `Record<string, PriceInfo>` in REST but `[CurrencyPrice!]!` in GraphQL). Users should always use introspection for GraphQL queries.
 
 ## [0.2.2] - 2026-04-03
