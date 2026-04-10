@@ -22,15 +22,15 @@ import { WaffoPancake } from "@waffo/pancake-ts";
 
 // Merchant ID and API Key are available in Dashboard > Settings > Developers
 const client = new WaffoPancake({
-  merchantId: process.env.WAFFO_MERCHANT_ID!,  // MER_{base62} format
+  merchantId: process.env.WAFFO_MERCHANT_ID!, // MER_{base62} format
   privateKey: process.env.WAFFO_PRIVATE_KEY!,
 });
 
 // Create a checkout session — one call handles token + session + URL
 const result = await client.checkout.authenticated.create({
-  productId: "PROD_xxx",   // from Dashboard > Products
+  productId: "PROD_xxx", // from Dashboard > Products
   currency: "USD",
-  buyerIdentity: req.user.email,  // your user's identity
+  buyerIdentity: req.user.email, // your user's identity
 });
 
 // Redirect buyer to the checkout page (opens in new tab)
@@ -40,13 +40,13 @@ res.json({ checkoutUrl: result.checkoutUrl });
 
 ## Configuration
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `merchantId` | `string` | Yes | Merchant ID in `MER_{base62}` format |
-| `privateKey` | `string` | Yes | RSA private key in PEM format (auto-normalized, see [docs](docs/api-reference.md)) |
-| `baseUrl` | `string` | No | API base URL override |
-| `fetch` | `typeof fetch` | No | Custom fetch implementation |
-| `webhookPublicKey` | `string \| { test?, prod? }` | No | Custom webhook public key(s) |
+| Parameter          | Type                         | Required | Description                                                                        |
+| ------------------ | ---------------------------- | -------- | ---------------------------------------------------------------------------------- |
+| `merchantId`       | `string`                     | Yes      | Merchant ID in `MER_{base62}` format                                               |
+| `privateKey`       | `string`                     | Yes      | RSA private key in PEM format (auto-normalized, see [docs](docs/api-reference.md)) |
+| `baseUrl`          | `string`                     | No       | API base URL override                                                              |
+| `fetch`            | `typeof fetch`               | No       | Custom fetch implementation                                                        |
+| `webhookPublicKey` | `string \| { test?, prod? }` | No       | Custom webhook public key(s)                                                       |
 
 The SDK auto-normalizes key formats: standard PEM, PKCS#1, literal `\n` from env vars, raw base64, and Windows line endings are all accepted.
 
@@ -57,19 +57,19 @@ Waffo supports two checkout modes based on whether the merchant knows the buyer'
 - **Merchants with their own sites** know who the buyer is — they have user accounts, login systems, or collect buyer info before checkout. The merchant provides the buyer's identity upfront, and the checkout form arrives pre-filled.
 - **Template stores and shared links** have no prior buyer context — the buyer arrives directly at the checkout page and fills in their own details.
 
-| Mode | Method | Buyer Identity | Form State | Use Case |
-|------|--------|---------------|------------|----------|
-| **Authenticated** | `checkout.authenticated.create()` | Merchant provides | Pre-filled | Merchant sites with user accounts |
-| **Anonymous** | `checkout.anonymous.create()` | Not provided | Empty | Template stores, one-time purchase links |
+| Mode              | Method                            | Buyer Identity    | Form State | Use Case                                 |
+| ----------------- | --------------------------------- | ----------------- | ---------- | ---------------------------------------- |
+| **Authenticated** | `checkout.authenticated.create()` | Merchant provides | Pre-filled | Merchant sites with user accounts        |
+| **Anonymous**     | `checkout.anonymous.create()`     | Not provided      | Empty      | Template stores, one-time purchase links |
 
 > **We recommend authenticated checkout whenever possible.** The most important reason: authenticated checkout binds the order to the `buyerIdentity` you provide, which is a **merchant-controlled stable identifier**. Even if the buyer changes the email on the checkout form, the order is still tied to the identity you specified. In anonymous mode, the buyer self-reports their email on the form — if they enter a different address, the system treats them as a new user, which means **previous orders become unlinked** and **subscription trial periods can be exploited** (a new email = a new user = a fresh trial).
 >
-> | | Authenticated | Anonymous |
-> |---|---|---|
-> | **Identity** | Merchant-provided, stable across orders | Self-reported email, may vary |
-> | **Form** | Pre-filled from merchant-provided identity | Empty, buyer fills manually |
+> |                   | Authenticated                                                     | Anonymous                                          |
+> | ----------------- | ----------------------------------------------------------------- | -------------------------------------------------- |
+> | **Identity**      | Merchant-provided, stable across orders                           | Self-reported email, may vary                      |
+> | **Form**          | Pre-filled from merchant-provided identity                        | Empty, buyer fills manually                        |
 > | **Post-purchase** | Full self-service (see [Buyer Self-Service](#buyer-self-service)) | Create orders only — no post-purchase self-service |
-> | **Session** | 5-minute TTL, auto-refreshes | 1-minute, single-use |
+> | **Session**       | 5-minute TTL, auto-refreshes                                      | 1-minute, single-use                               |
 
 Both modes support **dynamic pricing** and **trial control** at checkout time:
 
@@ -101,7 +101,7 @@ const result = await client.checkout.authenticated.create({
   productId: "PROD_xxx",
   currency: "USD",
   buyerIdentity: "customer@example.com",
-  withTrial: true,  // force enable trial (false = skip, omit = default rules)
+  withTrial: true, // force enable trial (false = skip, omit = default rules)
   billingDetail: { country: "US", isBusiness: false },
 });
 
@@ -126,7 +126,7 @@ const result = await client.checkout.anonymous.create({
   productId: "PROD_xxx",
   currency: "USD",
   priceSnapshot: { amount: "4.99", taxCategory: "saas" },
-  withTrial: false,  // skip trial for this session
+  withTrial: false, // skip trial for this session
 });
 
 window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
@@ -164,10 +164,7 @@ import { verifyWebhook, WebhookEventType } from "@waffo/pancake-ts";
 // Express (IMPORTANT: use raw body — parsed JSON breaks signature verification)
 app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
   try {
-    const event = verifyWebhook(
-      req.body.toString("utf-8"),
-      req.headers["x-waffo-signature"] as string,
-    );
+    const event = verifyWebhook(req.body.toString("utf-8"), req.headers["x-waffo-signature"] as string);
 
     // Respond immediately, process asynchronously
     res.status(200).send("OK");
@@ -417,8 +414,8 @@ try {
   await client.stores.create({ name: "" });
 } catch (err) {
   if (err instanceof WaffoPancakeError) {
-    console.log(err.status);  // 400
-    console.log(err.errors);  // [{ message: "...", layer: "store" }, ...]
+    console.log(err.status); // 400
+    console.log(err.errors); // [{ message: "...", layer: "store" }, ...]
     // errors[0] = deepest layer, errors[n] = outermost layer
   }
 }
@@ -426,61 +423,61 @@ try {
 
 ## Resources
 
-| Namespace | Methods | Description |
-|-----------|---------|-------------|
-| `client.checkout.authenticated` | `create()` | Authenticated checkout (recommended) |
-| `client.checkout.anonymous` | `create()` | Anonymous checkout |
-| `client.checkout` | `createSession()` | Low-level checkout session |
-| `client.buyer(token)` | `cancelSubscription()` `cancelOnetimeOrder()` `reactivateSubscription()` `createRefundTicket()` `resubmitRefundTicket()` | Buyer self-service |
-| `client.buyer(token).graphql` | `query<T>()` | Buyer-scoped GraphQL queries |
-| `client.webhooks` | `verify<T>()` | Webhook signature verification |
-| `client.graphql` | `query<T>()` | Merchant GraphQL queries |
-| `client.auth` | `issueSessionToken()` | Issue a buyer session token (JWT) |
-| `client.stores` | `create()` `update()` `delete()` | Store management |
-| `client.storeMerchants` | `add()` `remove()` `updateRole()` | Store members (coming soon) |
-| `client.onetimeProducts` | `create()` `update()` `publish()` `updateStatus()` | One-time products |
-| `client.subscriptionProducts` | `create()` `update()` `publish()` `updateStatus()` | Subscription products |
-| `client.subscriptionProductGroups` | `create()` `update()` `delete()` `publish()` | Product groups |
-| `client.orders` | `cancelSubscription()` | Order management |
+| Namespace                          | Methods                                                                                                                  | Description                          |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| `client.checkout.authenticated`    | `create()`                                                                                                               | Authenticated checkout (recommended) |
+| `client.checkout.anonymous`        | `create()`                                                                                                               | Anonymous checkout                   |
+| `client.checkout`                  | `createSession()`                                                                                                        | Low-level checkout session           |
+| `client.buyer(token)`              | `cancelSubscription()` `cancelOnetimeOrder()` `reactivateSubscription()` `createRefundTicket()` `resubmitRefundTicket()` | Buyer self-service                   |
+| `client.buyer(token).graphql`      | `query<T>()`                                                                                                             | Buyer-scoped GraphQL queries         |
+| `client.webhooks`                  | `verify<T>()`                                                                                                            | Webhook signature verification       |
+| `client.graphql`                   | `query<T>()`                                                                                                             | Merchant GraphQL queries             |
+| `client.auth`                      | `issueSessionToken()`                                                                                                    | Issue a buyer session token (JWT)    |
+| `client.stores`                    | `create()` `update()` `delete()`                                                                                         | Store management                     |
+| `client.storeMerchants`            | `add()` `remove()` `updateRole()`                                                                                        | Store members (coming soon)          |
+| `client.onetimeProducts`           | `create()` `update()` `publish()` `updateStatus()`                                                                       | One-time products                    |
+| `client.subscriptionProducts`      | `create()` `update()` `publish()` `updateStatus()`                                                                       | Subscription products                |
+| `client.subscriptionProductGroups` | `create()` `update()` `delete()` `publish()`                                                                             | Product groups                       |
+| `client.orders`                    | `cancelSubscription()`                                                                                                   | Order management                     |
 
 ## Documentation
 
-| Document | Content |
-|----------|---------|
+| Document                               | Content                                                                      |
+| -------------------------------------- | ---------------------------------------------------------------------------- |
 | [API Reference](docs/api-reference.md) | Complete method reference — parameters, return types, `BillingDetail` fields |
-| [GraphQL Guide](docs/graphql-guide.md) | Queries, filters, analytics, introspection, delivery logs |
-| [Webhook Guide](docs/webhook-guide.md) | Signature verification, event types, key resolution, retry mechanism |
-| [Changelog](CHANGELOG.md) | Version history and migration guides |
+| [GraphQL Guide](docs/graphql-guide.md) | Queries, filters, analytics, introspection, delivery logs                    |
+| [Webhook Guide](docs/webhook-guide.md) | Signature verification, event types, key resolution, retry mechanism         |
+| [Changelog](CHANGELOG.md)              | Version history and migration guides                                         |
 
 ## Exports
 
 ### Classes & Functions
 
-| Export | Description |
-|--------|-------------|
-| `WaffoPancake` | SDK client with auto-signed requests |
+| Export              | Description                                 |
+| ------------------- | ------------------------------------------- |
+| `WaffoPancake`      | SDK client with auto-signed requests        |
 | `WaffoPancakeError` | API error with status and call-stack errors |
-| `verifyWebhook` | Standalone webhook signature verification |
+| `verifyWebhook`     | Standalone webhook signature verification   |
 
 ### Enums
 
-| Export | Values |
-|--------|--------|
-| `Environment` | `Test`, `Prod` |
-| `TaxCategory` | `DigitalGoods`, `SaaS`, `Software`, `Ebook`, `OnlineCourse`, `Consulting`, `ProfessionalService` |
-| `BillingPeriod` | `Weekly`, `Monthly`, `Quarterly`, `Yearly` |
-| `ProductVersionStatus` | `Active`, `Inactive` |
-| `EntityStatus` | `Active`, `Inactive`, `Suspended` |
-| `StoreRole` | `Owner`, `Admin`, `Member` |
-| `OnetimeOrderStatus` | `Pending`, `Completed`, `Canceled` |
-| `SubscriptionOrderStatus` | `Pending`, `Active`, `Canceling`, `PastDue`, `Closed`, `Canceled`, `Expired` |
-| `PaymentStatus` | `Pending`, `Succeeded`, `Failed`, `Canceled` |
-| `RefundTicketStatus` | `Pending`, `Approved`, `Rejected`, `Processing`, `Succeeded`, `Failed` |
-| `RefundStatus` | `Succeeded`, `Failed` |
-| `MediaType` | `Image`, `Video` |
-| `CheckoutSessionProductType` | `Onetime`, `Subscription` |
-| `ErrorLayer` | `Gateway`, `User`, `Store`, `Product`, `Order`, `Ticket`, `GraphQL`, `Resource`, `Email` |
-| `WebhookEventType` | `OrderCompleted`, `SubscriptionActivated`, `SubscriptionPaymentSucceeded`, `SubscriptionCanceling`, `SubscriptionUncanceled`, `SubscriptionUpdated`, `SubscriptionCanceled`, `SubscriptionPastDue`, `RefundSucceeded`, `RefundFailed` |
+| Export                       | Values                                                                                                                                                                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Environment`                | `Test`, `Prod`                                                                                                                                                                                                                        |
+| `TaxCategory`                | `DigitalGoods`, `SaaS`, `Software`, `Ebook`, `OnlineCourse`, `Consulting`, `ProfessionalService`                                                                                                                                      |
+| `BillingPeriod`              | `Weekly`, `Monthly`, `Quarterly`, `Yearly`                                                                                                                                                                                            |
+| `ProductVersionStatus`       | `Active`, `Inactive`                                                                                                                                                                                                                  |
+| `EntityStatus`               | `Active`, `Inactive`, `Suspended`                                                                                                                                                                                                     |
+| `StoreRole`                  | `Owner`, `Admin`, `Member`                                                                                                                                                                                                            |
+| `OnetimeOrderStatus`         | `Pending`, `Completed`, `Canceled`                                                                                                                                                                                                    |
+| `SubscriptionOrderStatus`    | `Pending`, `Active`, `Canceling`, `PastDue`, `Closed`, `Canceled`, `Expired`                                                                                                                                                          |
+| `PaymentStatus`              | `Pending`, `Succeeded`, `Failed`, `Canceled`                                                                                                                                                                                          |
+| `RefundTicketStatus`         | `Pending`, `Approved`, `Rejected`, `Processing`, `Succeeded`, `Failed`                                                                                                                                                                |
+| `RefundStatus`               | `Succeeded`, `Failed`                                                                                                                                                                                                                 |
+| `MediaType`                  | `Image`, `Video`                                                                                                                                                                                                                      |
+| `CheckoutSessionProductType` | `Onetime`, `Subscription`                                                                                                                                                                                                             |
+| `ErrorLayer`                 | `Gateway`, `User`, `Store`, `Product`, `Order`, `Ticket`, `GraphQL`, `Resource`, `Email`                                                                                                                                              |
+| `WebhookEventType`           | `OrderCompleted`, `SubscriptionActivated`, `SubscriptionPaymentSucceeded`, `SubscriptionCanceling`, `SubscriptionUncanceled`, `SubscriptionUpdated`, `SubscriptionCanceled`, `SubscriptionPastDue`, `RefundSucceeded`, `RefundFailed` |
 
 ### Types
 

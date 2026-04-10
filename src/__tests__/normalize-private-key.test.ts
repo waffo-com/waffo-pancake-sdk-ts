@@ -113,7 +113,9 @@ describe("normalizePrivateKey", () => {
     // Simulate a key copied from a dashboard with mixed issues
     const mangled =
       "  -----BEGIN PRIVATE KEY-----\\n" +
-      extractBase64(VALID_PEM).match(/.{1,64}/g)!.join("\\n") +
+      extractBase64(VALID_PEM)
+        .match(/.{1,64}/g)!
+        .join("\\n") +
       "\\n-----END PRIVATE KEY-----  ";
     const result = normalizePrivateKey(mangled);
     assertSignsCorrectly(result);
@@ -151,20 +153,14 @@ describe("normalizePrivateKey", () => {
   });
 
   it("should throw on PEM headers with no content", () => {
-    expect(() =>
-      normalizePrivateKey("-----BEGIN PRIVATE KEY-----\n-----END PRIVATE KEY-----"),
-    ).toThrow("no key data");
+    expect(() => normalizePrivateKey("-----BEGIN PRIVATE KEY-----\n-----END PRIVATE KEY-----")).toThrow("no key data");
   });
 
   it("should throw on invalid base64 characters", () => {
-    expect(() => normalizePrivateKey("not-valid-base64!!!")).toThrow(
-      "not valid PEM or base64",
-    );
+    expect(() => normalizePrivateKey("not-valid-base64!!!")).toThrow("not valid PEM or base64");
   });
 
   it("should throw on valid base64 that is not a real key", () => {
-    expect(() => normalizePrivateKey("dGhpcyBpcyBub3QgYSBrZXk=")).toThrow(
-      "could not be parsed",
-    );
+    expect(() => normalizePrivateKey("dGhpcyBpcyBub3QgYSBrZXk=")).toThrow("could not be parsed");
   });
 });

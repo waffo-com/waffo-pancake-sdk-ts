@@ -438,12 +438,12 @@ const counts = await client.graphql.query({
 
 ## Filter Types
 
-| Filter Type | Operations | Example Fields |
-|-------------|------------|----------------|
-| `StringFilter` | `eq`, `ne`, `contains`, `startsWith`, `endsWith`, `in` | `status`, `name`, `email`, `currency` |
-| `DateTimeFilter` | `eq`, `ne`, `gt`, `gte`, `lt`, `lte` | `createdAt`, `updatedAt`, `expiresAt` |
-| `IntFilter` | `eq`, `ne`, `gt`, `gte`, `lt`, `lte` | `amount`, `totalAmount` |
-| `BooleanFilter` | `eq` | `prodEnabled`, `testMode` |
+| Filter Type      | Operations                                             | Example Fields                        |
+| ---------------- | ------------------------------------------------------ | ------------------------------------- |
+| `StringFilter`   | `eq`, `ne`, `contains`, `startsWith`, `endsWith`, `in` | `status`, `name`, `email`, `currency` |
+| `DateTimeFilter` | `eq`, `ne`, `gt`, `gte`, `lt`, `lte`                   | `createdAt`, `updatedAt`, `expiresAt` |
+| `IntFilter`      | `eq`, `ne`, `gt`, `gte`, `lt`, `lte`                   | `amount`, `totalAmount`               |
+| `BooleanFilter`  | `eq`                                                   | `prodEnabled`, `testMode`             |
 
 > To see which filter fields are available for a specific entity, use introspection:
 > `__type(name: "OnetimeOrderFilter") { fields { name type { name } } }`
@@ -456,12 +456,12 @@ Analytics queries provide aggregated statistics, trends, and insights. All analy
 
 ### AnalyticsFilterInput
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `filter.timeRange.startDate` | `String` | Yes | Start time (ISO 8601) |
-| `filter.timeRange.endDate` | `String` | Yes | End time (ISO 8601) |
-| `filter.currency` | `String` | No | Currency filter (ISO 4217) |
-| `filter.status` | `String` | No | Status filter |
+| Field                        | Type     | Required | Description                |
+| ---------------------------- | -------- | -------- | -------------------------- |
+| `filter.timeRange.startDate` | `String` | Yes      | Start time (ISO 8601)      |
+| `filter.timeRange.endDate`   | `String` | Yes      | End time (ISO 8601)        |
+| `filter.currency`            | `String` | No       | Currency filter (ISO 4217) |
+| `filter.status`              | `String` | No       | Status filter              |
 
 ### TimePeriodGranularity
 

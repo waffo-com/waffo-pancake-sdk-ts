@@ -133,9 +133,7 @@ describe("checkout.authenticated", () => {
     });
 
     expect(result.sessionId).toBe("cs_auth456");
-    expect(result.checkoutUrl).toBe(
-      "https://pancake.waffo.ai/store/my-store/checkout/cs_auth456#token=eyJhbGciOi.test.jwt",
-    );
+    expect(result.checkoutUrl).toBe("https://pancake.waffo.ai/store/my-store/checkout/cs_auth456#token=eyJhbGciOi.test.jwt");
     expect(result.expiresAt).toBe("2026-04-02T10:00:00.000Z");
     expect(result.token).toBe("eyJhbGciOi.test.jwt");
     expect(result.tokenExpiresAt).toBe("2026-04-02T09:05:00.000Z");
@@ -166,9 +164,7 @@ describe("checkout.authenticated", () => {
     });
 
     // Find the create-session call
-    const sessionCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url.includes("create-session"),
-    );
+    const sessionCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("create-session"));
     const sessionBody = JSON.parse(sessionCall![1].body as string);
     expect(sessionBody.buyerEmail).toBe("buyer@test.com");
   });
@@ -195,9 +191,7 @@ describe("checkout.authenticated", () => {
       buyerEmail: "explicit@test.com",
     });
 
-    const sessionCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url.includes("create-session"),
-    );
+    const sessionCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("create-session"));
     const sessionBody = JSON.parse(sessionCall![1].body as string);
     expect(sessionBody.buyerEmail).toBe("explicit@test.com");
   });
@@ -224,9 +218,7 @@ describe("checkout.authenticated", () => {
       billingDetail: { country: "US", isBusiness: false, postcode: "10001" },
     });
 
-    const sessionCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url.includes("create-session"),
-    );
+    const sessionCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("create-session"));
     const sessionBody = JSON.parse(sessionCall![1].body as string);
     expect(sessionBody.billingDetail).toEqual({ country: "US", isBusiness: false, postcode: "10001" });
   });
@@ -252,9 +244,7 @@ describe("checkout.authenticated", () => {
       buyerIdentity: "id-from-merchant",
     });
 
-    const tokenCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url.includes("issue-session-token"),
-    );
+    const tokenCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("issue-session-token"));
     const tokenBody = JSON.parse(tokenCall![1].body as string);
     expect(tokenBody.buyerIdentity).toBe("id-from-merchant");
     expect(tokenBody.productId).toBe("PROD_xxx");
@@ -287,9 +277,7 @@ describe("checkout.authenticated", () => {
       expiresInSeconds: 900,
     });
 
-    const sessionCall = mockFetch.mock.calls.find(
-      ([url]: [string]) => url.includes("create-session"),
-    );
+    const sessionCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("create-session"));
     const sessionBody = JSON.parse(sessionCall![1].body as string);
     expect(sessionBody.priceSnapshot).toEqual({ amount: "8.99", taxCategory: "saas" });
     expect(sessionBody.withTrial).toBe(false);

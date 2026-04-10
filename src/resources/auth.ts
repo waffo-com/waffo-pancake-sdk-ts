@@ -30,9 +30,7 @@ export class AuthResource {
    */
   async issueSessionToken(params: IssueSessionTokenParams): Promise<SessionToken> {
     if (!params.storeId && !params.productId) {
-      throw new WaffoPancakeError(400, [
-        { message: "Missing required field: provide storeId or productId", layer: "sdk" },
-      ]);
+      throw new WaffoPancakeError(400, [{ message: "Missing required field: provide storeId or productId", layer: "sdk" }]);
     }
     if (params.storeId) {
       validateShortId("storeId", params.storeId, "STO");

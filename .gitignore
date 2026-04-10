@@ -1,3 +1,24 @@
-node_modules/
-dist/
-coverage/
+# Dependencies
+/node_modules
+
+# Build output
+/dist
+
+# Testing
+/coverage
+
+# Misc
+.DS_Store
+
+# Debug
+npm-debug.log*
+
+# Local env files
+.env*.local
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

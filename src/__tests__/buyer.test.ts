@@ -188,15 +188,14 @@ describe("buyer error handling", () => {
   it("should throw WaffoPancakeError on API error", async () => {
     const mockFetch = vi.fn().mockResolvedValue({
       status: 401,
-      json: () => Promise.resolve({
-        data: null,
-        errors: [{ message: "Session expired", layer: "gateway" }],
-      }),
+      json: () =>
+        Promise.resolve({
+          data: null,
+          errors: [{ message: "Session expired", layer: "gateway" }],
+        }),
     });
     const buyer = createClient(mockFetch as unknown as typeof vi.fn).buyer("expired-token");
 
-    await expect(
-      buyer.cancelSubscription({ orderId: "ORD_xxx" }),
-    ).rejects.toThrow(WaffoPancakeError);
+    await expect(buyer.cancelSubscription({ orderId: "ORD_xxx" })).rejects.toThrow(WaffoPancakeError);
   });
 });

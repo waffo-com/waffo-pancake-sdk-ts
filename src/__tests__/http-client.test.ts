@@ -78,9 +78,7 @@ describe("HttpClient", () => {
 
       // Verify it matches expected hash
       const bodyStr = JSON.stringify({ foo: "bar" });
-      const expected = createHash("sha256")
-        .update(`${MERCHANT_ID}:/v1/test:${bodyStr}`)
-        .digest("hex");
+      const expected = createHash("sha256").update(`${MERCHANT_ID}:/v1/test:${bodyStr}`).digest("hex");
       expect(key1).toBe(expected);
     });
 
@@ -97,9 +95,7 @@ describe("HttpClient", () => {
       const key = mockFetch.mock.calls[0][1].headers["X-Idempotency-Key"];
       const bodyStr = JSON.stringify({ foo: "bar" });
       const windowSlot = Math.floor(Date.now() / 1000 / 60);
-      const expected = createHash("sha256")
-        .update(`${MERCHANT_ID}:/v1/test:${bodyStr}:${windowSlot}`)
-        .digest("hex");
+      const expected = createHash("sha256").update(`${MERCHANT_ID}:/v1/test:${bodyStr}:${windowSlot}`).digest("hex");
       expect(key).toBe(expected);
     });
 

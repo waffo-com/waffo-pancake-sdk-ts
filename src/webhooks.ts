@@ -87,9 +87,7 @@ function resolveKeyForEnv(env: "test" | "prod", configKeys?: WebhookPublicKeys):
   }
 
   // 2. Environment variable (per-env)
-  const envSpecific = env === "test"
-    ? process.env.WAFFO_WEBHOOK_TEST_PUBLIC_KEY
-    : process.env.WAFFO_WEBHOOK_PROD_PUBLIC_KEY;
+  const envSpecific = env === "test" ? process.env.WAFFO_WEBHOOK_TEST_PUBLIC_KEY : process.env.WAFFO_WEBHOOK_PROD_PUBLIC_KEY;
   if (envSpecific) {
     return normalizePublicKey(envSpecific);
   }

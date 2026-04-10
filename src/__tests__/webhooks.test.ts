@@ -66,18 +66,14 @@ describe("verifyWebhook", () => {
       const ts = Date.now().toString();
       const header = `t=${ts},v1=invalidsignaturedata`;
 
-      expect(() => verifyWebhook("{}", header, { environment: "test" })).toThrow(
-        "Invalid webhook signature (test key)",
-      );
+      expect(() => verifyWebhook("{}", header, { environment: "test" })).toThrow("Invalid webhook signature (test key)");
     });
 
     it("should reject invalid signature with explicit prod environment", () => {
       const ts = Date.now().toString();
       const header = `t=${ts},v1=invalidsignaturedata`;
 
-      expect(() => verifyWebhook("{}", header, { environment: "prod" })).toThrow(
-        "Invalid webhook signature (prod key)",
-      );
+      expect(() => verifyWebhook("{}", header, { environment: "prod" })).toThrow("Invalid webhook signature (prod key)");
     });
   });
 
@@ -103,7 +99,14 @@ describe("verifyWebhook", () => {
         eventId: "PAY_456",
         storeId: "store_789",
         mode: "prod",
-        data: { orderId: "order_abc", buyerEmail: "test@example.com", currency: "USD", amount: "29.00", taxAmount: "2.90", productName: "Pro Plan" },
+        data: {
+          orderId: "order_abc",
+          buyerEmail: "test@example.com",
+          currency: "USD",
+          amount: "29.00",
+          taxAmount: "2.90",
+          productName: "Pro Plan",
+        },
       };
 
       const payload = JSON.stringify(event);
@@ -141,9 +144,7 @@ describe("verifyWebhook", () => {
       const ts = Date.now().toString();
       const header = `t=${ts},v1=invalidsig`;
 
-      expect(() => verifyWebhook(payload, header, { publicKey: publicKey as string })).toThrow(
-        "Invalid webhook signature (custom key)",
-      );
+      expect(() => verifyWebhook(payload, header, { publicKey: publicKey as string })).toThrow("Invalid webhook signature (custom key)");
     });
 
     it("should verify with raw base64 public key (no PEM headers)", () => {

@@ -119,7 +119,9 @@ describe("normalizePublicKey", () => {
   it("should handle literal \\n + extra whitespace combined", () => {
     const mangled =
       "  -----BEGIN PUBLIC KEY-----\\n" +
-      extractBase64(VALID_PEM as string).match(/.{1,64}/g)!.join("\\n") +
+      extractBase64(VALID_PEM as string)
+        .match(/.{1,64}/g)!
+        .join("\\n") +
       "\\n-----END PUBLIC KEY-----  ";
     const result = normalizePublicKey(mangled);
     assertVerifiesCorrectly(result);
@@ -136,20 +138,14 @@ describe("normalizePublicKey", () => {
   });
 
   it("should throw on PEM headers with no content", () => {
-    expect(() =>
-      normalizePublicKey("-----BEGIN PUBLIC KEY-----\n-----END PUBLIC KEY-----"),
-    ).toThrow("no key data");
+    expect(() => normalizePublicKey("-----BEGIN PUBLIC KEY-----\n-----END PUBLIC KEY-----")).toThrow("no key data");
   });
 
   it("should throw on invalid base64 characters", () => {
-    expect(() => normalizePublicKey("not-valid-base64!!!")).toThrow(
-      "not valid PEM or base64",
-    );
+    expect(() => normalizePublicKey("not-valid-base64!!!")).toThrow("not valid PEM or base64");
   });
 
   it("should throw on valid base64 that is not a real key", () => {
-    expect(() => normalizePublicKey("dGhpcyBpcyBub3QgYSBrZXk=")).toThrow(
-      "could not be parsed",
-    );
+    expect(() => normalizePublicKey("dGhpcyBpcyBub3QgYSBrZXk=")).toThrow("could not be parsed");
   });
 });

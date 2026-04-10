@@ -1,12 +1,7 @@
 import { validateRequired, validateShortId } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
-import type {
-  CreateStoreParams,
-  DeleteStoreParams,
-  Store,
-  UpdateStoreParams,
-} from "../types.js";
+import type { CreateStoreParams, DeleteStoreParams, Store, UpdateStoreParams } from "../types.js";
 
 /** Store management resource — create, update, and delete stores. */
 export class StoresResource {

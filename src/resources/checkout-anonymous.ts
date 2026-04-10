@@ -27,10 +27,6 @@ export class CheckoutAnonymousResource {
    */
   async create(params: AnonymousCheckoutParams): Promise<CheckoutSessionResult> {
     validateCheckoutCommon(params);
-    return this.http.post<CheckoutSessionResult>(
-      "/v1/actions/checkout/create-session",
-      params,
-      { idempotencyWindow: 60 },
-    );
+    return this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, { idempotencyWindow: 60 });
   }
 }

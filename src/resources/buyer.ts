@@ -49,10 +49,7 @@ export class BuyerSession {
    */
   async cancelSubscription(params: CancelSubscriptionParams): Promise<CancelSubscriptionResult> {
     validateShortId("orderId", params.orderId, "ORD");
-    return this.http.post<CancelSubscriptionResult>(
-      "/v1/actions/subscription-order/cancel-order",
-      params,
-    );
+    return this.http.post<CancelSubscriptionResult>("/v1/actions/subscription-order/cancel-order", params);
   }
 
   /**
@@ -66,10 +63,7 @@ export class BuyerSession {
    */
   async cancelOnetimeOrder(params: CancelOnetimeOrderParams): Promise<CancelOnetimeOrderResult> {
     validateShortId("orderId", params.orderId, "ORD");
-    return this.http.post<CancelOnetimeOrderResult>(
-      "/v1/actions/onetime-order/cancel-order",
-      params,
-    );
+    return this.http.post<CancelOnetimeOrderResult>("/v1/actions/onetime-order/cancel-order", params);
   }
 
   /**
@@ -82,14 +76,9 @@ export class BuyerSession {
    * const { orderId, status } = await buyer.reactivateSubscription({ orderId: "ORD_xxx" });
    * // status: "active"
    */
-  async reactivateSubscription(
-    params: ReactivateSubscriptionParams,
-  ): Promise<ReactivateSubscriptionResult> {
+  async reactivateSubscription(params: ReactivateSubscriptionParams): Promise<ReactivateSubscriptionResult> {
     validateShortId("orderId", params.orderId, "ORD");
-    return this.http.post<ReactivateSubscriptionResult>(
-      "/v1/actions/subscription-order/reactivate-order",
-      params,
-    );
+    return this.http.post<ReactivateSubscriptionResult>("/v1/actions/subscription-order/reactivate-order", params);
   }
 
   /**
@@ -110,10 +99,7 @@ export class BuyerSession {
     validateRequired("reason", params.reason);
     validateAmountString("requestedAmount.amount", params.requestedAmount.amount);
     validateCurrencyCode("requestedAmount.currency", params.requestedAmount.currency);
-    return this.http.post<{ ticket: RefundTicket }>(
-      "/v1/actions/refund-ticket/create-ticket",
-      params,
-    );
+    return this.http.post<{ ticket: RefundTicket }>("/v1/actions/refund-ticket/create-ticket", params);
   }
 
   /**
@@ -130,18 +116,13 @@ export class BuyerSession {
    *   requestedAmount: { amount: "29.00", currency: "USD" },
    * });
    */
-  async resubmitRefundTicket(
-    params: ResubmitRefundTicketParams,
-  ): Promise<{ ticket: RefundTicket }> {
+  async resubmitRefundTicket(params: ResubmitRefundTicketParams): Promise<{ ticket: RefundTicket }> {
     validateShortId("ticketId", params.ticketId, "TKT");
     validateShortId("paymentId", params.paymentId, "PAY");
     validateRequired("reason", params.reason);
     validateAmountString("requestedAmount.amount", params.requestedAmount.amount);
     validateCurrencyCode("requestedAmount.currency", params.requestedAmount.currency);
-    return this.http.post<{ ticket: RefundTicket }>(
-      "/v1/actions/refund-ticket/resubmit-ticket",
-      params,
-    );
+    return this.http.post<{ ticket: RefundTicket }>("/v1/actions/refund-ticket/resubmit-ticket", params);
   }
 }
 

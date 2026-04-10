@@ -59,7 +59,8 @@ export class SubscriptionProductsResource {
   async update(params: UpdateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {
     validateShortId("id", params.id, "PROD");
     if (params.name !== undefined) validateRequired("name", params.name);
-    if (params.billingPeriod !== undefined) validateEnum("billingPeriod", params.billingPeriod, ["weekly", "monthly", "quarterly", "yearly"]);
+    if (params.billingPeriod !== undefined)
+      validateEnum("billingPeriod", params.billingPeriod, ["weekly", "monthly", "quarterly", "yearly"]);
     if (params.prices) validatePrices("prices", params.prices);
     return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-product", params);
   }

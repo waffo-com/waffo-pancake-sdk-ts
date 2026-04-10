@@ -1,12 +1,7 @@
 import { validateCheckoutCommon, validateRequired } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
-import type {
-  AuthenticatedCheckoutParams,
-  AuthenticatedCheckoutResult,
-  CheckoutSessionResult,
-  SessionToken,
-} from "../types.js";
+import type { AuthenticatedCheckoutParams, AuthenticatedCheckoutResult, CheckoutSessionResult, SessionToken } from "../types.js";
 
 /**
  * Authenticated checkout — merchant provides buyer identity.
@@ -44,14 +39,22 @@ export class CheckoutAuthenticatedResource {
     const { buyerIdentity, buyerEmail, ...sessionFields } = params;
 
     const [tokenResult, sessionResult] = await Promise.all([
-      this.http.post<SessionToken>("/v1/actions/auth/issue-session-token", {
-        productId: params.productId,
-        buyerIdentity,
-      }, { idempotencyWindow: 60 }),
-      this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", {
-        ...sessionFields,
-        buyerEmail: buyerEmail ?? buyerIdentity,
-      }, { idempotencyWindow: 60 }),
+      this.http.post<SessionToken>(
+        "/v1/actions/auth/issue-session-token",
+        {
+          productId: params.productId,
+          buyerIdentity,
+        },
+        { idempotencyWindow: 60 },
+      ),
+      this.http.post<CheckoutSessionResult>(
+        "/v1/actions/checkout/create-session",
+        {
+          ...sessionFields,
+          buyerEmail: buyerEmail ?? buyerIdentity,
+        },
+        { idempotencyWindow: 60 },
+      ),
     ]);
 
     return {

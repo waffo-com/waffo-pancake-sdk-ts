@@ -29,10 +29,7 @@ import { verifyWebhook, WebhookEventType } from "@waffo/pancake-ts";
 // IMPORTANT: Use raw body — parsed JSON will break signature verification
 app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
   try {
-    const event = verifyWebhook(
-      req.body.toString("utf-8"),
-      req.headers["x-waffo-signature"] as string,
-    );
+    const event = verifyWebhook(req.body.toString("utf-8"), req.headers["x-waffo-signature"] as string);
 
     // Respond immediately, process asynchronously
     res.status(200).send("OK");
@@ -92,20 +89,20 @@ const event = verifyWebhook(body, sig, { toleranceMs: 600000 });
 
 ## Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `payload` | `string` | Raw request body string (must be unparsed) |
+| Parameter         | Type                          | Description                                                               |
+| ----------------- | ----------------------------- | ------------------------------------------------------------------------- |
+| `payload`         | `string`                      | Raw request body string (must be unparsed)                                |
 | `signatureHeader` | `string \| undefined \| null` | `X-Waffo-Signature` header value (format: `t=<timestamp>,v1=<signature>`) |
-| `options` | `VerifyWebhookOptions` | Optional configuration |
+| `options`         | `VerifyWebhookOptions`        | Optional configuration                                                    |
 
 ### `VerifyWebhookOptions`
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `environment` | `"test" \| "prod"` | auto-detect | Which environment's key to resolve. When omitted, tries prod first, then test. Ignored when `publicKey` is set. |
-| `toleranceMs` | `number` | `300000` (5 min) | Timestamp tolerance in ms. Set to `0` to skip timestamp check |
-| `publicKey` | `string` | — | Per-call public key override (highest priority, skips all resolution) |
-| `publicKeys` | `string \| { test?, prod? }` | — | Config-level key(s) for the resolution chain. Typically injected automatically by `client.webhooks.verify()` |
+| Field         | Type                         | Default          | Description                                                                                                     |
+| ------------- | ---------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------- |
+| `environment` | `"test" \| "prod"`           | auto-detect      | Which environment's key to resolve. When omitted, tries prod first, then test. Ignored when `publicKey` is set. |
+| `toleranceMs` | `number`                     | `300000` (5 min) | Timestamp tolerance in ms. Set to `0` to skip timestamp check                                                   |
+| `publicKey`   | `string`                     | —                | Per-call public key override (highest priority, skips all resolution)                                           |
+| `publicKeys`  | `string \| { test?, prod? }` | —                | Config-level key(s) for the resolution chain. Typically injected automatically by `client.webhooks.verify()`    |
 
 ## Dual-Environment Public Key Architecture
 
@@ -233,10 +230,10 @@ const client = new WaffoPancake({
 
 When no config key is found, the SDK reads from process environment variables:
 
-| Environment | Variable Name |
-|-------------|---------------|
-| test | `WAFFO_WEBHOOK_TEST_PUBLIC_KEY` |
-| prod | `WAFFO_WEBHOOK_PROD_PUBLIC_KEY` |
+| Environment | Variable Name                   |
+| ----------- | ------------------------------- |
+| test        | `WAFFO_WEBHOOK_TEST_PUBLIC_KEY` |
+| prod        | `WAFFO_WEBHOOK_PROD_PUBLIC_KEY` |
 
 > **When built-in hardcoded keys become invalid (e.g., Waffo rotates platform keys, or you migrate to a self-hosted deployment), the minimum-effort fix is to set environment variables. No code changes, no redeployment of application code — just update the env vars in your hosting platform (Vercel, AWS, Docker, etc.) and the SDK picks them up automatically on the next request.**
 
@@ -271,8 +268,8 @@ client.webhooks.verify(body, sig, { environment: "prod" });
 
 A single env var for both environments:
 
-| Variable Name | Used for |
-|---------------|----------|
+| Variable Name              | Used for           |
+| -------------------------- | ------------------ |
 | `WAFFO_WEBHOOK_PUBLIC_KEY` | Both test and prod |
 
 ```bash
@@ -292,27 +289,27 @@ const event = verifyWebhook(body, sig);
 
 ### Resolution Examples
 
-| Scenario | Config | Env Var | Result (prod) |
-|----------|--------|---------|----------------|
-| Default (no config) | — | — | Built-in prod key |
-| Shared config key | `webhookPublicKey: "KEY_A"` | — | `KEY_A` |
-| Per-env config | `webhookPublicKey: { prod: "KEY_B" }` | — | `KEY_B` |
-| Env var only | — | `WAFFO_WEBHOOK_PROD_PUBLIC_KEY=KEY_C` | `KEY_C` |
-| Config + env var | `webhookPublicKey: { prod: "KEY_D" }` | `WAFFO_WEBHOOK_PROD_PUBLIC_KEY=KEY_E` | `KEY_D` (config wins) |
-| Per-call override | `webhookPublicKey: { prod: "KEY_F" }` | — | `options.publicKey` wins |
+| Scenario            | Config                                | Env Var                               | Result (prod)            |
+| ------------------- | ------------------------------------- | ------------------------------------- | ------------------------ |
+| Default (no config) | —                                     | —                                     | Built-in prod key        |
+| Shared config key   | `webhookPublicKey: "KEY_A"`           | —                                     | `KEY_A`                  |
+| Per-env config      | `webhookPublicKey: { prod: "KEY_B" }` | —                                     | `KEY_B`                  |
+| Env var only        | —                                     | `WAFFO_WEBHOOK_PROD_PUBLIC_KEY=KEY_C` | `KEY_C`                  |
+| Config + env var    | `webhookPublicKey: { prod: "KEY_D" }` | `WAFFO_WEBHOOK_PROD_PUBLIC_KEY=KEY_E` | `KEY_D` (config wins)    |
+| Per-call override   | `webhookPublicKey: { prod: "KEY_F" }` | —                                     | `options.publicKey` wins |
 
 ## Public Key Formats
 
 All public key inputs at every level (config, env vars, per-call) are automatically **normalized** by the SDK. The following formats are accepted:
 
-| Format | Example | Notes |
-|--------|---------|-------|
-| Standard SPKI PEM | `-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----` | Recommended |
-| PKCS#1 PEM | `-----BEGIN RSA PUBLIC KEY-----\n...` | Also accepted |
-| Literal `\n` (env vars) | `"-----BEGIN PUBLIC KEY-----\\nMIIB..."` | Common in `.env` files and CI secrets |
-| Windows line endings | `\r\n` | Converted to `\n` |
-| Raw base64 (no headers) | `MIIBIjANBgkqhki...` | Wrapped with SPKI headers automatically |
-| Single-line base64 | Header + all base64 on one line + footer | Re-wrapped to 64-char lines |
+| Format                  | Example                                                     | Notes                                   |
+| ----------------------- | ----------------------------------------------------------- | --------------------------------------- |
+| Standard SPKI PEM       | `-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----` | Recommended                             |
+| PKCS#1 PEM              | `-----BEGIN RSA PUBLIC KEY-----\n...`                       | Also accepted                           |
+| Literal `\n` (env vars) | `"-----BEGIN PUBLIC KEY-----\\nMIIB..."`                    | Common in `.env` files and CI secrets   |
+| Windows line endings    | `\r\n`                                                      | Converted to `\n`                       |
+| Raw base64 (no headers) | `MIIBIjANBgkqhki...`                                        | Wrapped with SPKI headers automatically |
+| Single-line base64      | Header + all base64 on one line + footer                    | Re-wrapped to 64-char lines             |
 
 Normalization is applied **on every call** — there is no eager validation at construction time (unlike `privateKey`). Invalid keys produce a descriptive error at verification time.
 
@@ -325,9 +322,9 @@ Best for simple setups where you don't need the SDK client. Uses env vars and bu
 ```typescript
 import { verifyWebhook } from "@waffo/pancake-ts";
 
-const event = verifyWebhook(body, sig);                              // built-in keys
-const event = verifyWebhook(body, sig, { environment: "prod" });     // explicit env
-const event = verifyWebhook(body, sig, { publicKey: customKey });    // per-call key
+const event = verifyWebhook(body, sig); // built-in keys
+const event = verifyWebhook(body, sig, { environment: "prod" }); // explicit env
+const event = verifyWebhook(body, sig, { publicKey: customKey }); // per-call key
 ```
 
 ### Client Instance Method — `client.webhooks.verify()`
@@ -346,9 +343,9 @@ const client = new WaffoPancake({
   },
 });
 
-const event = client.webhooks.verify(body, sig);                     // auto-detect with config keys
+const event = client.webhooks.verify(body, sig); // auto-detect with config keys
 const event = client.webhooks.verify(body, sig, { environment: "test" }); // explicit env
-const event = client.webhooks.verify(body, sig, { publicKey: oneOff });   // per-call override
+const event = client.webhooks.verify(body, sig, { publicKey: oneOff }); // per-call override
 ```
 
 Both APIs share the same underlying verification logic and resolution chain.
@@ -357,41 +354,41 @@ Both APIs share the same underlying verification logic and resolution chain.
 
 ### `WebhookEvent<T>`
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `string` | Delivery record unique ID (UUID) — use for idempotent deduplication |
-| `timestamp` | `string` | Event timestamp (ISO 8601 UTC) |
-| `eventType` | `string` | Event type (e.g. `"order.completed"`) |
-| `eventId` | `string` | Business event ID (e.g. payment ID) |
-| `storeId` | `string` | Store ID the event belongs to |
-| `mode` | `string` | Environment (`"test"` or `"prod"`) |
-| `data` | `T` | Event data (defaults to `WebhookEventData`) |
+| Field       | Type     | Description                                                         |
+| ----------- | -------- | ------------------------------------------------------------------- |
+| `id`        | `string` | Delivery record unique ID (UUID) — use for idempotent deduplication |
+| `timestamp` | `string` | Event timestamp (ISO 8601 UTC)                                      |
+| `eventType` | `string` | Event type (e.g. `"order.completed"`)                               |
+| `eventId`   | `string` | Business event ID (e.g. payment ID)                                 |
+| `storeId`   | `string` | Store ID the event belongs to                                       |
+| `mode`      | `string` | Environment (`"test"` or `"prod"`)                                  |
+| `data`      | `T`      | Event data (defaults to `WebhookEventData`)                         |
 
 ### `WebhookEventData`
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `orderId` | `string` | Associated order ID |
-| `buyerEmail` | `string` | Buyer email address |
-| `currency` | `string` | Currency code (ISO 4217) |
-| `amount` | `string` | Amount in display format (e.g., `"29.00"` for $29.00 USD, `"4500"` for ¥4500 JPY) |
-| `taxAmount` | `string` | Tax amount in display format (e.g., `"2.90"`) |
-| `productName` | `string` | Product name |
+| Field         | Type     | Description                                                                       |
+| ------------- | -------- | --------------------------------------------------------------------------------- |
+| `orderId`     | `string` | Associated order ID                                                               |
+| `buyerEmail`  | `string` | Buyer email address                                                               |
+| `currency`    | `string` | Currency code (ISO 4217)                                                          |
+| `amount`      | `string` | Amount in display format (e.g., `"29.00"` for $29.00 USD, `"4500"` for ¥4500 JPY) |
+| `taxAmount`   | `string` | Tax amount in display format (e.g., `"2.90"`)                                     |
+| `productName` | `string` | Product name                                                                      |
 
 ## Event Types
 
-| Enum Value | String | Trigger |
-|------------|--------|---------|
-| `OrderCompleted` | `order.completed` | One-time order first payment succeeded |
-| `SubscriptionActivated` | `subscription.activated` | New subscription activated |
-| `SubscriptionPaymentSucceeded` | `subscription.payment_succeeded` | Subscription renewal payment succeeded |
-| `SubscriptionCanceling` | `subscription.canceling` | Buyer initiated cancellation (expires at end of billing period) |
-| `SubscriptionUncanceled` | `subscription.uncanceled` | Buyer withdrew cancellation request |
-| `SubscriptionUpdated` | `subscription.updated` | Subscription product changed (upgrade/downgrade) |
-| `SubscriptionCanceled` | `subscription.canceled` | Subscription fully terminated |
-| `SubscriptionPastDue` | `subscription.past_due` | Renewal payment failed (past due) |
-| `RefundSucceeded` | `refund.succeeded` | Refund completed successfully |
-| `RefundFailed` | `refund.failed` | Refund failed |
+| Enum Value                     | String                           | Trigger                                                         |
+| ------------------------------ | -------------------------------- | --------------------------------------------------------------- |
+| `OrderCompleted`               | `order.completed`                | One-time order first payment succeeded                          |
+| `SubscriptionActivated`        | `subscription.activated`         | New subscription activated                                      |
+| `SubscriptionPaymentSucceeded` | `subscription.payment_succeeded` | Subscription renewal payment succeeded                          |
+| `SubscriptionCanceling`        | `subscription.canceling`         | Buyer initiated cancellation (expires at end of billing period) |
+| `SubscriptionUncanceled`       | `subscription.uncanceled`        | Buyer withdrew cancellation request                             |
+| `SubscriptionUpdated`          | `subscription.updated`           | Subscription product changed (upgrade/downgrade)                |
+| `SubscriptionCanceled`         | `subscription.canceled`          | Subscription fully terminated                                   |
+| `SubscriptionPastDue`          | `subscription.past_due`          | Renewal payment failed (past due)                               |
+| `RefundSucceeded`              | `refund.succeeded`               | Refund completed successfully                                   |
+| `RefundFailed`                 | `refund.failed`                  | Refund failed                                                   |
 
 ## Key Rotation & Migration
 
@@ -423,23 +420,23 @@ When rotating keys, the old key remains valid for a transition period:
 
 ### Choosing the right level
 
-| Situation | Recommended Level | Why |
-|-----------|-------------------|-----|
-| Standard Waffo Pancake user | Level 6 (default) | Built-in keys just work, zero config |
-| Built-in keys expired | Level 4 (env var) | No code changes, set env var and done |
-| Self-hosted deployment | Level 2/3 (config) | Custom keys are part of your app config |
-| Testing a new key | Level 1 (per-call) | One-off override, no permanent change |
-| CI/CD with different keys | Level 4 (env var) | Each environment sets its own env var |
+| Situation                   | Recommended Level  | Why                                     |
+| --------------------------- | ------------------ | --------------------------------------- |
+| Standard Waffo Pancake user | Level 6 (default)  | Built-in keys just work, zero config    |
+| Built-in keys expired       | Level 4 (env var)  | No code changes, set env var and done   |
+| Self-hosted deployment      | Level 2/3 (config) | Custom keys are part of your app config |
+| Testing a new key           | Level 1 (per-call) | One-off override, no permanent change   |
+| CI/CD with different keys   | Level 4 (env var)  | Each environment sets its own env var   |
 
 ## Retry Mechanism
 
 When delivery fails (non-2xx response or timeout), the system automatically retries using **exponential backoff** (managed by the underlying message queue). Default: 3 retries.
 
-| Delivery Status | Description |
-|----------------|-------------|
-| `pending` | Created, waiting for delivery or retrying |
-| `success` | Delivery successful (server returned 2xx) |
-| `failed` | All retries exhausted, final failure |
+| Delivery Status | Description                               |
+| --------------- | ----------------------------------------- |
+| `pending`       | Created, waiting for delivery or retrying |
+| `success`       | Delivery successful (server returned 2xx) |
+| `failed`        | All retries exhausted, final failure      |
 
 You can view each delivery's status, HTTP status code, and response content in the dashboard's Webhook logs.
 

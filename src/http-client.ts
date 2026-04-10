@@ -64,9 +64,7 @@ export class HttpClient {
         "X-Merchant-Id": this.merchantId,
         "X-Timestamp": timestamp,
         "X-Signature": signature,
-        "X-Idempotency-Key": createHash("sha256")
-          .update(idempotencyInput)
-          .digest("hex"),
+        "X-Idempotency-Key": createHash("sha256").update(idempotencyInput).digest("hex"),
       },
       body: bodyStr,
     });

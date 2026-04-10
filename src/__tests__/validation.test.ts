@@ -203,10 +203,12 @@ describe("validatePrices", () => {
   });
 
   it("should pass for multi-currency", () => {
-    expect(() => validatePrices("prices", {
-      USD: { amount: "29.00", taxCategory: "digital_goods" },
-      EUR: { amount: "27.00", taxCategory: "digital_goods" },
-    })).not.toThrow();
+    expect(() =>
+      validatePrices("prices", {
+        USD: { amount: "29.00", taxCategory: "digital_goods" },
+        EUR: { amount: "27.00", taxCategory: "digital_goods" },
+      }),
+    ).not.toThrow();
   });
 
   it("should throw for empty prices", () => {
@@ -288,35 +290,49 @@ describe("integration: validation prevents network request", () => {
 
   it("onetimeProducts.create — invalid prices", async () => {
     const { client, mockFetch } = createClient();
-    await expect(client.onetimeProducts.create({
-      storeId: "STO_xxx", name: "Test", prices: {},
-    })).rejects.toThrow(WaffoPancakeError);
+    await expect(
+      client.onetimeProducts.create({
+        storeId: "STO_xxx",
+        name: "Test",
+        prices: {},
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("checkout.authenticated.create — missing buyerIdentity", async () => {
     const { client, mockFetch } = createClient();
-    await expect(client.checkout.authenticated.create({
-      productId: "PROD_xxx", currency: "USD",
-      buyerIdentity: "",
-    })).rejects.toThrow(WaffoPancakeError);
+    await expect(
+      client.checkout.authenticated.create({
+        productId: "PROD_xxx",
+        currency: "USD",
+        buyerIdentity: "",
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("checkout.anonymous.create — invalid currency", async () => {
     const { client, mockFetch } = createClient();
-    await expect(client.checkout.anonymous.create({
-      productId: "PROD_xxx", currency: "usd",
-    })).rejects.toThrow(WaffoPancakeError);
+    await expect(
+      client.checkout.anonymous.create({
+        productId: "PROD_xxx",
+        currency: "usd",
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("buyer.createRefundTicket — invalid paymentId", async () => {
     const { client, mockFetch } = createClient();
     const buyer = client.buyer("token");
-    await expect(buyer.createRefundTicket({
-      paymentId: "bad", reason: "test", requestedAmount: { amount: "9.99", currency: "USD" },
-    })).rejects.toThrow(WaffoPancakeError);
+    await expect(
+      buyer.createRefundTicket({
+        paymentId: "bad",
+        reason: "test",
+        requestedAmount: { amount: "9.99", currency: "USD" },
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
     expect(mockFetch).not.toHaveBeenCalled();
   });
 

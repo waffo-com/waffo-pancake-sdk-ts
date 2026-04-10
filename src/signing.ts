@@ -35,9 +35,7 @@ const PKCS1_PUB_FOOTER = "-----END RSA PUBLIC KEY-----";
  */
 export function normalizePrivateKey(raw: string): string {
   if (!raw || !raw.trim()) {
-    throw new Error(
-      "Private key is empty. Provide an RSA private key in PEM format.",
-    );
+    throw new Error("Private key is empty. Provide an RSA private key in PEM format.");
   }
 
   // 1. Replace literal \n / \r\n with real newlines
@@ -59,9 +57,7 @@ export function normalizePrivateKey(raw: string): string {
       .replace(/\s+/g, "");
 
     if (!base64) {
-      throw new Error(
-        "Private key contains PEM headers but no key data. Check the key content.",
-      );
+      throw new Error("Private key contains PEM headers but no key data. Check the key content.");
     }
 
     // Re-wrap to 64-char lines with the original header type
@@ -74,9 +70,7 @@ export function normalizePrivateKey(raw: string): string {
     const base64 = pem.replace(/\s+/g, "");
 
     if (!/^[A-Za-z0-9+/]+=*$/.test(base64)) {
-      throw new Error(
-        "Private key is not valid PEM or base64. Expected an RSA private key in PEM format or raw base64.",
-      );
+      throw new Error("Private key is not valid PEM or base64. Expected an RSA private key in PEM format or raw base64.");
     }
 
     const wrapped = base64.match(/.{1,64}/g)!.join("\n");
@@ -87,9 +81,7 @@ export function normalizePrivateKey(raw: string): string {
   try {
     createPrivateKey(pem);
   } catch {
-    throw new Error(
-      "Private key could not be parsed. Ensure it is a valid RSA private key in PKCS#8 or PKCS#1 (PEM) format.",
-    );
+    throw new Error("Private key could not be parsed. Ensure it is a valid RSA private key in PKCS#8 or PKCS#1 (PEM) format.");
   }
 
   return pem;
@@ -120,9 +112,7 @@ export function normalizePrivateKey(raw: string): string {
  */
 export function normalizePublicKey(raw: string): string {
   if (!raw || !raw.trim()) {
-    throw new Error(
-      "Public key is empty. Provide an RSA public key in PEM format.",
-    );
+    throw new Error("Public key is empty. Provide an RSA public key in PEM format.");
   }
 
   // 1. Replace literal \n / \r\n with real newlines
@@ -144,9 +134,7 @@ export function normalizePublicKey(raw: string): string {
       .replace(/\s+/g, "");
 
     if (!base64) {
-      throw new Error(
-        "Public key contains PEM headers but no key data. Check the key content.",
-      );
+      throw new Error("Public key contains PEM headers but no key data. Check the key content.");
     }
 
     // Re-wrap to 64-char lines with the original header type
@@ -159,9 +147,7 @@ export function normalizePublicKey(raw: string): string {
     const base64 = pem.replace(/\s+/g, "");
 
     if (!/^[A-Za-z0-9+/]+=*$/.test(base64)) {
-      throw new Error(
-        "Public key is not valid PEM or base64. Expected an RSA public key in PEM format or raw base64.",
-      );
+      throw new Error("Public key is not valid PEM or base64. Expected an RSA public key in PEM format or raw base64.");
     }
 
     const wrapped = base64.match(/.{1,64}/g)!.join("\n");
@@ -172,9 +158,7 @@ export function normalizePublicKey(raw: string): string {
   try {
     createPublicKey(pem);
   } catch {
-    throw new Error(
-      "Public key could not be parsed. Ensure it is a valid RSA public key in SPKI or PKCS#1 (PEM) format.",
-    );
+    throw new Error("Public key could not be parsed. Ensure it is a valid RSA public key in SPKI or PKCS#1 (PEM) format.");
   }
 
   return pem;
@@ -193,13 +177,7 @@ export function normalizePublicKey(raw: string): string {
  * @param privateKey - RSA private key in PEM format
  * @returns Base64-encoded RSA-SHA256 signature
  */
-export function signRequest(
-  method: string,
-  path: string,
-  timestamp: string,
-  body: string,
-  privateKey: string,
-): string {
+export function signRequest(method: string, path: string, timestamp: string, body: string, privateKey: string): string {
   const bodyHash = createHash("sha256").update(body).digest("base64");
   const canonicalRequest = `${method}\n${path}\n${timestamp}\n${bodyHash}`;
 
