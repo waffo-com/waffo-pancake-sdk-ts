@@ -4,6 +4,12 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2026-04-10
+
+### Fixed
+
+- **Cloudflare Workers compatibility** — `fetch` is now bound to `globalThis` when no custom `fetch` is provided. Fixes `TypeError: Illegal invocation` in edge runtimes (Cloudflare Workers, Vercel Edge) where unbound `fetch` references lose their `this` context. Affected both `HttpClient` (merchant API Key auth) and `BuyerHttpClient` (session token auth). Users no longer need to pass `{ fetch: globalThis.fetch.bind(globalThis) }` as a workaround.
+
 ## [0.3.1] - 2026-04-09
 
 ### Changed
