@@ -62,5 +62,13 @@
       "prettier --write"
     ],
     "*.{json,md,css}": "prettier --write"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/waffo-com/waffo-pancake-sdk-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/waffo-com/waffo-pancake-sdk-ts/issues"
+  },
+  "homepage": "https://github.com/waffo-com/waffo-pancake-sdk-ts#readme"
 }
