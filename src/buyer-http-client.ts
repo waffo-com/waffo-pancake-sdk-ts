@@ -20,7 +20,7 @@ export class BuyerHttpClient {
   constructor(token: string, config: Pick<WaffoPancakeConfig, "baseUrl" | "fetch">) {
     this.token = token;
     this.baseUrl = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
-    this._fetch = config.fetch ?? fetch;
+    this._fetch = config.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
   /**

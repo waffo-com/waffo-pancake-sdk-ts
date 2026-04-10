@@ -25,7 +25,7 @@ export class HttpClient {
     this.merchantId = config.merchantId;
     this.privateKey = normalizePrivateKey(config.privateKey);
     this.baseUrl = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
-    this._fetch = config.fetch ?? fetch;
+    this._fetch = config.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
   /**
