@@ -26,7 +26,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: npm
 
-      - run: npm ci
+      - run: npm install
 
       - name: Lint
         run: npm run lint
@@ -58,7 +58,7 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
 
-      - run: npm ci
+      - run: npm install
 
       - name: Build
         run: npm run build
