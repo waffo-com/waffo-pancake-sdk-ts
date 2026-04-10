@@ -134,7 +134,7 @@ const eslintConfig = defineConfig([
 
   // Relax naming convention for config files
   {
-    files: ["eslint.config.mjs", "vitest.config.ts"],
+    files: ["eslint.config.mjs", "vitest.config.ts", "commitlint.config.js"],
     rules: {
       "@typescript-eslint/naming-convention": "off",
     },
