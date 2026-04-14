@@ -4,6 +4,16 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] - 2026-04-14
+
+### Changed
+
+- **Store settings partial update types** — `UpdateStoreParams.webhookSettings`, `notificationSettings`, and `checkoutSettings` now use `Partial<>` types, allowing individual sub-fields to be omitted (kept unchanged) or set to `null` (cleared). Previously all sub-fields were required when passing a settings object.
+
+### Documentation
+
+- **`stores.update()` JSDoc** — Added partial update semantics explanation and example for clearing individual webhook URLs.
+
 ## [0.3.2] - 2026-04-10
 
 ### Fixed

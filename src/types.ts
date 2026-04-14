@@ -355,7 +355,13 @@ export interface CreateStoreParams {
   name: string;
 }
 
-/** Parameters for updating a store. */
+/**
+ * Parameters for updating a store.
+ *
+ * Settings objects support partial updates — omitted sub-fields keep their
+ * existing values, `null` clears a field, and a concrete value sets it.
+ * Pass the entire settings object as `null` to clear all fields in the group.
+ */
 export interface UpdateStoreParams {
   /** Store ID */
   id: string;
@@ -369,12 +375,12 @@ export interface UpdateStoreParams {
   supportEmail?: string | null;
   /** Store website URL (set to `null` to remove) */
   website?: string | null;
-  /** Webhook configuration for test and production environments (set to `null` to remove) */
-  webhookSettings?: WebhookSettings | null;
-  /** Notification preferences (set to `null` to remove) */
-  notificationSettings?: NotificationSettings | null;
-  /** Checkout page theme configuration (set to `null` to remove) */
-  checkoutSettings?: CheckoutSettings | null;
+  /** Webhook configuration (partial update — omitted fields keep existing values, set to `null` to clear all) */
+  webhookSettings?: Partial<WebhookSettings> | null;
+  /** Notification preferences (partial update — omitted fields keep existing values, set to `null` to clear all) */
+  notificationSettings?: Partial<NotificationSettings> | null;
+  /** Checkout page theme configuration (partial update — omitted fields keep existing values, set to `null` to clear all) */
+  checkoutSettings?: Partial<CheckoutSettings> | null;
 }
 
 /** Parameters for deleting (soft-delete) a store. */

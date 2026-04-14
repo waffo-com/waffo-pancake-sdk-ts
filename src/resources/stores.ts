@@ -24,13 +24,25 @@ export class StoresResource {
   /**
    * Update an existing store's settings.
    *
+   * Settings objects (`webhookSettings`, `notificationSettings`, `checkoutSettings`)
+   * support partial updates: omitted sub-fields keep existing values, `null` clears
+   * a field. Pass the entire settings object as `null` to clear all fields.
+   *
    * @param params - Fields to update (only provided fields are changed)
    * @returns Updated store entity
    *
    * @example
+   * // Update name
    * const { store } = await client.stores.update({
    *   id: "STO_xxx",
    *   name: "Updated Name",
+   * });
+   *
+   * @example
+   * // Clear test webhook URL while keeping other webhook settings
+   * const { store } = await client.stores.update({
+   *   id: "STO_xxx",
+   *   webhookSettings: { testWebhookUrl: null },
    * });
    */
   async update(params: UpdateStoreParams): Promise<{ store: Store }> {
