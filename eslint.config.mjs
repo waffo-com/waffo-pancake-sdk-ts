@@ -141,7 +141,7 @@ const eslintConfig = defineConfig([
   },
 
   // Global ignores
-  globalIgnores(["dist/**", "node_modules/**", "coverage/**"]),
+  globalIgnores(["dist/**", "node_modules/**", "coverage/**", "commitlint.config.cjs"]),
 ]);
 
 export default eslintConfig;
