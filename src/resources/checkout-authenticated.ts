@@ -17,10 +17,12 @@ export class CheckoutAuthenticatedResource {
    * Create an authenticated checkout session.
    *
    * Behavior:
-   * - Issues a session token via `issue-session-token`
-   * - Creates a checkout session via `create-session`
-   * - Appends the token to the checkout URL as a URL fragment
-   * - Defaults `buyerEmail` to `buyerIdentity` when omitted
+   * - Issues a session token via `issue-session-token` (receives `buyerIdentity` + `productId` only)
+   * - Creates a checkout session via `create-session` (receives every other field unchanged)
+   * - Appends the token to the checkout URL as a URL fragment (`#token=...`)
+   *
+   * `buyerIdentity` and `buyerEmail` are independent inputs: identity is for the JWT,
+   * email is for pre-filling the checkout page. The SDK forwards each to its own endpoint.
    *
    * @param params - Checkout parameters including buyer identity
    * @returns Session details with token-appended checkout URL
@@ -29,14 +31,15 @@ export class CheckoutAuthenticatedResource {
    * const result = await client.checkout.authenticated.create({
    *   productId: "PROD_xxx",
    *   currency: "USD",
-   *   buyerIdentity: "customer@example.com",
+   *   buyerIdentity: "user-123",
+   *   buyerEmail: "customer@example.com",
    * });
    * // Redirect to result.checkoutUrl (includes #token=...)
    */
   async create(params: AuthenticatedCheckoutParams): Promise<AuthenticatedCheckoutResult> {
     validateCheckoutCommon(params);
     validateRequired("buyerIdentity", params.buyerIdentity);
-    const { buyerIdentity, buyerEmail, ...sessionFields } = params;
+    const { buyerIdentity, ...sessionParams } = params;
 
     const [tokenResult, sessionResult] = await Promise.all([
       this.http.post<SessionToken>(
@@ -47,14 +50,7 @@ export class CheckoutAuthenticatedResource {
         },
         { idempotencyWindow: 60 },
       ),
-      this.http.post<CheckoutSessionResult>(
-        "/v1/actions/checkout/create-session",
-        {
-          ...sessionFields,
-          buyerEmail: buyerEmail ?? buyerIdentity,
-        },
-        { idempotencyWindow: 60 },
-      ),
+      this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", sessionParams, { idempotencyWindow: 60 }),
     ]);
 
     return {

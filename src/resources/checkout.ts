@@ -25,7 +25,8 @@ import type { CheckoutSessionResult, CreateCheckoutSessionParams } from "../type
  * const result = await client.checkout.authenticated.create({
  *   productId: "PROD_xxx",
  *   currency: "USD",
- *   buyerIdentity: "customer@example.com",
+ *   buyerIdentity: "userIdInYourSystem",
+ *   buyerEmail: "customer@example.com",
  * });
  * // result.checkoutUrl includes #token=...
  */

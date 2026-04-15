@@ -80,19 +80,22 @@ Both modes support **dynamic pricing** and **trial control** at checkout time:
 
 The merchant provides buyer identity — the SDK issues a session token, creates a checkout session, and returns a checkout URL with the token appended as a URL fragment. One call does everything.
 
+`buyerIdentity` is for order attribution and trial tracking only — it is not rendered on the checkout page. To pre-fill the email field on the checkout form, pass `buyerEmail` explicitly.
+
 ```typescript
-// Basic — buyer identity only
+// Basic — buyer identity only (checkout page email field stays empty)
 const result = await client.checkout.authenticated.create({
   productId: "PROD_xxx",
   currency: "USD",
-  buyerIdentity: "customer@example.com",
+  buyerIdentity: "userIdInYourSystem",
 });
 
 // With dynamic pricing — override stored price (e.g., coupon, volume discount)
 const result = await client.checkout.authenticated.create({
   productId: "PROD_xxx",
   currency: "USD",
-  buyerIdentity: "customer@example.com",
+  buyerIdentity: "userIdInYourSystem",
+  buyerEmail: "customer@example.com",
   priceSnapshot: { amount: "19.99", taxCategory: "digital_goods" },
 });
 
@@ -100,7 +103,8 @@ const result = await client.checkout.authenticated.create({
 const result = await client.checkout.authenticated.create({
   productId: "PROD_xxx",
   currency: "USD",
-  buyerIdentity: "customer@example.com",
+  buyerIdentity: "userIdInYourSystem",
+  buyerEmail: "customer@example.com",
   withTrial: true, // force enable trial (false = skip, omit = default rules)
   billingDetail: { country: "US", isBusiness: false },
 });

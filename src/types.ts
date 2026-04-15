@@ -250,7 +250,12 @@ export enum ErrorLayer {
  * @see waffo-pancake-user-service/app/lib/utils/jwt.ts IssueSessionTokenRequest
  */
 export interface IssueSessionTokenParams {
-  /** Buyer identity (email or any merchant-provided identifier string) */
+  /**
+   * Buyer identity — encoded into the JWT payload for merchant-side buyer
+   * identification. Accepts an email or any merchant-provided identifier string.
+   * To pre-fill the checkout page's email field, use `buyerEmail` on
+   * `checkout.authenticated.create`.
+   */
   buyerIdentity: string;
   /** Store ID (optional when `productId` is provided) */
   storeId?: string;
@@ -875,8 +880,11 @@ export interface RefundTicket {
 /**
  * Parameters for anonymous checkout.
  *
- * The buyer enters the checkout page without a session token and fills in
- * billing details manually. No identity is provided upfront.
+ * The buyer reaches the checkout page without a session token. Merchants may still
+ * pre-fill `buyerEmail` and `billingDetail`; omitting them leaves the form blank.
+ *
+ * Accepts every field of {@link CreateCheckoutSessionParams} — this wrapper simply
+ * forwards the params unchanged to `/v1/actions/checkout/create-session`.
  *
  * @example
  * const result = await client.checkout.anonymous.create({
@@ -885,62 +893,33 @@ export interface RefundTicket {
  * });
  * // Redirect to result.checkoutUrl
  */
-export interface AnonymousCheckoutParams {
-  /** Product ID */
-  productId: string;
-  /** Currency code (ISO 4217) */
-  currency: string;
-  /** Optional price snapshot override (reads from DB if omitted) */
-  priceSnapshot?: PriceInfo;
-  /** Trial toggle override (subscription only) */
-  withTrial?: boolean;
-  /** Redirect URL after successful payment */
-  successUrl?: string;
-  /** Session expiration in seconds (default: 45 minutes) */
-  expiresInSeconds?: number;
-  /** Dark mode override (true=dark, false=light, omit=use store default) */
-  darkMode?: boolean;
-  /** Custom metadata */
-  metadata?: Record<string, string>;
-}
+export type AnonymousCheckoutParams = CreateCheckoutSessionParams;
 
 /**
  * Parameters for authenticated checkout.
  *
- * The merchant provides a buyer identity; the SDK issues a session token
- * and appends it to the checkout URL as a URL fragment.
+ * Merges the checkout-session fields ({@link CreateCheckoutSessionParams}) with the
+ * extra `buyerIdentity` required by `issue-session-token`. The wrapper splits the
+ * input: `buyerIdentity` goes to the token call; everything else (including
+ * `buyerEmail`) goes to the create-session call. The two fields are independent.
  *
  * @example
  * const result = await client.checkout.authenticated.create({
  *   productId: "PROD_xxx",
  *   currency: "USD",
- *   buyerIdentity: "customer@example.com",
+ *   buyerIdentity: "user-123",            // merchant-side buyer id (goes into JWT)
+ *   buyerEmail: "customer@example.com",   // pre-filled on the checkout page
  * });
  * // Redirect to result.checkoutUrl (includes #token=...)
  */
-export interface AuthenticatedCheckoutParams {
-  /** Product ID */
-  productId: string;
-  /** Currency code (ISO 4217) */
-  currency: string;
-  /** Buyer identity (email or merchant-provided identifier) */
+export interface AuthenticatedCheckoutParams extends CreateCheckoutSessionParams {
+  /**
+   * Buyer identity — sent to `issue-session-token` and encoded into the JWT
+   * payload for merchant-side buyer identification. Accepts an email or any
+   * merchant-provided identifier string. Use `buyerEmail` to pre-fill the
+   * checkout page's email input.
+   */
   buyerIdentity: string;
-  /** Pre-filled buyer email (defaults to `buyerIdentity` when omitted) */
-  buyerEmail?: string;
-  /** Pre-filled billing details */
-  billingDetail?: BillingDetail;
-  /** Optional price snapshot override (reads from DB if omitted) */
-  priceSnapshot?: PriceInfo;
-  /** Trial toggle override (subscription only) */
-  withTrial?: boolean;
-  /** Redirect URL after successful payment */
-  successUrl?: string;
-  /** Session expiration in seconds (default: 45 minutes) */
-  expiresInSeconds?: number;
-  /** Dark mode override (true=dark, false=light, omit=use store default) */
-  darkMode?: boolean;
-  /** Custom metadata */
-  metadata?: Record<string, string>;
 }
 
 /**

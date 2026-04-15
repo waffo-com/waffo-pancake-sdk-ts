@@ -92,6 +92,28 @@ describe("checkout.anonymous", () => {
     expect(body.expiresInSeconds).toBe(1800);
   });
 
+  it("should forward buyerEmail and billingDetail when provided", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_prefill",
+        checkoutUrl: "https://pancake.waffo.ai/store/s/checkout/cs_prefill",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.anonymous.create({
+      productId: "PROD_xxx",
+      currency: "USD",
+      buyerEmail: "prefill@example.com",
+      billingDetail: { country: "US", isBusiness: false, postcode: "10001" },
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.buyerEmail).toBe("prefill@example.com");
+    expect(body.billingDetail).toEqual({ country: "US", isBusiness: false, postcode: "10001" });
+  });
+
   it("should propagate API errors", async () => {
     const mockFetch = createErrorFetch(400, [{ message: "Invalid product", layer: "order" }]);
     const client = createClient(mockFetch);
@@ -142,7 +164,7 @@ describe("checkout.authenticated", () => {
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 
-  it("should default buyerEmail to buyerIdentity", async () => {
+  it("should NOT populate buyerEmail from buyerIdentity when buyerEmail is omitted", async () => {
     const mockFetch = createMockFetch((url) => {
       if (url.includes("issue-session-token")) {
         return { data: { token: "jwt", expiresAt: "2026-04-02T09:05:00.000Z" } };
@@ -160,13 +182,16 @@ describe("checkout.authenticated", () => {
     await client.checkout.authenticated.create({
       productId: "PROD_xxx",
       currency: "USD",
-      buyerIdentity: "buyer@test.com",
+      // buyerIdentity is a merchant-internal identifier, not an email — SDK must not
+      // copy it into buyerEmail (which would surface on the checkout page).
+      buyerIdentity: "user-id-123",
     });
 
-    // Find the create-session call
     const sessionCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("create-session"));
     const sessionBody = JSON.parse(sessionCall![1].body as string);
-    expect(sessionBody.buyerEmail).toBe("buyer@test.com");
+    expect(sessionBody.buyerEmail).toBeUndefined();
+    // buyerIdentity must not leak into the session payload under any name
+    expect(sessionBody.buyerIdentity).toBeUndefined();
   });
 
   it("should use explicit buyerEmail when provided", async () => {

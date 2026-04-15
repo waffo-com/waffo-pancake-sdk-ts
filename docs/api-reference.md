@@ -640,12 +640,14 @@ Authenticated checkout — the merchant provides buyer identity. The SDK issues 
 
 Internally calls `POST /v1/actions/auth/issue-session-token` and `POST /v1/actions/checkout/create-session` in parallel.
 
+`buyerIdentity` is for order attribution and trial tracking only — it is not rendered on the checkout page. To pre-fill the email field on the checkout form, pass `buyerEmail` explicitly.
+
 ```typescript
-// One-time product with buyer identity
+// One-time product with buyer identity (checkout page email field stays empty)
 const result = await client.checkout.authenticated.create({
   productId: "PROD_xxx",
   currency: "USD",
-  buyerIdentity: "customer@example.com",
+  buyerIdentity: "userIdInYourSystem",
   successUrl: "https://example.com/thank-you",
 });
 // => redirect buyer to result.checkoutUrl (includes #token=...)
@@ -654,7 +656,8 @@ const result = await client.checkout.authenticated.create({
 const subResult = await client.checkout.authenticated.create({
   productId: "PROD_yyy",
   currency: "USD",
-  buyerIdentity: "customer@example.com",
+  buyerIdentity: "userIdInYourSystem",
+  buyerEmail: "customer@example.com",
   withTrial: true,
   billingDetail: { country: "US", isBusiness: false, state: "CA", postcode: "94105" },
 });
@@ -662,19 +665,19 @@ const subResult = await client.checkout.authenticated.create({
 
 **Parameters `AuthenticatedCheckoutParams`**:
 
-| Field              | Type                     | Required | Description                                                     |
-| ------------------ | ------------------------ | -------- | --------------------------------------------------------------- |
-| `productId`        | `string`                 | Yes      | Product ID (product type is auto-detected server-side)          |
-| `currency`         | `string`                 | Yes      | Currency code (ISO 4217)                                        |
-| `buyerIdentity`    | `string`                 | Yes      | Buyer identity (email or merchant-defined identifier)           |
-| `buyerEmail`       | `string`                 | No       | Pre-filled buyer email (defaults to `buyerIdentity`)            |
-| `billingDetail`    | `BillingDetail`          | No       | Pre-filled billing details (country, tax ID, etc.)              |
-| `priceSnapshot`    | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)              |
-| `withTrial`        | `boolean`                | No       | Enable trial period (subscription only)                         |
-| `successUrl`       | `string`                 | No       | Redirect URL after successful payment                           |
-| `expiresInSeconds` | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                 |
-| `darkMode`         | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default) |
-| `metadata`         | `Record<string, string>` | No       | Custom metadata                                                 |
+| Field              | Type                     | Required | Description                                                           |
+| ------------------ | ------------------------ | -------- | --------------------------------------------------------------------- |
+| `productId`        | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                |
+| `currency`         | `string`                 | Yes      | Currency code (ISO 4217)                                              |
+| `buyerIdentity`    | `string`                 | Yes      | Buyer identity (email or merchant-defined identifier)                 |
+| `buyerEmail`       | `string`                 | No       | Pre-fill checkout page email field (independent from `buyerIdentity`) |
+| `billingDetail`    | `BillingDetail`          | No       | Pre-filled billing details (country, tax ID, etc.)                    |
+| `priceSnapshot`    | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                    |
+| `withTrial`        | `boolean`                | No       | Enable trial period (subscription only)                               |
+| `successUrl`       | `string`                 | No       | Redirect URL after successful payment                                 |
+| `expiresInSeconds` | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                       |
+| `darkMode`         | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)       |
+| `metadata`         | `Record<string, string>` | No       | Custom metadata                                                       |
 
 **Returns `AuthenticatedCheckoutResult`**:
 

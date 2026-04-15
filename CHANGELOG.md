@@ -4,6 +4,21 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-04-15
+
+### Breaking Changes
+
+- **`buyerEmail` no longer falls back to `buyerIdentity`** — `checkout.authenticated.create({ buyerIdentity, ... })` used to silently copy `buyerIdentity` into the outgoing `buyerEmail` when the caller omitted `buyerEmail`. It no longer does. `buyerIdentity` is for the JWT (merchant-side buyer identification) and `buyerEmail` is for pre-filling the checkout page's email input; the two fields are fully independent. Migration: if you were passing a non-email `buyerIdentity` (e.g. an internal user ID) and relying on the email input being pre-filled, pass `buyerEmail: user.email` explicitly alongside `buyerIdentity`.
+
+### Changed
+
+- **`AnonymousCheckoutParams` widened to full session params** — now accepts `buyerEmail` and `billingDetail` so merchants can pre-fill the checkout page without issuing a session token. Equivalent to `CreateCheckoutSessionParams`.
+- **`AuthenticatedCheckoutParams` restructured** — now extends `CreateCheckoutSessionParams` with a single extra field `buyerIdentity`. Implementation uses destructure-and-forward so `buyerIdentity` can never leak into the create-session payload.
+
+### Documentation
+
+- **JSDoc rewrites** — `IssueSessionTokenParams.buyerIdentity`, `AuthenticatedCheckoutParams.buyerIdentity`, and both checkout wrappers now clearly state that `buyerIdentity` is JWT-only and is never rendered on the checkout page.
+
 ## [0.3.4] - 2026-04-14
 
 ### Changed
