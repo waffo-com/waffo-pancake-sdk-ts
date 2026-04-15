@@ -92,6 +92,7 @@ export type {
   ReactivateSubscriptionParams,
   ReactivateSubscriptionResult,
   RefundTicket,
+  RefundTicketVersionData,
   RequestedAmount,
   ResubmitRefundTicketParams,
 

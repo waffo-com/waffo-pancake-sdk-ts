@@ -811,6 +811,17 @@ export interface RequestedAmount {
   currency: string;
 }
 
+/**
+ * Per-version data for a refund ticket. Each ticket can be submitted/resubmitted
+ * multiple times; this is the shape of a single submission.
+ */
+export interface RefundTicketVersionData {
+  /** Refund reason supplied by the buyer */
+  reason: string;
+  /** Requested refund amount; `null` if the version has no amount recorded */
+  requestedAmount: RequestedAmount | null;
+}
+
 /** Parameters for creating a refund ticket (buyer-side). */
 export interface CreateRefundTicketParams {
   /** Payment ID to refund */
@@ -865,8 +876,8 @@ export interface RefundTicket {
   metadata: Record<string, unknown>;
   /** Current version number */
   versionNumber: number | null;
-  /** Current version data (includes reason, amount, etc.) */
-  versionData: Record<string, unknown> | null;
+  /** Current (latest) version data */
+  versionData: RefundTicketVersionData | null;
   /** Creation timestamp (ISO 8601) */
   createdAt: string;
   /** Last update timestamp (ISO 8601) */

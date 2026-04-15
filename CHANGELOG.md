@@ -4,6 +4,16 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-04-15
+
+### Changed
+
+- **`RefundTicket.versionData` is now structured** — tightened from `Record<string, unknown> | null` to a new `RefundTicketVersionData | null` type matching the GraphQL `RefundTicketVersionData` shape: `{ reason: string; requestedAmount: RequestedAmount | null }`. Aligns with `waffo-pancake-graphql-service` v2026.04.15.1.
+
+### Added
+
+- **`RefundTicketVersionData`** — exported type. Reuses the existing `RequestedAmount` for the nested amount field.
+
 ## [0.4.0] - 2026-04-15
 
 ### Breaking Changes
