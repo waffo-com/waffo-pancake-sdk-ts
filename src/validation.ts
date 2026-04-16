@@ -12,7 +12,7 @@
 
 import { WaffoPancakeError } from "./errors.js";
 
-const SHORT_ID_REGEX = /^[A-Z]{2,4}_[A-Za-z0-9]+$/;
+const SHORT_ID_REGEX = /^[A-Z]{2,5}_[0-9A-Za-z]{22}$/;
 const CURRENCY_CODE_REGEX = /^[A-Z]{3}$/;
 const COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 const AMOUNT_STRING_REGEX = /^\d+(\.\d+)?$/;

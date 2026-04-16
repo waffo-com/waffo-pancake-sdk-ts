@@ -235,7 +235,7 @@ describe("validateBillingDetail", () => {
 });
 
 describe("validateCheckoutCommon", () => {
-  const valid = { productId: "PROD_xxx", currency: "USD" };
+  const valid = { productId: "PROD_0000000000000000000000", currency: "USD" };
 
   it("should pass for valid params", () => {
     expect(() => validateCheckoutCommon(valid)).not.toThrow();
@@ -262,7 +262,7 @@ describe("integration: validation prevents network request", () => {
   function createClient() {
     const mockFetch = vi.fn();
     const client = new WaffoPancake({
-      merchantId: "MER_test",
+      merchantId: "MER_0000000000000000000000",
       privateKey: TEST_PRIVATE_KEY,
       baseUrl: "https://api.test.com",
       fetch: mockFetch as unknown as typeof fetch,
@@ -292,7 +292,7 @@ describe("integration: validation prevents network request", () => {
     const { client, mockFetch } = createClient();
     await expect(
       client.onetimeProducts.create({
-        storeId: "STO_xxx",
+        storeId: "STO_0000000000000000000000",
         name: "Test",
         prices: {},
       }),
@@ -304,7 +304,7 @@ describe("integration: validation prevents network request", () => {
     const { client, mockFetch } = createClient();
     await expect(
       client.checkout.authenticated.create({
-        productId: "PROD_xxx",
+        productId: "PROD_0000000000000000000000",
         currency: "USD",
         buyerIdentity: "",
       }),
@@ -316,7 +316,7 @@ describe("integration: validation prevents network request", () => {
     const { client, mockFetch } = createClient();
     await expect(
       client.checkout.anonymous.create({
-        productId: "PROD_xxx",
+        productId: "PROD_0000000000000000000000",
         currency: "usd",
       }),
     ).rejects.toThrow(WaffoPancakeError);

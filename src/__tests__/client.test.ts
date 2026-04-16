@@ -13,7 +13,7 @@ const { publicKey: TEST_PUBLIC_KEY, privateKey: TEST_PRIVATE_KEY } = generateKey
 describe("WaffoPancake", () => {
   it("should initialize all resource namespaces", () => {
     const client = new WaffoPancake({
-      merchantId: "merchant_test",
+      merchantId: "MER_0000000000000000000000",
       privateKey: TEST_PRIVATE_KEY,
     });
 
@@ -34,7 +34,7 @@ describe("WaffoPancake", () => {
 
   it("should accept custom baseUrl", () => {
     const client = new WaffoPancake({
-      merchantId: "merchant_test",
+      merchantId: "MER_0000000000000000000000",
       privateKey: TEST_PRIVATE_KEY,
       baseUrl: "https://custom.api.com",
     });
@@ -45,7 +45,7 @@ describe("WaffoPancake", () => {
   it("should accept custom fetch implementation", () => {
     const customFetch = async () => new Response();
     const client = new WaffoPancake({
-      merchantId: "merchant_test",
+      merchantId: "MER_0000000000000000000000",
       privateKey: TEST_PRIVATE_KEY,
       fetch: customFetch as typeof fetch,
     });
@@ -55,7 +55,7 @@ describe("WaffoPancake", () => {
 
   it("should accept webhookPublicKey config", () => {
     const client = new WaffoPancake({
-      merchantId: "merchant_test",
+      merchantId: "MER_0000000000000000000000",
       privateKey: TEST_PRIVATE_KEY,
       webhookPublicKey: TEST_PUBLIC_KEY as string,
     });
@@ -65,7 +65,7 @@ describe("WaffoPancake", () => {
 
   it("should verify webhook with configured public key string via client.webhooks.verify", () => {
     const client = new WaffoPancake({
-      merchantId: "merchant_test",
+      merchantId: "MER_0000000000000000000000",
       privateKey: TEST_PRIVATE_KEY,
       webhookPublicKey: TEST_PUBLIC_KEY as string,
     });
@@ -84,7 +84,7 @@ describe("WaffoPancake", () => {
 
   it("should accept per-env webhookPublicKey config", () => {
     const client = new WaffoPancake({
-      merchantId: "merchant_test",
+      merchantId: "MER_0000000000000000000000",
       privateKey: TEST_PRIVATE_KEY,
       webhookPublicKey: {
         test: TEST_PUBLIC_KEY as string,

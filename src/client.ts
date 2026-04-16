@@ -11,6 +11,7 @@ import { StoresResource } from "./resources/stores.js";
 import { SubscriptionProductGroupsResource } from "./resources/subscription-product-groups.js";
 import { SubscriptionProductsResource } from "./resources/subscription-products.js";
 import { WebhooksResource } from "./resources/webhooks.js";
+import { validateShortId } from "./validation.js";
 
 import type { WaffoPancakeConfig } from "./types.js";
 
@@ -80,6 +81,7 @@ export class WaffoPancake {
   readonly webhooks: WebhooksResource;
 
   constructor(config: WaffoPancakeConfig) {
+    validateShortId("merchantId", config.merchantId, "MER");
     this.config = config;
     this.http = new HttpClient(config);
 

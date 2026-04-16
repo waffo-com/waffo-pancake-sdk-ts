@@ -20,7 +20,7 @@ function createMockFetch(handler: (url: string, options: RequestInit) => object)
 
 function createClient(mockFetch: ReturnType<typeof vi.fn>) {
   return new WaffoPancake({
-    merchantId: "MER_test123",
+    merchantId: "MER_0000000000000000000000",
     privateKey: TEST_PRIVATE_KEY,
     baseUrl: "https://api.test.com",
     fetch: mockFetch as unknown as typeof fetch,
@@ -39,14 +39,14 @@ describe("client.buyer()", () => {
 describe("buyer.cancelSubscription", () => {
   it("should send Bearer token and return result", async () => {
     const mockFetch = createMockFetch(() => ({
-      data: { orderId: "ORD_xxx", status: "canceling" },
+      data: { orderId: "ORD_0000000000000000000000", status: "canceling" },
     }));
     const client = createClient(mockFetch);
     const buyer = client.buyer("session-token-123");
 
-    const result = await buyer.cancelSubscription({ orderId: "ORD_xxx" });
+    const result = await buyer.cancelSubscription({ orderId: "ORD_0000000000000000000000" });
 
-    expect(result.orderId).toBe("ORD_xxx");
+    expect(result.orderId).toBe("ORD_0000000000000000000000");
     expect(result.status).toBe("canceling");
 
     const [url, options] = mockFetch.mock.calls[0];
@@ -60,11 +60,11 @@ describe("buyer.cancelSubscription", () => {
 describe("buyer.cancelOnetimeOrder", () => {
   it("should cancel a one-time order", async () => {
     const mockFetch = createMockFetch(() => ({
-      data: { orderId: "ORD_yyy", status: "canceled" },
+      data: { orderId: "ORD_1111111111111111111111", status: "canceled" },
     }));
     const buyer = createClient(mockFetch).buyer("token");
 
-    const result = await buyer.cancelOnetimeOrder({ orderId: "ORD_yyy" });
+    const result = await buyer.cancelOnetimeOrder({ orderId: "ORD_1111111111111111111111" });
 
     expect(result.status).toBe("canceled");
     const [url] = mockFetch.mock.calls[0];
@@ -75,11 +75,11 @@ describe("buyer.cancelOnetimeOrder", () => {
 describe("buyer.reactivateSubscription", () => {
   it("should reactivate a subscription", async () => {
     const mockFetch = createMockFetch(() => ({
-      data: { orderId: "ORD_xxx", status: "active" },
+      data: { orderId: "ORD_0000000000000000000000", status: "active" },
     }));
     const buyer = createClient(mockFetch).buyer("token");
 
-    const result = await buyer.reactivateSubscription({ orderId: "ORD_xxx" });
+    const result = await buyer.reactivateSubscription({ orderId: "ORD_0000000000000000000000" });
 
     expect(result.status).toBe("active");
     const [url] = mockFetch.mock.calls[0];
@@ -92,10 +92,10 @@ describe("buyer.createRefundTicket", () => {
     const mockFetch = createMockFetch(() => ({
       data: {
         ticket: {
-          id: "TKT_xxx",
+          id: "TKT_0000000000000000000000",
           type: "refund",
           status: "pending",
-          subjectId: "PAY_xxx",
+          subjectId: "PAY_0000000000000000000000",
           submitterId: "buyer@test.com",
           submitterType: "customer",
           currentVersionId: "TVER_xxx",
@@ -113,16 +113,16 @@ describe("buyer.createRefundTicket", () => {
     const buyer = createClient(mockFetch).buyer("token");
 
     const { ticket } = await buyer.createRefundTicket({
-      paymentId: "PAY_xxx",
+      paymentId: "PAY_0000000000000000000000",
       reason: "Product not as described",
       requestedAmount: { amount: "29.00", currency: "USD" },
     });
 
-    expect(ticket.id).toBe("TKT_xxx");
+    expect(ticket.id).toBe("TKT_0000000000000000000000");
     expect(ticket.status).toBe("pending");
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
-    expect(body.paymentId).toBe("PAY_xxx");
+    expect(body.paymentId).toBe("PAY_0000000000000000000000");
     expect(body.reason).toBe("Product not as described");
     expect(body.requestedAmount).toEqual({ amount: "29.00", currency: "USD" });
   });
@@ -133,10 +133,10 @@ describe("buyer.resubmitRefundTicket", () => {
     const mockFetch = createMockFetch(() => ({
       data: {
         ticket: {
-          id: "TKT_xxx",
+          id: "TKT_0000000000000000000000",
           type: "refund",
           status: "pending",
-          subjectId: "PAY_xxx",
+          subjectId: "PAY_0000000000000000000000",
           submitterId: "buyer@test.com",
           submitterType: "customer",
           currentVersionId: "TVER_yyy",
@@ -154,8 +154,8 @@ describe("buyer.resubmitRefundTicket", () => {
     const buyer = createClient(mockFetch).buyer("token");
 
     const { ticket } = await buyer.resubmitRefundTicket({
-      ticketId: "TKT_xxx",
-      paymentId: "PAY_xxx",
+      ticketId: "TKT_0000000000000000000000",
+      paymentId: "PAY_0000000000000000000000",
       reason: "Updated reason",
       requestedAmount: { amount: "29.00", currency: "USD" },
     });
@@ -169,7 +169,7 @@ describe("buyer.resubmitRefundTicket", () => {
 describe("buyer.graphql.query", () => {
   it("should query with Bearer token", async () => {
     const mockFetch = createMockFetch(() => ({
-      data: { data: { orders: [{ id: "ORD_xxx", status: "completed" }] }, errors: null },
+      data: { data: { orders: [{ id: "ORD_0000000000000000000000", status: "completed" }] }, errors: null },
     }));
     const buyer = createClient(mockFetch).buyer("gql-token");
 
@@ -196,6 +196,6 @@ describe("buyer error handling", () => {
     });
     const buyer = createClient(mockFetch as unknown as typeof vi.fn).buyer("expired-token");
 
-    await expect(buyer.cancelSubscription({ orderId: "ORD_xxx" })).rejects.toThrow(WaffoPancakeError);
+    await expect(buyer.cancelSubscription({ orderId: "ORD_0000000000000000000000" })).rejects.toThrow(WaffoPancakeError);
   });
 });

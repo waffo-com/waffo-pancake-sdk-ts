@@ -27,7 +27,7 @@ function createErrorFetch(status: number, errors: Array<{ message: string; layer
 
 function createClient(mockFetch: ReturnType<typeof vi.fn>) {
   return new WaffoPancake({
-    merchantId: "MER_test123",
+    merchantId: "MER_0000000000000000000000",
     privateKey: TEST_PRIVATE_KEY,
     baseUrl: "https://api.test.com",
     fetch: mockFetch as unknown as typeof fetch,
@@ -46,7 +46,7 @@ describe("checkout.anonymous", () => {
     const client = createClient(mockFetch);
 
     const result = await client.checkout.anonymous.create({
-      productId: "PROD_xxx",
+      productId: "PROD_0000000000000000000000",
       currency: "USD",
     });
 
@@ -58,7 +58,7 @@ describe("checkout.anonymous", () => {
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.test.com/v1/actions/checkout/create-session");
     const body = JSON.parse(options.body as string);
-    expect(body.productId).toBe("PROD_xxx");
+    expect(body.productId).toBe("PROD_0000000000000000000000");
     expect(body.currency).toBe("USD");
   });
 
@@ -73,7 +73,7 @@ describe("checkout.anonymous", () => {
     const client = createClient(mockFetch);
 
     await client.checkout.anonymous.create({
-      productId: "PROD_xxx",
+      productId: "PROD_0000000000000000000000",
       currency: "JPY",
       priceSnapshot: { amount: "1000", taxCategory: "saas" },
       withTrial: true,
@@ -103,7 +103,7 @@ describe("checkout.anonymous", () => {
     const client = createClient(mockFetch);
 
     await client.checkout.anonymous.create({
-      productId: "PROD_xxx",
+      productId: "PROD_0000000000000000000000",
       currency: "USD",
       buyerEmail: "prefill@example.com",
       billingDetail: { country: "US", isBusiness: false, postcode: "10001" },
@@ -149,7 +149,7 @@ describe("checkout.authenticated", () => {
     const client = createClient(mockFetch);
 
     const result = await client.checkout.authenticated.create({
-      productId: "PROD_xxx",
+      productId: "PROD_0000000000000000000000",
       currency: "USD",
       buyerIdentity: "customer@example.com",
     });
@@ -180,7 +180,7 @@ describe("checkout.authenticated", () => {
     const client = createClient(mockFetch);
 
     await client.checkout.authenticated.create({
-      productId: "PROD_xxx",
+      productId: "PROD_0000000000000000000000",
       currency: "USD",
       // buyerIdentity is a merchant-internal identifier, not an email — SDK must not
       // copy it into buyerEmail (which would surface on the checkout page).
@@ -210,7 +210,7 @@ describe("checkout.authenticated", () => {
     const client = createClient(mockFetch);
 
     await client.checkout.authenticated.create({
-      productId: "PROD_xxx",
+      productId: "PROD_0000000000000000000000",
       currency: "USD",
       buyerIdentity: "user-id-123",
       buyerEmail: "explicit@test.com",
@@ -237,7 +237,7 @@ describe("checkout.authenticated", () => {
     const client = createClient(mockFetch);
 
     await client.checkout.authenticated.create({
-      productId: "PROD_xxx",
+      productId: "PROD_0000000000000000000000",
       currency: "USD",
       buyerIdentity: "customer@example.com",
       billingDetail: { country: "US", isBusiness: false, postcode: "10001" },
@@ -264,7 +264,7 @@ describe("checkout.authenticated", () => {
     const client = createClient(mockFetch);
 
     await client.checkout.authenticated.create({
-      productId: "PROD_xxx",
+      productId: "PROD_0000000000000000000000",
       currency: "USD",
       buyerIdentity: "id-from-merchant",
     });
@@ -272,7 +272,7 @@ describe("checkout.authenticated", () => {
     const tokenCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("issue-session-token"));
     const tokenBody = JSON.parse(tokenCall![1].body as string);
     expect(tokenBody.buyerIdentity).toBe("id-from-merchant");
-    expect(tokenBody.productId).toBe("PROD_xxx");
+    expect(tokenBody.productId).toBe("PROD_0000000000000000000000");
   });
 
   it("should pass optional checkout params (priceSnapshot, withTrial, etc.)", async () => {
@@ -291,7 +291,7 @@ describe("checkout.authenticated", () => {
     const client = createClient(mockFetch);
 
     await client.checkout.authenticated.create({
-      productId: "PROD_xxx",
+      productId: "PROD_0000000000000000000000",
       currency: "EUR",
       buyerIdentity: "customer@example.com",
       priceSnapshot: { amount: "8.99", taxCategory: "saas" },
@@ -320,7 +320,7 @@ describe("checkout.authenticated", () => {
 
     await expect(
       client.checkout.authenticated.create({
-        productId: "PROD_xxx",
+        productId: "PROD_0000000000000000000000",
         currency: "USD",
         buyerIdentity: "customer@example.com",
       }),
@@ -340,7 +340,7 @@ describe("checkout.createSession (low-level)", () => {
     const client = createClient(mockFetch);
 
     const result = await client.checkout.createSession({
-      productId: "PROD_xxx",
+      productId: "PROD_0000000000000000000000",
       currency: "USD",
       buyerEmail: "test@example.com",
     });

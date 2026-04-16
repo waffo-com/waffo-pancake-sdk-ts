@@ -508,6 +508,7 @@ src/
 ├── signing.ts             # RSA-SHA256 request signing
 ├── errors.ts              # WaffoPancakeError
 ├── webhooks.ts            # Webhook verification (embedded keys)
+├── validation.ts          # Client-side input validation
 ├── types.ts               # Type definitions & enums
 ├── __tests__/             # Test suite
 └── resources/             # API resource classes

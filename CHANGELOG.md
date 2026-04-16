@@ -4,6 +4,13 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-04-16
+
+### Fixed
+
+- **`merchantId` validated at construction** — `WaffoPancake` constructor now validates that `merchantId` matches `MER_{base62}` format (exactly 22 base62 characters after prefix). Previously, malformed values like `MER_1XdxrN8hqc5jBMAnWvVm1W1` (23 chars) or `merchant-123` were silently accepted, passed through to the gateway, and caused cryptic 500 errors from the database layer. Invalid formats now throw `WaffoPancakeError` (`status: 400`, `layer: "sdk"`) immediately.
+- **Short ID regex tightened** — All `validateShortId()` checks (affecting `storeId`, `productId`, `orderId`, `paymentId`, `ticketId`, `merchantId`) now enforce exactly 22 base62 characters after the prefix, matching the server-side format. The previous regex (`/[A-Za-z0-9]+/`) accepted any length.
+
 ## [0.4.1] - 2026-04-15
 
 ### Changed
