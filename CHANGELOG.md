@@ -4,6 +4,24 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-04-18
+
+### Added
+
+- **Enriched `WebhookEventData`** — webhook payloads now include full transaction chain data. New optional fields organized by section:
+  - **Order**: `orderStatus`, `merchantProvidedBuyerIdentity`, `billingDetail`, `orderMetadata`
+  - **Amount**: `taxRate`, `taxName`, `subtotal`, `total`
+  - **Product**: `productDescription`, `productMetadata`
+  - **Payment** (payment events only): `paymentId`, `paymentStatus`, `paymentMethod`, `paymentLast4`, `paymentFailureReason`, `paymentDate`
+  - **Subscription** (subscription events only): `billingPeriod`, `currentPeriodStart`, `currentPeriodEnd`, `canceledAt`
+  - **Refund** (refund events only): `refundStatus`, `refundReason`, `refundCreatedAt`
+- All new fields are optional — existing webhook handlers continue to work without changes.
+
+### Documentation
+
+- **Webhook guide** — updated `WebhookEventData` field reference with sectioned layout and conditional field documentation.
+- **README** — expanded webhook verification example showing new fields.
+
 ## [0.4.2] - 2026-04-16
 
 ### Fixed
