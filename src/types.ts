@@ -1009,14 +1009,71 @@ export enum WebhookEventType {
  * @see docs/api-reference/webhooks.mdx
  */
 export interface WebhookEventData {
+  // Order
   orderId: string;
+  /** Order status (e.g., "completed", "active", "canceling") */
+  orderStatus?: string;
   buyerEmail: string;
+  /** Merchant-provided buyer identity from checkout session */
+  merchantProvidedBuyerIdentity?: string;
   currency: string;
+  /** Billing/shipping address (structured object) */
+  billingDetail?: Record<string, unknown>;
+  /** Order-level metadata from checkout session (flat key-value pairs) */
+  orderMetadata?: Record<string, string>;
+
+  // Amount
   /** Amount as display string (e.g., "9.99" for USD, "1000" for JPY) */
   amount: string;
   /** Tax amount as display string (e.g., "0.91" for USD) */
   taxAmount: string;
+  /** Tax rate as decimal (e.g., 0.1 for 10%) */
+  taxRate?: number;
+  /** Tax name (e.g., "Consumption Tax") */
+  taxName?: string;
+  /** Subtotal as display string (before tax) */
+  subtotal?: string;
+  /** Total as display string (after tax) */
+  total?: string;
+
+  // Product
   productName: string;
+  /** Product description */
+  productDescription?: string;
+  /** Product-level metadata set when creating/updating the product */
+  productMetadata?: Record<string, string>;
+
+  // Payment (present for payment events: order.completed, subscription.payment_succeeded)
+  /** Payment ID */
+  paymentId?: string;
+  /** Payment status (e.g., "succeeded", "failed") */
+  paymentStatus?: string;
+  /** Payment method type (e.g., "card") */
+  paymentMethod?: string;
+  /** Last 4 digits of payment instrument */
+  paymentLast4?: string;
+  /** Payment failure reason (present when payment failed) */
+  paymentFailureReason?: string;
+  /** Payment date (ISO 8601 date, e.g., "2026-04-18") */
+  paymentDate?: string;
+
+  // Subscription (present for subscription events)
+  /** Billing period: "weekly", "monthly", "quarterly", "yearly" */
+  billingPeriod?: string;
+  /** Current billing period start date (ISO 8601, e.g., "2026-04-01") */
+  currentPeriodStart?: string;
+  /** Current billing period end date (ISO 8601, e.g., "2026-05-01") */
+  currentPeriodEnd?: string;
+  /** Subscription cancellation timestamp (ISO 8601, present when canceled) */
+  canceledAt?: string;
+
+  // Refund (present for refund events: refund.succeeded, refund.failed)
+  /** Refund status (e.g., "succeeded", "failed") */
+  refundStatus?: string;
+  /** Refund reason */
+  refundReason?: string;
+  /** Refund creation timestamp (ISO 8601) */
+  refundCreatedAt?: string;
 }
 
 /**
@@ -1032,7 +1089,7 @@ export interface WebhookEventData {
  *   eventId: "PAY_5xK9mRtYvWnPqLsJ3hBfDe",
  *   storeId: "STO_2aUyqjCzEIiEcYMKj7TZtw",
  *   mode: "prod",
- *   data: { orderId: "...", buyerEmail: "...", currency: "USD", amount: "29.00", taxAmount: "2.90", productName: "Pro Plan" }
+ *   data: { orderId: "...", buyerEmail: "...", currency: "USD", amount: "29.00", taxAmount: "2.90", productName: "Pro Plan", orderMetadata: { planId: "pro" } }
  * }
  */
 export interface WebhookEvent<T = WebhookEventData> {
