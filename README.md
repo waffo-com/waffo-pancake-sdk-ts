@@ -158,7 +158,7 @@ See [API Reference — Checkout](docs/api-reference.md#checkout) for full parame
 
 ## Webhook Verification
 
-After a buyer completes payment, Waffo sends webhook events to your server. The SDK provides two ways to verify signatures:
+After a buyer completes payment, Waffo sends webhook events to your server with rich data including order details, amounts, product info, and event-specific fields (payment, subscription, or refund). The SDK provides two ways to verify signatures:
 
 ### Standalone Function (built-in keys)
 
@@ -175,10 +175,17 @@ app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
 
     switch (event.eventType) {
       case WebhookEventType.OrderCompleted:
-        console.log(`Order ${event.data.orderId} completed`);
+        // Rich data: order, amount, product, payment fields
+        console.log(`Order ${event.data.orderId} completed — ${event.data.total} ${event.data.currency}`);
+        console.log(`Product: ${event.data.productName}, Buyer: ${event.data.buyerEmail}`);
+        if (event.data.orderMetadata) console.log("Metadata:", event.data.orderMetadata);
         break;
       case WebhookEventType.SubscriptionActivated:
         console.log(`Subscription activated for ${event.data.buyerEmail}`);
+        console.log(`Period: ${event.data.billingPeriod}, ends ${event.data.currentPeriodEnd}`);
+        break;
+      case WebhookEventType.RefundSucceeded:
+        console.log(`Refund succeeded: ${event.data.refundReason}`);
         break;
     }
   } catch {
@@ -213,7 +220,7 @@ const client = new WaffoPancake({
 const event = client.webhooks.verify(rawBody, sig, { environment: "prod" });
 ```
 
-See [Webhook Guide](docs/webhook-guide.md) for event types, dual-environment key architecture, key resolution chain, retry mechanism, and best practices.
+See [Webhook Guide](docs/webhook-guide.md) for event types, `WebhookEventData` field reference, dual-environment key architecture, key resolution chain, retry mechanism, and best practices.
 
 ## Buyer Self-Service
 
@@ -446,12 +453,12 @@ try {
 
 ## Documentation
 
-| Document                               | Content                                                                      |
-| -------------------------------------- | ---------------------------------------------------------------------------- |
-| [API Reference](docs/api-reference.md) | Complete method reference — parameters, return types, `BillingDetail` fields |
-| [GraphQL Guide](docs/graphql-guide.md) | Queries, filters, analytics, introspection, delivery logs                    |
-| [Webhook Guide](docs/webhook-guide.md) | Signature verification, event types, key resolution, retry mechanism         |
-| [Changelog](CHANGELOG.md)              | Version history and migration guides                                         |
+| Document                               | Content                                                                                 |
+| -------------------------------------- | --------------------------------------------------------------------------------------- |
+| [API Reference](docs/api-reference.md) | Complete method reference — parameters, return types, `BillingDetail` fields            |
+| [GraphQL Guide](docs/graphql-guide.md) | Queries, filters, analytics, introspection, delivery logs                               |
+| [Webhook Guide](docs/webhook-guide.md) | Signature verification, event types, event data fields, key resolution, retry mechanism |
+| [Changelog](CHANGELOG.md)              | Version history and migration guides                                                    |
 
 ## Exports
 
@@ -485,7 +492,7 @@ try {
 
 ### Types
 
-Key types: `WaffoPancakeConfig`, `AuthenticatedCheckoutParams`, `AuthenticatedCheckoutResult`, `AnonymousCheckoutParams`, `CheckoutSessionResult`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `WebhookEvent<T>`, `GraphQLResponse<T>`, and 30+ more. See [API Reference](docs/api-reference.md#types) for the full list.
+Key types: `WaffoPancakeConfig`, `AuthenticatedCheckoutParams`, `AuthenticatedCheckoutResult`, `AnonymousCheckoutParams`, `CheckoutSessionResult`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `WebhookEvent<T>`, `WebhookEventData`, `GraphQLResponse<T>`, and 30+ more. `WebhookEventData` includes rich fields organized by section: order info, amounts, product, payment, subscription, and refund (conditional by event type). See [API Reference](docs/api-reference.md#types) for the full list.
 
 ## Development
 

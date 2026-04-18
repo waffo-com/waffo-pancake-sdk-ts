@@ -366,14 +366,66 @@ Both APIs share the same underlying verification logic and resolution chain.
 
 ### `WebhookEventData`
 
-| Field         | Type     | Description                                                                       |
-| ------------- | -------- | --------------------------------------------------------------------------------- |
-| `orderId`     | `string` | Associated order ID                                                               |
-| `buyerEmail`  | `string` | Buyer email address                                                               |
-| `currency`    | `string` | Currency code (ISO 4217)                                                          |
-| `amount`      | `string` | Amount in display format (e.g., `"29.00"` for $29.00 USD, `"4500"` for ¥4500 JPY) |
-| `taxAmount`   | `string` | Tax amount in display format (e.g., `"2.90"`)                                     |
-| `productName` | `string` | Product name                                                                      |
+All events include the **Order**, **Amount**, and **Product** sections. Additional sections are conditionally present based on event type.
+
+**Order fields** (always present):
+
+| Field                           | Type     | Required | Description                                                       |
+| ------------------------------- | -------- | -------- | ----------------------------------------------------------------- |
+| `orderId`                       | `string` | Yes      | Associated order ID                                               |
+| `orderStatus`                   | `string` | No       | Order status (e.g., `"completed"`, `"active"`, `"canceling"`)     |
+| `buyerEmail`                    | `string` | Yes      | Buyer email address                                               |
+| `merchantProvidedBuyerIdentity` | `string` | No       | Merchant-provided buyer identity from checkout session            |
+| `currency`                      | `string` | Yes      | Currency code (ISO 4217)                                          |
+| `billingDetail`                 | `object` | No       | Billing/shipping address (structured object)                      |
+| `orderMetadata`                 | `object` | No       | Order-level metadata from checkout session (flat key-value pairs) |
+
+**Amount fields** (always present):
+
+| Field       | Type     | Required | Description                                                                       |
+| ----------- | -------- | -------- | --------------------------------------------------------------------------------- |
+| `amount`    | `string` | Yes      | Amount in display format (e.g., `"29.00"` for $29.00 USD, `"4500"` for ¥4500 JPY) |
+| `taxAmount` | `string` | Yes      | Tax amount in display format (e.g., `"2.90"`)                                     |
+| `taxRate`   | `number` | No       | Tax rate as decimal (e.g., `0.1` for 10%)                                         |
+| `taxName`   | `string` | No       | Tax name (e.g., `"Consumption Tax"`)                                              |
+| `subtotal`  | `string` | No       | Subtotal as display string (before tax)                                           |
+| `total`     | `string` | No       | Total as display string (after tax)                                               |
+
+**Product fields** (always present):
+
+| Field                | Type     | Required | Description                                                   |
+| -------------------- | -------- | -------- | ------------------------------------------------------------- |
+| `productName`        | `string` | Yes      | Product name                                                  |
+| `productDescription` | `string` | No       | Product description                                           |
+| `productMetadata`    | `object` | No       | Product-level metadata set when creating/updating the product |
+
+**Payment fields** (present for `order.completed`, `subscription.payment_succeeded`):
+
+| Field                  | Type     | Description                                        |
+| ---------------------- | -------- | -------------------------------------------------- |
+| `paymentId`            | `string` | Payment ID                                         |
+| `paymentStatus`        | `string` | Payment status (e.g., `"succeeded"`, `"failed"`)   |
+| `paymentMethod`        | `string` | Payment method type (e.g., `"card"`)               |
+| `paymentLast4`         | `string` | Last 4 digits of payment instrument                |
+| `paymentFailureReason` | `string` | Payment failure reason (present when failed)       |
+| `paymentDate`          | `string` | Payment date (ISO 8601 date, e.g., `"2026-04-18"`) |
+
+**Subscription fields** (present for `subscription.*` events):
+
+| Field                | Type     | Description                                                           |
+| -------------------- | -------- | --------------------------------------------------------------------- |
+| `billingPeriod`      | `string` | Billing period: `"weekly"`, `"monthly"`, `"quarterly"`, `"yearly"`    |
+| `currentPeriodStart` | `string` | Current billing period start date (ISO 8601)                          |
+| `currentPeriodEnd`   | `string` | Current billing period end date (ISO 8601)                            |
+| `canceledAt`         | `string` | Subscription cancellation timestamp (ISO 8601, present when canceled) |
+
+**Refund fields** (present for `refund.succeeded`, `refund.failed`):
+
+| Field             | Type     | Description                               |
+| ----------------- | -------- | ----------------------------------------- |
+| `refundStatus`    | `string` | Refund status (`"succeeded"`, `"failed"`) |
+| `refundReason`    | `string` | Refund reason                             |
+| `refundCreatedAt` | `string` | Refund creation timestamp (ISO 8601)      |
 
 ## Event Types
 
