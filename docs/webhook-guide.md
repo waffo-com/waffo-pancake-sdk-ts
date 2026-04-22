@@ -361,6 +361,7 @@ Both APIs share the same underlying verification logic and resolution chain.
 | `eventType` | `string` | Event type (e.g. `"order.completed"`)                               |
 | `eventId`   | `string` | Business event ID (e.g. payment ID)                                 |
 | `storeId`   | `string` | Store ID the event belongs to                                       |
+| `storeName` | `string` | Store name                                                          |
 | `mode`      | `string` | Environment (`"test"` or `"prod"`)                                  |
 | `data`      | `T`      | Event data (defaults to `WebhookEventData`)                         |
 

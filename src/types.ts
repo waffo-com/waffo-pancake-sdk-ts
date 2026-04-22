@@ -1088,6 +1088,7 @@ export interface WebhookEventData {
  *   eventType: "order.completed",
  *   eventId: "PAY_5xK9mRtYvWnPqLsJ3hBfDe",
  *   storeId: "STO_2aUyqjCzEIiEcYMKj7TZtw",
+ *   storeName: "My Store",
  *   mode: "prod",
  *   data: { orderId: "...", buyerEmail: "...", currency: "USD", amount: "29.00", taxAmount: "2.90", productName: "Pro Plan", orderMetadata: { planId: "pro" } }
  * }
@@ -1103,6 +1104,8 @@ export interface WebhookEvent<T = WebhookEventData> {
   eventId: string;
   /** Store ID the event belongs to */
   storeId: string;
+  /** Store name */
+  storeName: string;
   /** Environment identifier */
   mode: `${Environment}`;
   /** Event data */
