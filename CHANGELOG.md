@@ -4,6 +4,12 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-04-22
+
+### Added
+
+- **MIT LICENSE file** — repository now includes the full MIT license text. `LICENSE` is also included in the npm package via the `files` field.
+
 ## [0.5.1] - 2026-04-22
 
 ### Added
