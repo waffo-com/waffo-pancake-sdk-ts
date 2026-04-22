@@ -4,6 +4,12 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-04-22
+
+### Added
+
+- **`storeName` in `WebhookEventData`** — webhook payloads now include the store name in `data.storeName`. Always present for all transaction events.
+
 ## [0.5.0] - 2026-04-18
 
 ### Added
