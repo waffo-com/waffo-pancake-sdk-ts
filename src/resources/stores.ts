@@ -24,9 +24,13 @@ export class StoresResource {
   /**
    * Update an existing store's settings.
    *
-   * Settings objects (`webhookSettings`, `notificationSettings`, `checkoutSettings`)
-   * support partial updates: omitted sub-fields keep existing values, `null` clears
-   * a field. Pass the entire settings object as `null` to clear all fields.
+   * Settings objects (`notificationSettings`, `checkoutSettings`) support
+   * partial updates: omitted sub-fields keep existing values, `null` clears a
+   * field. Pass the entire settings object as `null` to clear all fields.
+   *
+   * **BREAKING (2026-05)**: the legacy `webhookSettings` parameter is removed.
+   * Use `client.webhooks.add / update / remove` to manage webhook endpoints,
+   * and query the configured webhook list via GraphQL `Store.storeWebhooks`.
    *
    * @param params - Fields to update (only provided fields are changed)
    * @returns Updated store entity
@@ -39,10 +43,10 @@ export class StoresResource {
    * });
    *
    * @example
-   * // Clear test webhook URL while keeping other webhook settings
+   * // Toggle a notification preference
    * const { store } = await client.stores.update({
    *   id: "STO_xxx",
-   *   webhookSettings: { testWebhookUrl: null },
+   *   notificationSettings: { emailOrderConfirmation: false },
    * });
    */
   async update(params: UpdateStoreParams): Promise<{ store: Store }> {
