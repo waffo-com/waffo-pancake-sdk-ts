@@ -2,6 +2,8 @@ import { createSign, generateKeyPairSync } from "node:crypto";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { WaffoPancake } from "../client.js";
+import { WaffoPancakeError } from "../errors.js";
 import { verifyWebhook } from "../webhooks.js";
 
 describe("verifyWebhook", () => {
@@ -358,5 +360,113 @@ describe("verifyWebhook", () => {
       });
       expect(result.id).toBe("evt_config_over_env");
     });
+  });
+});
+
+// ===========================================================================
+// Webhook management resource (add / update / remove)
+// ===========================================================================
+
+const { privateKey: TEST_RESOURCE_KEY } = generateKeyPairSync("rsa", {
+  modulusLength: 2048,
+  publicKeyEncoding: { type: "spki", format: "pem" },
+  privateKeyEncoding: { type: "pkcs8", format: "pem" },
+});
+
+function createMockFetch(handler: (url: string, options: RequestInit) => object) {
+  return vi.fn(async (url: string, options: RequestInit) => ({
+    status: 200,
+    json: () => Promise.resolve(handler(url, options)),
+  }));
+}
+
+function createClient(mockFetch: ReturnType<typeof vi.fn>) {
+  return new WaffoPancake({
+    merchantId: "MER_0000000000000000000000",
+    privateKey: TEST_RESOURCE_KEY as string,
+    baseUrl: "https://api.test.com",
+    fetch: mockFetch as unknown as typeof fetch,
+  });
+}
+
+describe("webhooks.add", () => {
+  it("should call /v1/actions/store/add-webhook with full body", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        webhook: {
+          id: "11111111-2222-3333-4444-555555555555",
+          storeId: "STO_0000000000000000000000",
+          channel: "http",
+          url: "https://example.com/wh",
+          events: ["order.completed"],
+          testMode: false,
+          secret: null,
+          createdAt: "2026-05-07T00:00:00Z",
+          updatedAt: "2026-05-07T00:00:00Z",
+        },
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    const { webhook } = await client.webhooks.add({
+      storeId: "STO_0000000000000000000000",
+      channel: "http",
+      url: "https://example.com/wh",
+      events: ["order.completed"],
+      testMode: false,
+    });
+
+    expect(webhook.channel).toBe("http");
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toBe("https://api.test.com/v1/actions/store/add-webhook");
+    const body = JSON.parse(options.body as string);
+    expect(body.storeId).toBe("STO_0000000000000000000000");
+    expect(body.events).toEqual(["order.completed"]);
+  });
+
+  it("should reject invalid storeId", async () => {
+    const client = createClient(createMockFetch(() => ({})));
+
+    await expect(
+      client.webhooks.add({
+        storeId: "bad-id",
+        channel: "http",
+        url: "https://example.com/wh",
+        events: [],
+        testMode: false,
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
+  });
+});
+
+describe("webhooks.update", () => {
+  it("should call /v1/actions/store/update-webhook with id", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: { webhook: { id: "11111111-2222-3333-4444-555555555555", events: ["refund.succeeded"] } },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.webhooks.update({
+      id: "11111111-2222-3333-4444-555555555555",
+      events: ["refund.succeeded"],
+    });
+
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toBe("https://api.test.com/v1/actions/store/update-webhook");
+  });
+});
+
+describe("webhooks.remove", () => {
+  it("should call /v1/actions/store/remove-webhook and return removed snapshot", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: { webhook: { id: "11111111-2222-3333-4444-555555555555", url: "https://example.com/wh" } },
+    }));
+    const client = createClient(mockFetch);
+
+    const { webhook } = await client.webhooks.remove({ id: "11111111-2222-3333-4444-555555555555" });
+
+    expect(webhook.url).toBe("https://example.com/wh");
+    const [url] = mockFetch.mock.calls[0];
+    expect(url).toBe("https://api.test.com/v1/actions/store/remove-webhook");
   });
 });

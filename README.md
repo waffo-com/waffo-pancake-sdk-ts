@@ -315,16 +315,11 @@ See [GraphQL Guide](docs/graphql-guide.md) for filters, analytics queries, deliv
 // Create a store
 const { store } = await client.stores.create({ name: "My Store" });
 
-// Update settings (webhook, notification, checkout theme)
+// Update settings (notification, checkout theme).
+// NOTE: webhook configuration moved to client.webhooks (see Webhooks section below).
 const { store: updated } = await client.stores.update({
   id: store.id,
   supportEmail: "help@example.com",
-  webhookSettings: {
-    testWebhookUrl: "https://example.com/webhooks",
-    prodWebhookUrl: null,
-    testEvents: ["order.completed", "subscription.activated"],
-    prodEvents: [],
-  },
   notificationSettings: {
     emailOrderConfirmation: true,
     emailSubscriptionConfirmation: true,
@@ -340,6 +335,51 @@ const { store: updated } = await client.stores.update({
 // Soft-delete
 const { store: deleted } = await client.stores.delete({ id: store.id });
 ```
+
+### Webhooks
+
+Manage webhook endpoints across HTTP, Feishu, Discord, Telegram, and Slack. Each store can have up to 20 webhooks across all channels.
+
+```typescript
+// Add a standard HTTPS webhook (RSA-signed envelope)
+const { webhook } = await client.webhooks.add({
+  storeId: store.id,
+  channel: "http",
+  url: "https://example.com/webhooks/pancake",
+  events: ["order.completed", "refund.succeeded"],
+  testMode: false,
+});
+
+// Add a Discord webhook (uses Discord embed format)
+await client.webhooks.add({
+  storeId: store.id,
+  channel: "discord",
+  url: "https://discord.com/api/webhooks/123/abc",
+  events: ["order.completed"],
+  testMode: false,
+});
+
+// Add a Telegram webhook (chat_id stored in `secret`)
+await client.webhooks.add({
+  storeId: store.id,
+  channel: "telegram",
+  url: "https://api.telegram.org/bot123:ABC/sendMessage",
+  events: ["order.completed"],
+  testMode: false,
+  secret: "8737101383",
+});
+
+// Update events
+await client.webhooks.update({
+  id: webhook.id,
+  events: ["order.completed", "refund.succeeded", "subscription.canceled"],
+});
+
+// Hard-delete a webhook (delivery history retained for audit)
+await client.webhooks.remove({ id: webhook.id });
+```
+
+> **Listing**: query the configured webhook list via GraphQL `Store.storeWebhooks` (filtered by environment automatically). The SDK does not expose a `list` method — `client.graphql.query` is the only read path, by design.
 
 ### Products
 
@@ -434,22 +474,22 @@ try {
 
 ## Resources
 
-| Namespace                          | Methods                                                                                                                  | Description                          |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
-| `client.checkout.authenticated`    | `create()`                                                                                                               | Authenticated checkout (recommended) |
-| `client.checkout.anonymous`        | `create()`                                                                                                               | Anonymous checkout                   |
-| `client.checkout`                  | `createSession()`                                                                                                        | Low-level checkout session           |
-| `client.buyer(token)`              | `cancelSubscription()` `cancelOnetimeOrder()` `reactivateSubscription()` `createRefundTicket()` `resubmitRefundTicket()` | Buyer self-service                   |
-| `client.buyer(token).graphql`      | `query<T>()`                                                                                                             | Buyer-scoped GraphQL queries         |
-| `client.webhooks`                  | `verify<T>()`                                                                                                            | Webhook signature verification       |
-| `client.graphql`                   | `query<T>()`                                                                                                             | Merchant GraphQL queries             |
-| `client.auth`                      | `issueSessionToken()`                                                                                                    | Issue a buyer session token (JWT)    |
-| `client.stores`                    | `create()` `update()` `delete()`                                                                                         | Store management                     |
-| `client.storeMerchants`            | `add()` `remove()` `updateRole()`                                                                                        | Store members (coming soon)          |
-| `client.onetimeProducts`           | `create()` `update()` `publish()` `updateStatus()`                                                                       | One-time products                    |
-| `client.subscriptionProducts`      | `create()` `update()` `publish()` `updateStatus()`                                                                       | Subscription products                |
-| `client.subscriptionProductGroups` | `create()` `update()` `delete()` `publish()`                                                                             | Product groups                       |
-| `client.orders`                    | `cancelSubscription()`                                                                                                   | Order management                     |
+| Namespace                          | Methods                                                                                                                  | Description                             |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| `client.checkout.authenticated`    | `create()`                                                                                                               | Authenticated checkout (recommended)    |
+| `client.checkout.anonymous`        | `create()`                                                                                                               | Anonymous checkout                      |
+| `client.checkout`                  | `createSession()`                                                                                                        | Low-level checkout session              |
+| `client.buyer(token)`              | `cancelSubscription()` `cancelOnetimeOrder()` `reactivateSubscription()` `createRefundTicket()` `resubmitRefundTicket()` | Buyer self-service                      |
+| `client.buyer(token).graphql`      | `query<T>()`                                                                                                             | Buyer-scoped GraphQL queries            |
+| `client.webhooks`                  | `verify<T>()` `add()` `update()` `remove()`                                                                              | Webhook config + signature verification |
+| `client.graphql`                   | `query<T>()`                                                                                                             | Merchant GraphQL queries                |
+| `client.auth`                      | `issueSessionToken()`                                                                                                    | Issue a buyer session token (JWT)       |
+| `client.stores`                    | `create()` `update()` `delete()`                                                                                         | Store management                        |
+| `client.storeMerchants`            | `add()` `remove()` `updateRole()`                                                                                        | Store members (coming soon)             |
+| `client.onetimeProducts`           | `create()` `update()` `publish()` `updateStatus()`                                                                       | One-time products                       |
+| `client.subscriptionProducts`      | `create()` `update()` `publish()` `updateStatus()`                                                                       | Subscription products                   |
+| `client.subscriptionProductGroups` | `create()` `update()` `delete()` `publish()`                                                                             | Product groups                          |
+| `client.orders`                    | `cancelSubscription()`                                                                                                   | Order management                        |
 
 ## Documentation
 
