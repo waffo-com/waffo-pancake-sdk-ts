@@ -94,7 +94,7 @@ export class WaffoPancake {
     this.orders = new OrdersResource(this.http);
     this.checkout = new CheckoutResource(this.http);
     this.graphql = new GraphQLResource(this.http);
-    this.webhooks = new WebhooksResource(config.webhookPublicKey);
+    this.webhooks = new WebhooksResource(this.http, config.webhookPublicKey);
   }
 
   /**

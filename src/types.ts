@@ -281,18 +281,65 @@ export interface SessionToken {
 // ---------------------------------------------------------------------------
 
 /**
- * Webhook configuration for test and production environments.
+ * Webhook channel — HTTP for the standard RSA-signed envelope, the rest for
+ * IM platform native payloads (Feishu / Discord / Telegram / Slack).
+ */
+export type WebhookChannel = "http" | "feishu" | "discord" | "telegram" | "slack";
+
+/**
+ * Configured webhook endpoint (one row of `store.store_webhooks`).
+ *
  * @see waffo-pancake-store-service/app/lib/types.ts
  */
-export interface WebhookSettings {
-  /** Test environment webhook URL */
-  testWebhookUrl: string | null;
-  /** Production environment webhook URL */
-  prodWebhookUrl: string | null;
-  /** Event types subscribed in test environment */
-  testEvents: string[];
-  /** Event types subscribed in production environment */
-  prodEvents: string[];
+export interface StoreWebhook {
+  /** Webhook UUID (not Short ID) */
+  id: string;
+  /** Owning store Short ID (`STO_…`) */
+  storeId: string;
+  channel: WebhookChannel;
+  /** Target webhook URL */
+  url: string;
+  /** Subscribed event types (e.g. `order.completed`) */
+  events: string[];
+  /** Whether this webhook fires in test or prod environment */
+  testMode: boolean;
+  /** Channel-specific credential (e.g. Telegram chat_id) */
+  secret: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Parameters for creating a webhook. */
+export interface AddWebhookParams {
+  /** Store Short ID (`STO_…`) */
+  storeId: string;
+  channel: WebhookChannel;
+  /** Target webhook URL */
+  url: string;
+  /** Subscribed event types */
+  events: string[];
+  /** Whether this webhook fires in test (true) or prod (false) */
+  testMode: boolean;
+  /** Channel-specific credential (e.g. Telegram chat_id) */
+  secret?: string | null;
+}
+
+/** Parameters for updating a webhook. `channel` and `testMode` are immutable. */
+export interface UpdateWebhookParams {
+  /** Webhook UUID */
+  id: string;
+  /** Replace target URL (must remain on the same channel host) */
+  url?: string;
+  /** Replace subscribed event types */
+  events?: string[];
+  /** Replace channel-specific credential */
+  secret?: string | null;
+}
+
+/** Parameters for hard-deleting a webhook. */
+export interface RemoveWebhookParams {
+  /** Webhook UUID */
+  id: string;
 }
 
 /**
@@ -346,7 +393,6 @@ export interface Store {
   website: string | null;
   slug: string | null;
   prodEnabled: boolean;
-  webhookSettings: WebhookSettings | null;
   notificationSettings: NotificationSettings | null;
   checkoutSettings: CheckoutSettings | null;
   deletedAt: string | null;
@@ -366,6 +412,10 @@ export interface CreateStoreParams {
  * Settings objects support partial updates — omitted sub-fields keep their
  * existing values, `null` clears a field, and a concrete value sets it.
  * Pass the entire settings object as `null` to clear all fields in the group.
+ *
+ * **BREAKING (2026-05)**: the legacy `webhookSettings` field is removed.
+ * Manage webhooks via `client.webhooks.add / update / remove`; query the
+ * webhook list through GraphQL `Store.storeWebhooks`.
  */
 export interface UpdateStoreParams {
   /** Store ID */
@@ -380,8 +430,6 @@ export interface UpdateStoreParams {
   supportEmail?: string | null;
   /** Store website URL (set to `null` to remove) */
   website?: string | null;
-  /** Webhook configuration (partial update — omitted fields keep existing values, set to `null` to clear all) */
-  webhookSettings?: Partial<WebhookSettings> | null;
   /** Notification preferences (partial update — omitted fields keep existing values, set to `null` to clear all) */
   notificationSettings?: Partial<NotificationSettings> | null;
   /** Checkout page theme configuration (partial update — omitted fields keep existing values, set to `null` to clear all) */

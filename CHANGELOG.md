@@ -4,6 +4,28 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-05-07
+
+### BREAKING
+
+- **`UpdateStoreParams.webhookSettings` removed** — webhook configuration is no longer managed through `client.stores.update()`. The legacy single-URL JSONB shape (`testWebhookUrl` / `prodWebhookUrl` / `testEvents` / `prodEvents`) has been replaced by a multi-row `store.store_webhooks` table supporting multiple webhooks and multiple channels per store.
+- **`WebhookSettings` type removed** from public exports. Replaced by `StoreWebhook`, `WebhookChannel`, and the new `Add/Update/RemoveWebhookParams` types.
+- The server's `update-store` endpoint accepts the legacy `webhookSettings` field for backward compatibility but **ignores it** and returns `200` with a top-level `warnings` array containing `WEBHOOK_SETTINGS_IGNORED` and an `aiHint` describing the migration path. Old SDK calls will silently lose webhook updates — upgrade to use the new methods below.
+
+### Added
+
+- **`client.webhooks.add / update / remove`** — manage webhook endpoints (HTTP / Feishu / Discord / Telegram / Slack) via dedicated mutations.
+  - `channel` field selects the payload format. HTTP keeps the existing RSA-signed envelope (no breakage on the merchant consumption side); IM platforms render their native card / embed / attachment formats.
+  - `secret` field stores channel-specific credentials (e.g. Telegram `chat_id`).
+  - Any valid HTTPS URL accepted; merchant ensures the URL matches the chosen channel.
+  - Hard-delete; historical `webhook_deliveries` rows are retained with `storeWebhookId = null` for audit.
+- **`StoreWebhook`, `WebhookChannel`, `AddWebhookParams`, `UpdateWebhookParams`, `RemoveWebhookParams`** types exported.
+
+### Migration
+
+- **List webhooks**: query GraphQL `Store.storeWebhooks` (filtered automatically by environment via `test_mode`). The SDK does not expose a `list` method — `client.graphql.query` is the only read path, by design.
+- **Create/Update/Delete**: replace `client.stores.update({ id, webhookSettings: {...} })` with `client.webhooks.add({...})` / `update({...})` / `remove({ id })`.
+
 ## [0.5.2] - 2026-04-22
 
 ### Added

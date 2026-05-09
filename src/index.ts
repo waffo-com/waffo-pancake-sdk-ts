@@ -48,7 +48,13 @@ export type {
   NotificationSettings,
   Store,
   UpdateStoreParams,
-  WebhookSettings,
+
+  // Webhook management
+  StoreWebhook,
+  WebhookChannel,
+  AddWebhookParams,
+  UpdateWebhookParams,
+  RemoveWebhookParams,
 
   // Store Merchant
   AddMerchantParams,
