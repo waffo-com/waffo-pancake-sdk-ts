@@ -341,12 +341,14 @@ const { store: deleted } = await client.stores.delete({ id: store.id });
 Manage webhook endpoints across HTTP, Feishu, Discord, Telegram, and Slack. Each store can have up to 20 webhooks across all channels.
 
 ```typescript
+import { WebhookEventType } from "@waffo/pancake-ts";
+
 // Add a standard HTTPS webhook (RSA-signed envelope)
 const { webhook } = await client.webhooks.add({
   storeId: store.id,
   channel: "http",
   url: "https://example.com/webhooks/pancake",
-  events: ["order.completed", "refund.succeeded"],
+  events: [WebhookEventType.OrderCompleted, WebhookEventType.RefundSucceeded],
   testMode: false,
 });
 
@@ -355,7 +357,7 @@ await client.webhooks.add({
   storeId: store.id,
   channel: "discord",
   url: "https://discord.com/api/webhooks/123/abc",
-  events: ["order.completed"],
+  events: [WebhookEventType.OrderCompleted],
   testMode: false,
 });
 
@@ -364,7 +366,7 @@ await client.webhooks.add({
   storeId: store.id,
   channel: "telegram",
   url: "https://api.telegram.org/bot123:ABC/sendMessage",
-  events: ["order.completed"],
+  events: [WebhookEventType.OrderCompleted],
   testMode: false,
   secret: "8737101383",
 });
@@ -372,7 +374,7 @@ await client.webhooks.add({
 // Update events
 await client.webhooks.update({
   id: webhook.id,
-  events: ["order.completed", "refund.succeeded", "subscription.canceled"],
+  events: [WebhookEventType.OrderCompleted, WebhookEventType.RefundSucceeded, WebhookEventType.SubscriptionCanceled],
 });
 
 // Hard-delete a webhook (delivery history retained for audit)

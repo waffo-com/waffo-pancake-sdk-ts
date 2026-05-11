@@ -4,6 +4,23 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-05-11
+
+### Changed
+
+- **`AddWebhookParams.events` / `UpdateWebhookParams.events` / `StoreWebhook.events`** typed as `` `${WebhookEventType}`[] `` instead of `string[]`. Editors now autocomplete the 10 enum values and flag typos at compile time. Runtime behavior unchanged — server still accepts string literals.
+- **README webhook examples** use `WebhookEventType.OrderCompleted` enum form instead of raw string literals.
+
+### Added
+
+- **`GraphQLResponse.warnings?[]`** — soft warning envelope emitted when query cost approaches the hard limit (graphql-service `v2026.5.11.3`). Each warning carries `message`, `layer`, and `aiHint` (e.g. `REDUCE_QUERY_SIZE`). Server still returns HTTP 200; the next slightly-larger query may be rejected with 400.
+- **`GraphQLResponse.errors[].aiHint?`** — actionable agent hint on error items (e.g. `REDUCE_QUERY_SIZE` when query cost exceeds the hard limit).
+
+### Migration
+
+- TypeScript compile errors in webhook event arrays — import `WebhookEventType` and use enum values (or string literals matching the enum) instead of arbitrary strings. Runtime payload unchanged.
+- Client logic reading webhook errors / warnings can now surface `aiHint` to operators or feed it back to LLM agents for self-correction.
+
 ## [0.6.0] - 2026-05-07
 
 ### BREAKING
