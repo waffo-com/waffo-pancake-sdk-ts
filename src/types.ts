@@ -299,8 +299,8 @@ export interface StoreWebhook {
   channel: WebhookChannel;
   /** Target webhook URL */
   url: string;
-  /** Subscribed event types (e.g. `order.completed`) */
-  events: string[];
+  /** Subscribed event types (use `WebhookEventType` enum or its string literal) */
+  events: `${WebhookEventType}`[];
   /** Whether this webhook fires in test or prod environment */
   testMode: boolean;
   /** Channel-specific credential (e.g. Telegram chat_id) */
@@ -316,8 +316,8 @@ export interface AddWebhookParams {
   channel: WebhookChannel;
   /** Target webhook URL */
   url: string;
-  /** Subscribed event types */
-  events: string[];
+  /** Subscribed event types (use `WebhookEventType` enum or its string literal) */
+  events: `${WebhookEventType}`[];
   /** Whether this webhook fires in test (true) or prod (false) */
   testMode: boolean;
   /** Channel-specific credential (e.g. Telegram chat_id) */
@@ -330,8 +330,8 @@ export interface UpdateWebhookParams {
   id: string;
   /** Replace target URL (must remain on the same channel host) */
   url?: string;
-  /** Replace subscribed event types */
-  events?: string[];
+  /** Replace subscribed event types (use `WebhookEventType` enum or its string literal) */
+  events?: `${WebhookEventType}`[];
   /** Replace channel-specific credential */
   secret?: string | null;
 }
@@ -1018,6 +1018,12 @@ export interface GraphQLResponse<T = Record<string, unknown>> {
     message: string;
     locations?: Array<{ line: number; column: number }>;
     path?: string[];
+    aiHint?: string;
+  }>;
+  warnings?: Array<{
+    message: string;
+    layer: string;
+    aiHint?: string;
   }>;
 }
 
