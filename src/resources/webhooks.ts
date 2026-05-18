@@ -1,9 +1,11 @@
+import { unwrapAction } from "./internal.js";
 import { validateRequired, validateShortId } from "../validation.js";
 import { verifyWebhook } from "../webhooks.js";
 
 import type { HttpClient } from "../http-client.js";
 import type {
   AddWebhookParams,
+  Notice,
   RemoveWebhookParams,
   StoreWebhook,
   UpdateWebhookParams,
@@ -70,11 +72,11 @@ export class WebhooksResource {
    *   secret: "8737101383",
    * });
    */
-  async add(params: AddWebhookParams): Promise<{ webhook: StoreWebhook }> {
+  async add(params: AddWebhookParams): Promise<{ webhook: StoreWebhook; warnings?: Notice[] }> {
     validateShortId("storeId", params.storeId, "STO");
     validateRequired("channel", params.channel);
     validateRequired("url", params.url);
-    return this.http.post<{ webhook: StoreWebhook }>("/v1/actions/store/add-webhook", params);
+    return unwrapAction(await this.http.post<{ webhook: StoreWebhook }>("/v1/actions/store/add-webhook", params));
   }
 
   /**
@@ -93,9 +95,9 @@ export class WebhooksResource {
    *   events: ["order.completed", "refund.succeeded", "subscription.canceled"],
    * });
    */
-  async update(params: UpdateWebhookParams): Promise<{ webhook: StoreWebhook }> {
+  async update(params: UpdateWebhookParams): Promise<{ webhook: StoreWebhook; warnings?: Notice[] }> {
     validateRequired("id", params.id);
-    return this.http.post<{ webhook: StoreWebhook }>("/v1/actions/store/update-webhook", params);
+    return unwrapAction(await this.http.post<{ webhook: StoreWebhook }>("/v1/actions/store/update-webhook", params));
   }
 
   /**
@@ -108,9 +110,9 @@ export class WebhooksResource {
    * @example
    * await client.webhooks.remove({ id: "11111111-..." });
    */
-  async remove(params: RemoveWebhookParams): Promise<{ webhook: StoreWebhook }> {
+  async remove(params: RemoveWebhookParams): Promise<{ webhook: StoreWebhook; warnings?: Notice[] }> {
     validateRequired("id", params.id);
-    return this.http.post<{ webhook: StoreWebhook }>("/v1/actions/store/remove-webhook", params);
+    return unwrapAction(await this.http.post<{ webhook: StoreWebhook }>("/v1/actions/store/remove-webhook", params));
   }
 
   /**

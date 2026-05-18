@@ -1,7 +1,8 @@
+import { unwrapAction } from "./internal.js";
 import { validateRequired, validateShortId } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
-import type { CreateStoreParams, DeleteStoreParams, Store, UpdateStoreParams } from "../types.js";
+import type { CreateStoreParams, DeleteStoreParams, Notice, Store, UpdateStoreParams } from "../types.js";
 
 /** Store management resource — create, update, and delete stores. */
 export class StoresResource {
@@ -16,9 +17,9 @@ export class StoresResource {
    * @example
    * const { store } = await client.stores.create({ name: "My Store" });
    */
-  async create(params: CreateStoreParams): Promise<{ store: Store }> {
+  async create(params: CreateStoreParams): Promise<{ store: Store; warnings?: Notice[] }> {
     validateRequired("name", params.name);
-    return this.http.post<{ store: Store }>("/v1/actions/store/create-store", params);
+    return unwrapAction(await this.http.post<{ store: Store }>("/v1/actions/store/create-store", params));
   }
 
   /**
@@ -49,9 +50,9 @@ export class StoresResource {
    *   notificationSettings: { emailOrderConfirmation: false },
    * });
    */
-  async update(params: UpdateStoreParams): Promise<{ store: Store }> {
+  async update(params: UpdateStoreParams): Promise<{ store: Store; warnings?: Notice[] }> {
     validateShortId("id", params.id, "STO");
-    return this.http.post<{ store: Store }>("/v1/actions/store/update-store", params);
+    return unwrapAction(await this.http.post<{ store: Store }>("/v1/actions/store/update-store", params));
   }
 
   /**
@@ -63,8 +64,8 @@ export class StoresResource {
    * @example
    * const { store } = await client.stores.delete({ id: "STO_xxx" });
    */
-  async delete(params: DeleteStoreParams): Promise<{ store: Store }> {
+  async delete(params: DeleteStoreParams): Promise<{ store: Store; warnings?: Notice[] }> {
     validateShortId("id", params.id, "STO");
-    return this.http.post<{ store: Store }>("/v1/actions/store/delete-store", params);
+    return unwrapAction(await this.http.post<{ store: Store }>("/v1/actions/store/delete-store", params));
   }
 }

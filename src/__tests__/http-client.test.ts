@@ -23,7 +23,7 @@ function createMockFetch(responseBody: object, status = 200) {
 
 describe("HttpClient", () => {
   describe("post", () => {
-    it("should send signed POST request and return data", async () => {
+    it("returns the full envelope plus HTTP status", async () => {
       const mockFetch = createMockFetch({ data: { store: { id: "store_1" } } });
       const client = new HttpClient({
         merchantId: MERCHANT_ID,
@@ -34,13 +34,30 @@ describe("HttpClient", () => {
 
       const result = await client.post<{ store: { id: string } }>("/v1/actions/store/create-store", { name: "Test" });
 
-      expect(result).toEqual({ store: { id: "store_1" } });
+      expect(result.status).toBe(200);
+      expect(result.data).toEqual({ store: { id: "store_1" } });
+      expect(result.errors).toBeUndefined();
+      expect(result.warnings).toBeUndefined();
       expect(mockFetch).toHaveBeenCalledOnce();
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toBe("https://api.test.com/v1/actions/store/create-store");
       expect(options.method).toBe("POST");
       expect(options.body).toBe(JSON.stringify({ name: "Test" }));
+    });
+
+    it("surfaces warnings from the envelope without dropping them", async () => {
+      const warnings = [{ message: "deprecated field used", layer: "store", aiHint: "Switch to bar" }];
+      const mockFetch = createMockFetch({ data: { store: { id: "s1" } }, warnings });
+      const client = new HttpClient({
+        merchantId: MERCHANT_ID,
+        privateKey: TEST_PRIVATE_KEY,
+        fetch: mockFetch as unknown as typeof fetch,
+      });
+
+      const result = await client.post("/v1/test", {});
+
+      expect(result.warnings).toEqual(warnings);
     });
 
     it("should include required headers", async () => {
@@ -157,7 +174,7 @@ describe("HttpClient", () => {
       expect(key1).not.toBe(key2);
     });
 
-    it("should throw WaffoPancakeError on error response", async () => {
+    it("does NOT throw on errors[] — caller inspects the envelope", async () => {
       const errors = [{ message: "Not found", layer: "store" }];
       const mockFetch = createMockFetch({ data: null, errors }, 404);
       const client = new HttpClient({
@@ -166,15 +183,40 @@ describe("HttpClient", () => {
         fetch: mockFetch as unknown as typeof fetch,
       });
 
-      await expect(client.post("/v1/test", {})).rejects.toThrow(WaffoPancakeError);
+      const result = await client.post("/v1/test", {});
 
-      try {
-        await client.post("/v1/test", {});
-      } catch (e) {
-        expect(e).toBeInstanceOf(WaffoPancakeError);
-        expect((e as WaffoPancakeError).status).toBe(404);
-        expect((e as WaffoPancakeError).errors).toEqual(errors);
-      }
+      expect(result.status).toBe(404);
+      expect(result.data).toBeNull();
+      expect(result.errors).toEqual(errors);
+    });
+
+    it("throws WaffoPancakeError only when the response body is not JSON", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        status: 502,
+        json: () => Promise.reject(new SyntaxError("Unexpected token '<'")),
+      });
+      const client = new HttpClient({
+        merchantId: MERCHANT_ID,
+        privateKey: TEST_PRIVATE_KEY,
+        fetch: mockFetch as unknown as typeof fetch,
+      });
+
+      await expect(client.post("/v1/test", {})).rejects.toThrow(WaffoPancakeError);
+    });
+
+    it("omits X-Idempotency-Key when noIdempotency option is set", async () => {
+      const mockFetch = createMockFetch({ data: {} });
+      const client = new HttpClient({
+        merchantId: MERCHANT_ID,
+        privateKey: TEST_PRIVATE_KEY,
+        fetch: mockFetch as unknown as typeof fetch,
+      });
+
+      await client.post("/v1/graphql", { query: "{ stores { id } }" }, { noIdempotency: true });
+
+      const headers = mockFetch.mock.calls[0][1].headers;
+      expect(headers["X-Idempotency-Key"]).toBeUndefined();
+      expect(headers["X-Signature"]).toBeDefined();
     });
 
     it("should strip trailing slashes from baseUrl", async () => {

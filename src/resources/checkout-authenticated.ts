@@ -1,7 +1,8 @@
+import { unwrapAction } from "./internal.js";
 import { validateCheckoutCommon, validateRequired } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
-import type { AuthenticatedCheckoutParams, AuthenticatedCheckoutResult, CheckoutSessionResult, SessionToken } from "../types.js";
+import type { AuthenticatedCheckoutParams, AuthenticatedCheckoutResult, CheckoutSessionResult, Notice, SessionToken } from "../types.js";
 
 /**
  * Authenticated checkout — merchant provides buyer identity.
@@ -36,7 +37,7 @@ export class CheckoutAuthenticatedResource {
    * });
    * // Redirect to result.checkoutUrl (includes #token=...)
    */
-  async create(params: AuthenticatedCheckoutParams): Promise<AuthenticatedCheckoutResult> {
+  async create(params: AuthenticatedCheckoutParams): Promise<AuthenticatedCheckoutResult & { warnings?: Notice[] }> {
     validateCheckoutCommon(params);
     validateRequired("buyerIdentity", params.buyerIdentity);
     const { buyerIdentity, ...sessionParams } = params;
@@ -53,12 +54,17 @@ export class CheckoutAuthenticatedResource {
       this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", sessionParams, { idempotencyWindow: 60 }),
     ]);
 
+    const token = unwrapAction(tokenResult);
+    const session = unwrapAction(sessionResult);
+    const warnings: Notice[] = [...(token.warnings ?? []), ...(session.warnings ?? [])];
+
     return {
-      sessionId: sessionResult.sessionId,
-      checkoutUrl: `${sessionResult.checkoutUrl}#token=${tokenResult.token}`,
-      expiresAt: sessionResult.expiresAt,
-      token: tokenResult.token,
-      tokenExpiresAt: tokenResult.expiresAt,
+      sessionId: session.sessionId,
+      checkoutUrl: `${session.checkoutUrl}#token=${token.token}`,
+      expiresAt: session.expiresAt,
+      token: token.token,
+      tokenExpiresAt: token.expiresAt,
+      ...(warnings.length > 0 ? { warnings } : {}),
     };
   }
 }

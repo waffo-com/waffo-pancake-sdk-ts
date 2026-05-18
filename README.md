@@ -305,6 +305,32 @@ const detail = await client.graphql.query({
 
 See [GraphQL Guide](docs/graphql-guide.md) for filters, analytics queries, delivery logs, and more.
 
+## Warnings (Migration Notices)
+
+Every successful REST action and GraphQL query may carry a `warnings` array alongside the data. Warnings describe non-fatal advisories the server wants you to act on — typically deprecated parameters, fields scheduled for removal, or new APIs you should switch to. Each `Notice` has `message` (human-readable), `layer` (which service produced it), and `aiHint` (a structured migration instruction aimed at LLM consumers).
+
+```typescript
+// REST action — warnings spread onto the result alongside the typed payload
+const { store, warnings } = await client.stores.update({
+  id: "STO_xxx",
+  webhookSettings: { ... },  // deprecated input
+});
+if (warnings) {
+  for (const w of warnings) {
+    console.warn(`[${w.layer}] ${w.message}`, w.aiHint);
+    // e.g. layer=store, aiHint="Switch to client.webhooks.add / update / remove"
+  }
+}
+
+// GraphQL — warnings sit on the envelope alongside data and errors
+const result = await client.graphql.query<StoresQuery>({
+  query: `query { stores { id } }`,
+});
+result.warnings?.forEach(w => console.warn(w.message, w.aiHint));
+```
+
+**LLM/agent consumers**: always check `aiHint` on every warning — it is the canonical migration instruction (npm package, version, method name, endpoint path) the platform team intends for you to follow when the underlying API evolves.
+
 ## Programmatic Store & Product Management
 
 > Most merchants manage stores and products in the [Dashboard](https://pancake.waffo.ai/dashboard). The following APIs are for merchants who need programmatic automation.

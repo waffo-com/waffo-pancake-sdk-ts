@@ -1,8 +1,10 @@
+import { unwrapAction } from "./internal.js";
 import { validateEnum, validatePrices, validateRequired, validateShortId } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
 import type {
   CreateSubscriptionProductParams,
+  Notice,
   PublishSubscriptionProductParams,
   SubscriptionProductDetail,
   UpdateSubscriptionProductParams,
@@ -27,12 +29,14 @@ export class SubscriptionProductsResource {
    *   prices: { USD: { amount: "9.99", taxCategory: "saas" } },
    * });
    */
-  async create(params: CreateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {
+  async create(params: CreateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail; warnings?: Notice[] }> {
     validateShortId("storeId", params.storeId, "STO");
     validateRequired("name", params.name);
     validateEnum("billingPeriod", params.billingPeriod, ["weekly", "monthly", "quarterly", "yearly"]);
     validatePrices("prices", params.prices);
-    return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/create-product", params);
+    return unwrapAction(
+      await this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/create-product", params),
+    );
   }
 
   /**
@@ -56,13 +60,15 @@ export class SubscriptionProductsResource {
    *   prices: { USD: { amount: "99.00", taxCategory: "saas" } },
    * });
    */
-  async update(params: UpdateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {
+  async update(params: UpdateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail; warnings?: Notice[] }> {
     validateShortId("id", params.id, "PROD");
     if (params.name !== undefined) validateRequired("name", params.name);
     if (params.billingPeriod !== undefined)
       validateEnum("billingPeriod", params.billingPeriod, ["weekly", "monthly", "quarterly", "yearly"]);
     if (params.prices) validatePrices("prices", params.prices);
-    return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-product", params);
+    return unwrapAction(
+      await this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-product", params),
+    );
   }
 
   /**
@@ -74,9 +80,11 @@ export class SubscriptionProductsResource {
    * @example
    * const { product } = await client.subscriptionProducts.publish({ id: "PROD_xxx" });
    */
-  async publish(params: PublishSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail }> {
+  async publish(params: PublishSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail; warnings?: Notice[] }> {
     validateShortId("id", params.id, "PROD");
-    return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/publish-product", params);
+    return unwrapAction(
+      await this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/publish-product", params),
+    );
   }
 
   /**
@@ -91,9 +99,11 @@ export class SubscriptionProductsResource {
    *   status: ProductVersionStatus.Active,
    * });
    */
-  async updateStatus(params: UpdateSubscriptionStatusParams): Promise<{ product: SubscriptionProductDetail }> {
+  async updateStatus(params: UpdateSubscriptionStatusParams): Promise<{ product: SubscriptionProductDetail; warnings?: Notice[] }> {
     validateShortId("id", params.id, "PROD");
     validateEnum("status", params.status, ["active", "inactive"]);
-    return this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-status", params);
+    return unwrapAction(
+      await this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-status", params),
+    );
   }
 }

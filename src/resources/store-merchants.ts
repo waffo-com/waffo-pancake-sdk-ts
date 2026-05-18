@@ -1,9 +1,11 @@
+import { unwrapAction } from "./internal.js";
 import { validateEnum, validateRequired, validateShortId } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
 import type {
   AddMerchantParams,
   AddMerchantResult,
+  Notice,
   RemoveMerchantParams,
   RemoveMerchantResult,
   UpdateRoleParams,
@@ -27,11 +29,11 @@ export class StoreMerchantsResource {
    *   role: "admin",
    * });
    */
-  async add(params: AddMerchantParams): Promise<AddMerchantResult> {
+  async add(params: AddMerchantParams): Promise<AddMerchantResult & { warnings?: Notice[] }> {
     validateShortId("storeId", params.storeId, "STO");
     validateRequired("email", params.email);
     validateEnum("role", params.role, ["admin", "member"]);
-    return this.http.post<AddMerchantResult>("/v1/actions/store-merchant/add-merchant", params);
+    return unwrapAction(await this.http.post<AddMerchantResult>("/v1/actions/store-merchant/add-merchant", params));
   }
 
   /**
@@ -46,10 +48,10 @@ export class StoreMerchantsResource {
    *   merchantId: "MER_xxx",
    * });
    */
-  async remove(params: RemoveMerchantParams): Promise<RemoveMerchantResult> {
+  async remove(params: RemoveMerchantParams): Promise<RemoveMerchantResult & { warnings?: Notice[] }> {
     validateShortId("storeId", params.storeId, "STO");
     validateShortId("merchantId", params.merchantId, "MER");
-    return this.http.post<RemoveMerchantResult>("/v1/actions/store-merchant/remove-merchant", params);
+    return unwrapAction(await this.http.post<RemoveMerchantResult>("/v1/actions/store-merchant/remove-merchant", params));
   }
 
   /**
@@ -65,10 +67,10 @@ export class StoreMerchantsResource {
    *   role: "member",
    * });
    */
-  async updateRole(params: UpdateRoleParams): Promise<UpdateRoleResult> {
+  async updateRole(params: UpdateRoleParams): Promise<UpdateRoleResult & { warnings?: Notice[] }> {
     validateShortId("storeId", params.storeId, "STO");
     validateShortId("merchantId", params.merchantId, "MER");
     validateEnum("role", params.role, ["admin", "member"]);
-    return this.http.post<UpdateRoleResult>("/v1/actions/store-merchant/update-role", params);
+    return unwrapAction(await this.http.post<UpdateRoleResult>("/v1/actions/store-merchant/update-role", params));
   }
 }

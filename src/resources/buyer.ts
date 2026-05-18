@@ -1,3 +1,4 @@
+import { unwrapAction } from "./internal.js";
 import { validateAmountString, validateCurrencyCode, validateRequired, validateShortId } from "../validation.js";
 
 import type { BuyerHttpClient } from "../buyer-http-client.js";
@@ -9,6 +10,7 @@ import type {
   CreateRefundTicketParams,
   GraphQLParams,
   GraphQLResponse,
+  Notice,
   ReactivateSubscriptionParams,
   ReactivateSubscriptionResult,
   RefundTicket,
@@ -47,9 +49,9 @@ export class BuyerSession {
    * const { orderId, status } = await buyer.cancelSubscription({ orderId: "ORD_xxx" });
    * // status: "canceled" (was pending) or "canceling" (was active)
    */
-  async cancelSubscription(params: CancelSubscriptionParams): Promise<CancelSubscriptionResult> {
+  async cancelSubscription(params: CancelSubscriptionParams): Promise<CancelSubscriptionResult & { warnings?: Notice[] }> {
     validateShortId("orderId", params.orderId, "ORD");
-    return this.http.post<CancelSubscriptionResult>("/v1/actions/subscription-order/cancel-order", params);
+    return unwrapAction(await this.http.post<CancelSubscriptionResult>("/v1/actions/subscription-order/cancel-order", params));
   }
 
   /**
@@ -61,9 +63,9 @@ export class BuyerSession {
    * @example
    * const { orderId, status } = await buyer.cancelOnetimeOrder({ orderId: "ORD_xxx" });
    */
-  async cancelOnetimeOrder(params: CancelOnetimeOrderParams): Promise<CancelOnetimeOrderResult> {
+  async cancelOnetimeOrder(params: CancelOnetimeOrderParams): Promise<CancelOnetimeOrderResult & { warnings?: Notice[] }> {
     validateShortId("orderId", params.orderId, "ORD");
-    return this.http.post<CancelOnetimeOrderResult>("/v1/actions/onetime-order/cancel-order", params);
+    return unwrapAction(await this.http.post<CancelOnetimeOrderResult>("/v1/actions/onetime-order/cancel-order", params));
   }
 
   /**
@@ -76,9 +78,9 @@ export class BuyerSession {
    * const { orderId, status } = await buyer.reactivateSubscription({ orderId: "ORD_xxx" });
    * // status: "active"
    */
-  async reactivateSubscription(params: ReactivateSubscriptionParams): Promise<ReactivateSubscriptionResult> {
+  async reactivateSubscription(params: ReactivateSubscriptionParams): Promise<ReactivateSubscriptionResult & { warnings?: Notice[] }> {
     validateShortId("orderId", params.orderId, "ORD");
-    return this.http.post<ReactivateSubscriptionResult>("/v1/actions/subscription-order/reactivate-order", params);
+    return unwrapAction(await this.http.post<ReactivateSubscriptionResult>("/v1/actions/subscription-order/reactivate-order", params));
   }
 
   /**
@@ -94,12 +96,12 @@ export class BuyerSession {
    *   requestedAmount: { amount: "29.00", currency: "USD" },
    * });
    */
-  async createRefundTicket(params: CreateRefundTicketParams): Promise<{ ticket: RefundTicket }> {
+  async createRefundTicket(params: CreateRefundTicketParams): Promise<{ ticket: RefundTicket; warnings?: Notice[] }> {
     validateShortId("paymentId", params.paymentId, "PAY");
     validateRequired("reason", params.reason);
     validateAmountString("requestedAmount.amount", params.requestedAmount.amount);
     validateCurrencyCode("requestedAmount.currency", params.requestedAmount.currency);
-    return this.http.post<{ ticket: RefundTicket }>("/v1/actions/refund-ticket/create-ticket", params);
+    return unwrapAction(await this.http.post<{ ticket: RefundTicket }>("/v1/actions/refund-ticket/create-ticket", params));
   }
 
   /**
@@ -116,13 +118,13 @@ export class BuyerSession {
    *   requestedAmount: { amount: "29.00", currency: "USD" },
    * });
    */
-  async resubmitRefundTicket(params: ResubmitRefundTicketParams): Promise<{ ticket: RefundTicket }> {
+  async resubmitRefundTicket(params: ResubmitRefundTicketParams): Promise<{ ticket: RefundTicket; warnings?: Notice[] }> {
     validateShortId("ticketId", params.ticketId, "TKT");
     validateShortId("paymentId", params.paymentId, "PAY");
     validateRequired("reason", params.reason);
     validateAmountString("requestedAmount.amount", params.requestedAmount.amount);
     validateCurrencyCode("requestedAmount.currency", params.requestedAmount.currency);
-    return this.http.post<{ ticket: RefundTicket }>("/v1/actions/refund-ticket/resubmit-ticket", params);
+    return unwrapAction(await this.http.post<{ ticket: RefundTicket }>("/v1/actions/refund-ticket/resubmit-ticket", params));
   }
 }
 
@@ -145,6 +147,7 @@ class BuyerGraphQL {
    */
   async query<T = Record<string, unknown>>(params: GraphQLParams): Promise<GraphQLResponse<T>> {
     validateRequired("query", params.query);
-    return this.http.post<GraphQLResponse<T>>("/v1/graphql", params);
+    const result = await this.http.post<T>("/v1/graphql", params);
+    return { data: result.data, errors: result.errors, warnings: result.warnings };
   }
 }
