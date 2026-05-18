@@ -1,8 +1,9 @@
 import { CheckoutAnonymousResource } from "./checkout-anonymous.js";
 import { CheckoutAuthenticatedResource } from "./checkout-authenticated.js";
+import { unwrapAction } from "./internal.js";
 
 import type { HttpClient } from "../http-client.js";
-import type { CheckoutSessionResult, CreateCheckoutSessionParams } from "../types.js";
+import type { CheckoutSessionResult, CreateCheckoutSessionParams, Notice } from "../types.js";
 
 /**
  * Checkout resource — create checkout sessions for payments.
@@ -58,7 +59,9 @@ export class CheckoutResource {
    * });
    * // Redirect to session.checkoutUrl
    */
-  async createSession(params: CreateCheckoutSessionParams): Promise<CheckoutSessionResult> {
-    return this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, { idempotencyWindow: 60 });
+  async createSession(params: CreateCheckoutSessionParams): Promise<CheckoutSessionResult & { warnings?: Notice[] }> {
+    return unwrapAction(
+      await this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, { idempotencyWindow: 60 }),
+    );
   }
 }

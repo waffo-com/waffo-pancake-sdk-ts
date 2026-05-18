@@ -30,11 +30,12 @@ export type {
   // Config
   WaffoPancakeConfig,
 
-  // Response envelope
+  // Response envelope (handbook: { data, errors?, warnings? } — same shape for REST + GraphQL)
+  Notice,
+  Envelope,
+  PostResult,
+  /** @deprecated Use {@link Notice}. */
   ApiError,
-  ApiErrorResponse,
-  ApiResponse,
-  ApiSuccessResponse,
 
   // Auth
   IssueSessionTokenParams,

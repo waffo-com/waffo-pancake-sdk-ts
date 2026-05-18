@@ -1,7 +1,8 @@
+import { unwrapAction } from "./internal.js";
 import { validateCheckoutCommon } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
-import type { AnonymousCheckoutParams, CheckoutSessionResult } from "../types.js";
+import type { AnonymousCheckoutParams, CheckoutSessionResult, Notice } from "../types.js";
 
 /**
  * Anonymous checkout — no buyer identity provided.
@@ -35,8 +36,10 @@ export class CheckoutAnonymousResource {
    *   billingDetail: { country: "US", isBusiness: false, postcode: "10001" },
    * });
    */
-  async create(params: AnonymousCheckoutParams): Promise<CheckoutSessionResult> {
+  async create(params: AnonymousCheckoutParams): Promise<CheckoutSessionResult & { warnings?: Notice[] }> {
     validateCheckoutCommon(params);
-    return this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, { idempotencyWindow: 60 });
+    return unwrapAction(
+      await this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, { idempotencyWindow: 60 }),
+    );
   }
 }

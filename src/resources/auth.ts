@@ -1,8 +1,9 @@
 import { WaffoPancakeError } from "../errors.js";
+import { unwrapAction } from "./internal.js";
 import { validateRequired, validateShortId } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
-import type { IssueSessionTokenParams, SessionToken } from "../types.js";
+import type { IssueSessionTokenParams, Notice, SessionToken } from "../types.js";
 
 /** Authentication resource — issue session tokens for buyers. */
 export class AuthResource {
@@ -28,7 +29,7 @@ export class AuthResource {
    *   buyerIdentity: "customer@example.com",
    * });
    */
-  async issueSessionToken(params: IssueSessionTokenParams): Promise<SessionToken> {
+  async issueSessionToken(params: IssueSessionTokenParams): Promise<SessionToken & { warnings?: Notice[] }> {
     if (!params.storeId && !params.productId) {
       throw new WaffoPancakeError(400, [{ message: "Missing required field: provide storeId or productId", layer: "sdk" }]);
     }
@@ -39,6 +40,6 @@ export class AuthResource {
       validateShortId("productId", params.productId, "PROD");
     }
     validateRequired("buyerIdentity", params.buyerIdentity);
-    return this.http.post<SessionToken>("/v1/actions/auth/issue-session-token", params);
+    return unwrapAction(await this.http.post<SessionToken>("/v1/actions/auth/issue-session-token", params));
   }
 }

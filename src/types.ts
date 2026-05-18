@@ -38,6 +38,12 @@ export interface PostOptions {
    * produce a new key after the window elapses (e.g. 60 = per-minute dedup).
    */
   idempotencyWindow?: number;
+  /**
+   * Skip the X-Idempotency-Key header entirely. Set for read-only queries
+   * (e.g. GraphQL) so the gateway's 24h idempotency cache does not serve
+   * stale data on identical repeat queries.
+   */
+  noIdempotency?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -45,35 +51,51 @@ export interface PostOptions {
 // ---------------------------------------------------------------------------
 
 /**
- * Single error object within the `errors` array.
+ * Single Notice entry within `errors` or `warnings` arrays.
+ *
+ * Both REST and GraphQL envelopes use the same Notice shape. `aiHint` is the
+ * structured migration instruction for LLM consumers (see handbook
+ * `command-layer.md` aiHint four-line template).
  *
  * @example
  * { message: "Store slug already exists", layer: "store" }
+ * @example
+ * { message: "webhookSettings field ignored", layer: "store",
+ *   aiHint: "Switch to client.webhooks.add / update / remove" }
  */
-export interface ApiError {
-  /** Error message */
+export interface Notice {
+  /** Human-readable message */
   message: string;
-  /** Layer where the error originated */
+  /** Layer that produced this notice */
   layer: `${ErrorLayer}`;
+  /** Structured migration / remediation instruction for LLM consumers */
+  aiHint?: string;
 }
 
-/** Successful API response envelope. */
-export interface ApiSuccessResponse<T> {
-  data: T;
-}
+/** @deprecated Use {@link Notice}. Kept for backwards compatibility with existing imports. */
+export type ApiError = Notice;
 
 /**
- * Error API response envelope.
+ * API response envelope. Both REST writes and GraphQL queries return this shape:
+ * - Success: `{ data: T }` (optionally with `warnings`)
+ * - Failure: `{ data: null, errors: Notice[] }`
+ * - Partial success (GraphQL only): `{ data: T, errors: Notice[] }`
  *
  * `errors` are ordered by call stack: `[0]` is the deepest layer, `[n]` is the outermost.
+ *
+ * See handbook `coding-standards/code-style-guide/command-layer.md` for the wire contract.
  */
-export interface ApiErrorResponse {
-  data: null;
-  errors: ApiError[];
+export interface Envelope<T> {
+  data: T | null;
+  errors?: Notice[];
+  warnings?: Notice[];
 }
 
-/** Union type of success and error API responses. */
-export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse;
+/** Transport-layer result: HTTP status plus the parsed envelope. */
+export interface PostResult<T> extends Envelope<T> {
+  /** HTTP status code from the response */
+  status: number;
+}
 
 // ---------------------------------------------------------------------------
 // Enums (runtime-accessible values)
@@ -1011,7 +1033,11 @@ export interface GraphQLParams {
   variables?: Record<string, unknown>;
 }
 
-/** GraphQL response envelope. */
+/**
+ * GraphQL response envelope. Same shape as {@link Envelope}, but `errors` entries
+ * may additionally carry `locations` and `path` (graphql-js fields). The `layer`
+ * field is optional on GraphQL because resolver errors don't carry one.
+ */
 export interface GraphQLResponse<T = Record<string, unknown>> {
   data: T | null;
   errors?: Array<{
@@ -1019,12 +1045,10 @@ export interface GraphQLResponse<T = Record<string, unknown>> {
     locations?: Array<{ line: number; column: number }>;
     path?: string[];
     aiHint?: string;
+    /** Service stage that produced the error ("graphql", "gateway"). Resolver errors omit it. */
+    layer?: string;
   }>;
-  warnings?: Array<{
-    message: string;
-    layer: string;
-    aiHint?: string;
-  }>;
+  warnings?: Notice[];
 }
 
 // ---------------------------------------------------------------------------

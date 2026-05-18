@@ -167,20 +167,49 @@ describe("buyer.resubmitRefundTicket", () => {
 });
 
 describe("buyer.graphql.query", () => {
-  it("should query with Bearer token", async () => {
+  it("returns the standard GraphQL envelope verbatim with Bearer auth", async () => {
     const mockFetch = createMockFetch(() => ({
-      data: { data: { orders: [{ id: "ORD_0000000000000000000000", status: "completed" }] }, errors: null },
+      data: { orders: [{ id: "ORD_0000000000000000000000", status: "completed" }] },
     }));
     const buyer = createClient(mockFetch).buyer("gql-token");
 
-    const result = await buyer.graphql.query({
+    const result = await buyer.graphql.query<{ orders: Array<{ id: string; status: string }> }>({
       query: `query { orders { id status } }`,
     });
 
     expect(result.data?.orders).toHaveLength(1);
+    expect(result.data?.orders[0]?.id).toBe("ORD_0000000000000000000000");
+    expect(result.errors).toBeUndefined();
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.test.com/v1/graphql");
     expect(options.headers.Authorization).toBe("Bearer gql-token");
+  });
+
+  it("preserves partial-success envelope (data + errors)", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: { orders: null },
+      errors: [{ message: "resolver crashed", path: ["orders"] }],
+    }));
+    const buyer = createClient(mockFetch).buyer("gql-token");
+
+    const result = await buyer.graphql.query({ query: `query { orders { id } }` });
+
+    expect(result.data?.orders).toBeNull();
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors?.[0]?.message).toBe("resolver crashed");
+  });
+
+  it("returns the envelope on HTTP 4xx instead of throwing", async () => {
+    const mockFetch = vi.fn(async () => ({
+      status: 401,
+      json: () => Promise.resolve({ data: null, errors: [{ message: "Session expired", layer: "gateway" }] }),
+    }));
+    const buyer = createClient(mockFetch as unknown as ReturnType<typeof vi.fn>).buyer("expired");
+
+    const result = await buyer.graphql.query({ query: `query { orders { id } }` });
+
+    expect(result.data).toBeNull();
+    expect(result.errors?.[0]?.message).toBe("Session expired");
   });
 });
 

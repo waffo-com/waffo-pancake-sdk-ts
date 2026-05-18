@@ -4,6 +4,39 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-05-17
+
+### Fixed
+
+- **GraphQL queries actually return data.** Prior versions assumed a double-wrapped envelope (`{data:{data,errors,warnings}}`) and stripped one layer too many, so `result.data` was always `undefined` regardless of what the server returned. The wire is in fact the standard single-layer GraphQL envelope (`{data, errors?, warnings?}`); the SDK now returns it verbatim.
+- **GraphQL queries no longer carry `X-Idempotency-Key`.** Queries are read-only; the gateway was caching them for 24h and serving stale snapshots on subsequent identical requests. Side-effect-free queries now hit the live DB on every call.
+- **REST `warnings` are no longer dropped.** Every REST action endpoint can return `warnings: Notice[]` (handbook `command-layer.md`); prior `HttpClient.post()` returned only the unwrapped `data` field, throwing away migration `aiHint` notices like `update-store`'s `webhookSettings field ignored → Switch to client.webhooks.add/update/remove`.
+
+### Changed
+
+- **Resource method return types widened** from `Promise<X>` to `Promise<X & { warnings?: Notice[] }>` for every REST action method (`stores`, `storeMerchants`, `onetimeProducts`, `subscriptionProducts`, `subscriptionProductGroups`, `orders`, `checkout.*`, `webhooks.add/update/remove`, `auth.issueSessionToken`, `buyer.cancelSubscription / cancelOnetimeOrder / reactivateSubscription / createRefundTicket / resubmitRefundTicket`). Existing destructuring (`const { store } = await client.stores.create(...)`) keeps working; add `warnings` to the destructure to read advisories.
+- **Transport refactored**: `HttpClient.post<T>()` now returns the parsed envelope plus HTTP status (`PostResult<T> = { status, data, errors?, warnings? }`) without throwing on `errors[]`. Throw / unwrap / warnings handling moved to the resource layer via the internal `unwrapAction` helper. GraphQL resources return the envelope verbatim.
+- **`GraphQLResource.query` and `BuyerGraphQL.query` pass `noIdempotency: true`** to the transport (suppresses `X-Idempotency-Key`).
+
+### Added
+
+- **`Notice` type** (`{ message, layer, aiHint? }`) — unified shape used by both REST and GraphQL `errors[]` / `warnings[]`. Exported from `index.ts`.
+- **`Envelope<T>` / `PostResult<T>` types** — transport-level envelope (and `PostResult` adds HTTP `status`). Exported for advanced callers.
+- **`GraphQLResponse.errors[].layer?`** — optional field carrying which service stage produced the error (`"graphql"`, `"gateway"`).
+- **`PostOptions.noIdempotency`** — boolean to suppress the `X-Idempotency-Key` header on a per-call basis.
+- **README "Warnings (Migration Notices)" section** with REST + GraphQL examples and explicit guidance for LLM/agent consumers to act on `aiHint`.
+
+### Deprecated
+
+- **`ApiError`, `ApiResponse`, `ApiSuccessResponse`, `ApiErrorResponse`** — kept as type aliases for backwards compatibility; prefer `Notice` and the new `Envelope<T>` / `PostResult<T>`.
+
+### Migration
+
+- **Most callers need no changes.** Destructuring (`const { store } = ...`) still works; the new `warnings` field is optional and untouched code ignores it.
+- **GraphQL callers**: if you have hacks that read `(result as any).stores` directly (bypassing the broken `result.data`), revert to `result.data.stores` — the bug that motivated the hack is gone.
+- **LLM/agent consumers**: read `result.warnings?.[].aiHint` on every action — that's where the platform team puts canonical migration instructions when an API evolves (e.g. `update-store`'s deprecated `webhookSettings` field).
+- **Direct `HttpClient.post` consumers** (rare; `HttpClient` is internal but reachable): return type changed from `T` to `PostResult<T>`; access `.data` to get the unwrapped payload, inspect `.errors` / `.warnings` directly. The transport no longer throws on `errors[]`.
+
 ## [0.7.0] - 2026-05-11
 
 ### Changed
