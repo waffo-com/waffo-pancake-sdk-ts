@@ -107,6 +107,7 @@ const result = await client.checkout.authenticated.create({
   buyerEmail: "customer@example.com",
   withTrial: true, // force enable trial (false = skip, omit = default rules)
   billingDetail: { country: "US", isBusiness: false },
+  orderMerchantExternalId: "ORDER-2026-00891", // optional, see Business-Side Identifiers below
 });
 
 // result.checkoutUrl = "https://pancake.waffo.ai/store/{slug}/checkout/{sessionId}#token={JWT}"
@@ -125,12 +126,13 @@ const result = await client.checkout.anonymous.create({
   currency: "USD",
 });
 
-// Also supports priceSnapshot and withTrial
+// Also supports priceSnapshot, withTrial, and orderMerchantExternalId
 const result = await client.checkout.anonymous.create({
   productId: "PROD_xxx",
   currency: "USD",
   priceSnapshot: { amount: "4.99", taxCategory: "saas" },
   withTrial: false, // skip trial for this session
+  orderMerchantExternalId: "ORDER-2026-00891", // optional, API Key auth only
 });
 
 window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
@@ -186,6 +188,8 @@ app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
         break;
       case WebhookEventType.RefundSucceeded:
         console.log(`Refund succeeded: ${event.data.refundReason}`);
+        // refund.* events carry both business identifiers (see Business-Side Identifiers section)
+        await ledger.closeRefundTicket(event.data.refundTicketMerchantExternalId, event.data.orderMerchantExternalId);
         break;
     }
   } catch {
@@ -253,6 +257,7 @@ const { ticket } = await buyer.createRefundTicket({
   paymentId: "PAY_xxx",
   reason: "Product not as described",
   requestedAmount: { amount: "29.00", currency: "USD" },
+  refundTicketMerchantExternalId: "REF-2026-00012", // optional, see Business-Side Identifiers below
 });
 
 // Resubmit a rejected refund ticket
@@ -272,6 +277,17 @@ const result = await buyer.graphql.query({
 The token is scoped to the specified store and buyer identity — buyers can only access their own data. Token TTL is 5 minutes and auto-refreshes on each API call.
 
 > **Note**: This uses the same `buyerIdentity` as `checkout.authenticated.create()`. Orders placed via authenticated checkout are automatically tied to this identity, so the buyer can manage them later with a token issued here.
+
+## Business-Side Identifiers
+
+Attach your own internal references to a checkout or a refund ticket so cross-system reconciliation does not require Waffo IDs. Two flat keys, both optional (max 128 chars):
+
+| Field                            | Attach at                                   | Inherited by                                               |
+| -------------------------------- | ------------------------------------------- | ---------------------------------------------------------- |
+| `orderMerchantExternalId`        | `checkout.{authenticated,anonymous}.create` | `Order`, `Payment` (incl. subscription renewals), `Refund` |
+| `refundTicketMerchantExternalId` | `buyer.createRefundTicket`                  | `RefundTicket`, `Refund`                                   |
+
+The same field name appears at every layer it surfaces: request body, response entity, webhook payload (`data.orderMerchantExternalId` / `data.refundTicketMerchantExternalId`), and every GraphQL type that carries the value. A `refund.*` webhook event carries **both** keys (order key inherited from the originating order). Query by either key via GraphQL filters — see [GraphQL Guide](docs/graphql-guide.md).
 
 ## GraphQL — Typed Queries
 
@@ -300,6 +316,16 @@ const detail = await client.graphql.query({
     }
   }`,
   variables: { id: "STO_xxx" },
+});
+
+// Look up by your business-side identifier (see Business-Side Identifiers above)
+const byRef = await client.graphql.query({
+  query: `query ($ref: String!) {
+    payments(filter: { orderMerchantExternalId: { eq: $ref } }) {
+      id orderId status orderMerchantExternalId
+    }
+  }`,
+  variables: { ref: "ORDER-2026-00891" },
 });
 ```
 

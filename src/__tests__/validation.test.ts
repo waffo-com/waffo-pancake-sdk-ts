@@ -11,6 +11,7 @@ import {
   validateCountryCode,
   validateCurrencyCode,
   validateEnum,
+  validateMaxLength,
   validatePositiveInteger,
   validatePrices,
   validateRequired,
@@ -180,6 +181,20 @@ describe("validatePositiveInteger", () => {
 
   it("should throw for float", () => {
     expect(() => validatePositiveInteger("expiresInSeconds", 1.5)).toThrow(WaffoPancakeError);
+  });
+});
+
+describe("validateMaxLength", () => {
+  it("should pass for undefined (optional field omitted)", () => {
+    expect(() => validateMaxLength("orderMerchantExternalId", undefined, 128)).not.toThrow();
+  });
+
+  it("should pass at the boundary", () => {
+    expect(() => validateMaxLength("orderMerchantExternalId", "x".repeat(128), 128)).not.toThrow();
+  });
+
+  it("should throw when value exceeds max", () => {
+    expect(() => validateMaxLength("orderMerchantExternalId", "x".repeat(129), 128)).toThrow(WaffoPancakeError);
   });
 });
 

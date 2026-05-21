@@ -251,7 +251,33 @@ const tickets = await client.graphql.query({
     refundTicketsCount(filter: { status: { eq: "pending" } })
   }`,
 });
+
+// Look up by merchant business numbers — flat dual-key naming, same field name
+// appears on Order / Payment / Refund types and in webhook payload.
+const byOrderRef = await client.graphql.query({
+  query: `query ($ref: String!) {
+    payments(filter: { orderMerchantExternalId: { eq: $ref } }) {
+      id orderId status orderMerchantExternalId
+    }
+  }`,
+  variables: { ref: "ORDER-2026-00891" },
+});
+
+const byRefundTicketRef = await client.graphql.query({
+  query: `query ($ref: String!) {
+    refundTickets(filter: { refundTicketMerchantExternalId: { eq: $ref } }) {
+      id status refundTicketMerchantExternalId
+    }
+    refunds(filter: { refundTicketMerchantExternalId: { eq: $ref } }) {
+      id status orderMerchantExternalId refundTicketMerchantExternalId
+      pspAmountDetails { amount currency }
+    }
+  }`,
+  variables: { ref: "REF-2026-00012" },
+});
 ```
+
+> The `Refund` type exposes **both** keys as flat fields (`orderMerchantExternalId` from the originating order, `refundTicketMerchantExternalId` from the originating refund ticket). `Order` / `Payment` / `RefundTicket` carry only the key relevant to their entity. The field name on the wire matches the webhook payload (`data.orderMerchantExternalId` / `data.refundTicketMerchantExternalId`).
 
 ### 6. Merchant Info and Store Associations
 

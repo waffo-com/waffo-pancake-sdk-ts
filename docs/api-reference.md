@@ -583,12 +583,13 @@ const buyer = client.buyer(token);
 
 ### `buyer.createRefundTicket(params)`
 
-| Field             | Type                      | Required | Description                            |
-| ----------------- | ------------------------- | -------- | -------------------------------------- |
-| `paymentId`       | `string`                  | Yes      | Payment ID to refund                   |
-| `reason`          | `string`                  | Yes      | Reason for the refund request          |
-| `requestedAmount` | `RequestedAmount`         | Yes      | Refund amount (`{ amount, currency }`) |
-| `metadata`        | `Record<string, unknown>` | No       | Custom metadata                        |
+| Field                            | Type                      | Required | Description                                                                                                                                                                                       |
+| -------------------------------- | ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `paymentId`                      | `string`                  | Yes      | Payment ID to refund                                                                                                                                                                              |
+| `reason`                         | `string`                  | Yes      | Reason for the refund request                                                                                                                                                                     |
+| `requestedAmount`                | `RequestedAmount`         | Yes      | Refund amount (`{ amount, currency }`)                                                                                                                                                            |
+| `metadata`                       | `Record<string, unknown>` | No       | Custom metadata                                                                                                                                                                                   |
+| `refundTicketMerchantExternalId` | `string`                  | No       | Your business-side refund-ticket identifier (max 128 chars). Surfaces under the same name in webhook payload (`data.refundTicketMerchantExternalId`) and GraphQL `RefundTicket` / `Refund` types. |
 
 **`RequestedAmount`**:
 
@@ -665,19 +666,20 @@ const subResult = await client.checkout.authenticated.create({
 
 **Parameters `AuthenticatedCheckoutParams`**:
 
-| Field              | Type                     | Required | Description                                                           |
-| ------------------ | ------------------------ | -------- | --------------------------------------------------------------------- |
-| `productId`        | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                |
-| `currency`         | `string`                 | Yes      | Currency code (ISO 4217)                                              |
-| `buyerIdentity`    | `string`                 | Yes      | Buyer identity (email or merchant-defined identifier)                 |
-| `buyerEmail`       | `string`                 | No       | Pre-fill checkout page email field (independent from `buyerIdentity`) |
-| `billingDetail`    | `BillingDetail`          | No       | Pre-filled billing details (country, tax ID, etc.)                    |
-| `priceSnapshot`    | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                    |
-| `withTrial`        | `boolean`                | No       | Enable trial period (subscription only)                               |
-| `successUrl`       | `string`                 | No       | Redirect URL after successful payment                                 |
-| `expiresInSeconds` | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                       |
-| `darkMode`         | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)       |
-| `metadata`         | `Record<string, string>` | No       | Custom metadata                                                       |
+| Field                     | Type                     | Required | Description                                                                                                                                                                                |
+| ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                     |
+| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                   |
+| `buyerIdentity`           | `string`                 | Yes      | Buyer identity (email or merchant-defined identifier)                                                                                                                                      |
+| `buyerEmail`              | `string`                 | No       | Pre-fill checkout page email field (independent from `buyerIdentity`)                                                                                                                      |
+| `billingDetail`           | `BillingDetail`          | No       | Pre-filled billing details (country, tax ID, etc.)                                                                                                                                         |
+| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                         |
+| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                    |
+| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                      |
+| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                                                                                                                                            |
+| `darkMode`                | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)                                                                                                                            |
+| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                            |
+| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Surfaces under the same name on `Order` / `Payment` / `Refund` GraphQL types and in webhook payload (`data.orderMerchantExternalId`). |
 
 **Returns `AuthenticatedCheckoutResult`**:
 
@@ -712,16 +714,17 @@ const snapshotResult = await client.checkout.anonymous.create({
 
 **Parameters `AnonymousCheckoutParams`**:
 
-| Field              | Type                     | Required | Description                                                     |
-| ------------------ | ------------------------ | -------- | --------------------------------------------------------------- |
-| `productId`        | `string`                 | Yes      | Product ID (product type is auto-detected server-side)          |
-| `currency`         | `string`                 | Yes      | Currency code (ISO 4217)                                        |
-| `priceSnapshot`    | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)              |
-| `withTrial`        | `boolean`                | No       | Enable trial period (subscription only)                         |
-| `successUrl`       | `string`                 | No       | Redirect URL after successful payment                           |
-| `expiresInSeconds` | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                 |
-| `darkMode`         | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default) |
-| `metadata`         | `Record<string, string>` | No       | Custom metadata                                                 |
+| Field                     | Type                     | Required | Description                                                                                                                                                                                                   |
+| ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                                        |
+| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                                      |
+| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                                            |
+| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                                       |
+| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                                         |
+| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                                                                                                                                                               |
+| `darkMode`                | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)                                                                                                                                               |
+| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                                               |
+| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Honored on the API Key path; visitor / store-slug flows silently drop it. Same field name in webhook payload and GraphQL `Order` / `Payment` / `Refund`. |
 
 **Returns `CheckoutSessionResult`**:
 
@@ -745,18 +748,19 @@ const session = await client.checkout.createSession({
 
 **Parameters `CreateCheckoutSessionParams`**:
 
-| Field              | Type                     | Required | Description                                            |
-| ------------------ | ------------------------ | -------- | ------------------------------------------------------ |
-| `productId`        | `string`                 | Yes      | Product ID (product type is auto-detected server-side) |
-| `currency`         | `string`                 | Yes      | Currency code (ISO 4217)                               |
-| `priceSnapshot`    | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)     |
-| `withTrial`        | `boolean`                | No       | Enable trial period (subscription only)                |
-| `buyerEmail`       | `string`                 | No       | Pre-filled buyer email                                 |
-| `billingDetail`    | `BillingDetail`          | No       | Pre-filled billing details (country, tax ID, etc.)     |
-| `successUrl`       | `string`                 | No       | Redirect URL after successful payment                  |
-| `expiresInSeconds` | `number`                 | No       | Session expiry in seconds (default: 45 minutes)        |
-| `darkMode`         | `boolean`                | No       | Dark mode override                                     |
-| `metadata`         | `Record<string, string>` | No       | Custom metadata                                        |
+| Field                     | Type                     | Required | Description                                                                                                                                                                               |
+| ------------------------- | ------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                    |
+| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                  |
+| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                        |
+| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                   |
+| `buyerEmail`              | `string`                 | No       | Pre-filled buyer email                                                                                                                                                                    |
+| `billingDetail`           | `BillingDetail`          | No       | Pre-filled billing details (country, tax ID, etc.)                                                                                                                                        |
+| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                     |
+| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                                                                                                                                           |
+| `darkMode`                | `boolean`                | No       | Dark mode override                                                                                                                                                                        |
+| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                           |
+| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Honored on the API Key (merchant) path; visitor / store-slug flows silently drop it. Same field name in webhook payload and GraphQL. |
 
 **`BillingDetail` fields**:
 

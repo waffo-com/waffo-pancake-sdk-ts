@@ -88,6 +88,15 @@ export function validateEnum(field: string, value: string, allowed: string[]): v
 }
 
 /**
+ * Validate that an optional string does not exceed `max` characters.
+ */
+export function validateMaxLength(field: string, value: string | undefined, max: number): void {
+  if (value !== undefined && value.length > max) {
+    fail(`${field} must be at most ${max} characters, got ${value.length}`);
+  }
+}
+
+/**
  * Validate that a value is a positive integer.
  */
 export function validatePositiveInteger(field: string, value: number): void {
@@ -141,6 +150,7 @@ export function validateCheckoutCommon(params: {
   priceSnapshot?: { amount: string; taxCategory: string };
   billingDetail?: { country: string; isBusiness: boolean };
   expiresInSeconds?: number;
+  orderMerchantExternalId?: string;
 }): void {
   validateShortId("productId", params.productId, "PROD");
   validateCurrencyCode("currency", params.currency);
@@ -154,4 +164,5 @@ export function validateCheckoutCommon(params: {
   if (params.expiresInSeconds !== undefined) {
     validatePositiveInteger("expiresInSeconds", params.expiresInSeconds);
   }
+  validateMaxLength("orderMerchantExternalId", params.orderMerchantExternalId, 128);
 }

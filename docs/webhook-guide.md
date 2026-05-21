@@ -371,15 +371,17 @@ All events include the **Order**, **Amount**, and **Product** sections. Addition
 
 **Order fields** (always present):
 
-| Field                           | Type     | Required | Description                                                       |
-| ------------------------------- | -------- | -------- | ----------------------------------------------------------------- |
-| `orderId`                       | `string` | Yes      | Associated order ID                                               |
-| `orderStatus`                   | `string` | No       | Order status (e.g., `"completed"`, `"active"`, `"canceling"`)     |
-| `buyerEmail`                    | `string` | Yes      | Buyer email address                                               |
-| `merchantProvidedBuyerIdentity` | `string` | No       | Merchant-provided buyer identity from checkout session            |
-| `currency`                      | `string` | Yes      | Currency code (ISO 4217)                                          |
-| `billingDetail`                 | `object` | No       | Billing/shipping address (structured object)                      |
-| `orderMetadata`                 | `object` | No       | Order-level metadata from checkout session (flat key-value pairs) |
+| Field                            | Type     | Required | Description                                                                                                                                                                            |
+| -------------------------------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orderId`                        | `string` | Yes      | Associated order ID                                                                                                                                                                    |
+| `orderStatus`                    | `string` | No       | Order status (e.g., `"completed"`, `"active"`, `"canceling"`)                                                                                                                          |
+| `buyerEmail`                     | `string` | Yes      | Buyer email address                                                                                                                                                                    |
+| `merchantProvidedBuyerIdentity`  | `string` | No       | Merchant-provided buyer identity from checkout session                                                                                                                                 |
+| `orderMerchantExternalId`        | `string` | No       | Order business-side identifier set at checkout creation (max 128 chars). Present on order / payment / subscription events and on refund events (inherited from the originating order). |
+| `refundTicketMerchantExternalId` | `string` | No       | Refund-ticket business-side identifier set at refund-ticket creation. **Only present on `refund.*` events**; coexists with `orderMerchantExternalId` on the same refund payload.       |
+| `currency`                       | `string` | Yes      | Currency code (ISO 4217)                                                                                                                                                               |
+| `billingDetail`                  | `object` | No       | Billing/shipping address (structured object)                                                                                                                                           |
+| `orderMetadata`                  | `object` | No       | Order-level metadata from checkout session (flat key-value pairs)                                                                                                                      |
 
 **Amount fields** (always present):
 
