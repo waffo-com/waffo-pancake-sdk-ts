@@ -829,6 +829,12 @@ export interface CreateCheckoutSessionParams {
   darkMode?: boolean;
   /** Custom metadata */
   metadata?: Record<string, string>;
+  /**
+   * Order-side business identifier (max 128 chars). Set at checkout creation and inherited
+   * by orders, payments, and refunds for cross-system reconciliation. Mirrors webhook payload
+   * field `data.orderMerchantExternalId`.
+   */
+  orderMerchantExternalId?: string;
 }
 
 /** Result of creating a checkout session. */
@@ -902,6 +908,12 @@ export interface CreateRefundTicketParams {
   requestedAmount: RequestedAmount;
   /** Custom metadata */
   metadata?: Record<string, unknown>;
+  /**
+   * Refund-ticket business-side identifier (max 128 chars). Set at refund-ticket creation
+   * and inherited to the executed refund record on PSP success. Mirrors webhook payload
+   * field `data.refundTicketMerchantExternalId`.
+   */
+  refundTicketMerchantExternalId?: string;
 }
 
 /** Parameters for resubmitting a rejected refund ticket (buyer-side). */
@@ -944,6 +956,12 @@ export interface RefundTicket {
   executedAt: string | null;
   /** Custom metadata */
   metadata: Record<string, unknown>;
+  /**
+   * Refund-ticket business-side identifier (set at create, immutable across resubmits).
+   * Mirrors webhook payload field `data.refundTicketMerchantExternalId` and GraphQL
+   * `RefundTicket.refundTicketMerchantExternalId`.
+   */
+  refundTicketMerchantExternalId: string | null;
   /** Current version number */
   versionNumber: number | null;
   /** Current (latest) version data */
@@ -1094,6 +1112,10 @@ export interface WebhookEventData {
   buyerEmail: string;
   /** Merchant-provided buyer identity from checkout session */
   merchantProvidedBuyerIdentity?: string;
+  /** Order business-side identifier (set at checkout creation, max 128 chars). Present on order/payment events and on refund events (inherited from the related order). */
+  orderMerchantExternalId?: string;
+  /** Refund-ticket business-side identifier (set at refund-ticket creation, max 128 chars). Only present on refund.* events; coexists with `orderMerchantExternalId` on the same refund payload. */
+  refundTicketMerchantExternalId?: string;
   currency: string;
   /** Billing/shipping address (structured object) */
   billingDetail?: Record<string, unknown>;

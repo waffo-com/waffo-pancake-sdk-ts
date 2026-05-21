@@ -109,6 +109,19 @@ const result = await client.checkout.authenticated.create({
   billingDetail: { country: "US", isBusiness: false },
 });
 
+// With business-side order reference for cross-system reconciliation.
+// `orderMerchantExternalId` is the flat dual-key counterpart of
+// `refundTicketMerchantExternalId` (refund-ticket endpoint); same field name
+// appears in webhook payload (`data.orderMerchantExternalId`) and GraphQL
+// (`Order.orderMerchantExternalId` / `Payment.orderMerchantExternalId` /
+// `Refund.orderMerchantExternalId`).
+const result = await client.checkout.authenticated.create({
+  productId: "PROD_xxx",
+  currency: "USD",
+  buyerIdentity: "userIdInYourSystem",
+  orderMerchantExternalId: "ORDER-2026-00891", // your internal order number (max 128 chars)
+});
+
 // result.checkoutUrl = "https://pancake.waffo.ai/store/{slug}/checkout/{sessionId}#token={JWT}"
 window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
 ```
@@ -131,6 +144,15 @@ const result = await client.checkout.anonymous.create({
   currency: "USD",
   priceSnapshot: { amount: "4.99", taxCategory: "saas" },
   withTrial: false, // skip trial for this session
+});
+
+// Attach your business-side order reference when calling via API Key (merchant auth).
+// Note: visitor / store-slug flows (no merchant context) silently drop this field —
+// it's accepted on the wire but never persisted.
+const result = await client.checkout.anonymous.create({
+  productId: "PROD_xxx",
+  currency: "USD",
+  orderMerchantExternalId: "ORDER-2026-00891",
 });
 
 window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
@@ -186,6 +208,14 @@ app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
         break;
       case WebhookEventType.RefundSucceeded:
         console.log(`Refund succeeded: ${event.data.refundReason}`);
+        // Reconcile against merchant systems using flat dual-key business identifiers.
+        // refund.* events carry BOTH keys; the order key is inherited from the originating order.
+        if (event.data.orderMerchantExternalId) {
+          await ledger.markOrderRefunded(event.data.orderMerchantExternalId);
+        }
+        if (event.data.refundTicketMerchantExternalId) {
+          await ledger.closeRefundTicket(event.data.refundTicketMerchantExternalId);
+        }
         break;
     }
   } catch {
@@ -248,12 +278,18 @@ await buyer.reactivateSubscription({ orderId: "ORD_xxx" });
 // Cancel a one-time order (while payment is pending)
 await buyer.cancelOnetimeOrder({ orderId: "ORD_yyy" });
 
-// Submit a refund request
+// Submit a refund request.
+// Optional `refundTicketMerchantExternalId` is your internal refund slip number;
+// it propagates to webhook payload (`data.refundTicketMerchantExternalId`) and
+// GraphQL (`RefundTicket.refundTicketMerchantExternalId` /
+// `Refund.refundTicketMerchantExternalId`) under the same name.
 const { ticket } = await buyer.createRefundTicket({
   paymentId: "PAY_xxx",
   reason: "Product not as described",
   requestedAmount: { amount: "29.00", currency: "USD" },
+  refundTicketMerchantExternalId: "REF-2026-00012",
 });
+// ticket.refundTicketMerchantExternalId === "REF-2026-00012" (echoed back; null if you didn't pass it)
 
 // Resubmit a rejected refund ticket
 await buyer.resubmitRefundTicket({
@@ -300,6 +336,28 @@ const detail = await client.graphql.query({
     }
   }`,
   variables: { id: "STO_xxx" },
+});
+
+// Look up payments by your business-side order number.
+// Same field name appears on Order / Payment / Refund types and in webhook payload.
+const byRef = await client.graphql.query({
+  query: `query ($ref: String!) {
+    payments(filter: { orderMerchantExternalId: { eq: $ref } }) {
+      id orderId status orderMerchantExternalId
+    }
+  }`,
+  variables: { ref: "ORDER-2026-00891" },
+});
+
+// Look up refunds carrying both business numbers (flat dual-key on Refund).
+const refunds = await client.graphql.query({
+  query: `query ($ref: String!) {
+    refunds(filter: { refundTicketMerchantExternalId: { eq: $ref } }) {
+      id status orderMerchantExternalId refundTicketMerchantExternalId
+      pspAmountDetails { amount currency }
+    }
+  }`,
+  variables: { ref: "REF-2026-00012" },
 });
 ```
 

@@ -4,6 +4,36 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-05-21
+
+Flat dual-key external-id naming across write inputs, response entities, webhook payload, and GraphQL types. The same field name now appears at every layer (REST request body / REST response / webhook payload / GraphQL).
+
+### Changed (BREAKING)
+
+- `CreateCheckoutSessionParams.merchantExternalId` → **`orderMerchantExternalId`**
+- `CreateRefundTicketParams.merchantExternalId` → **`refundTicketMerchantExternalId`**
+- `RefundTicket.merchantExternalId` → **`refundTicketMerchantExternalId`**
+
+On the wire the old `merchantExternalId` key is no longer recognized: REST silently ignores it (Zod `.passthrough()`, value not persisted); GraphQL `payments(filter: { merchantExternalId })` returns the schema error `Field "merchantExternalId" is not defined by type "PaymentFilter". Did you mean "orderMerchantExternalId"?`.
+
+### Added
+
+- `WebhookEventData.orderMerchantExternalId` — order business identifier; present on order/payment events and on refund events (inherited from the related order).
+- `WebhookEventData.refundTicketMerchantExternalId` — refund-ticket business identifier; only present on `refund.*` events; coexists with `orderMerchantExternalId` on the same refund payload.
+
+### Migration
+
+```diff
+- await client.checkout.authenticated.create({ productId, currency, merchantExternalId: "ORDER-..." });
++ await client.checkout.authenticated.create({ productId, currency, orderMerchantExternalId: "ORDER-..." });
+
+- const { ticket } = await buyer.createRefundTicket({ paymentId, reason, requestedAmount, merchantExternalId: "REF-..." });
++ const { ticket } = await buyer.createRefundTicket({ paymentId, reason, requestedAmount, refundTicketMerchantExternalId: "REF-..." });
+
+- ticket.merchantExternalId
++ ticket.refundTicketMerchantExternalId
+```
+
 ## [0.8.0] - 2026-05-17
 
 ### Fixed
