@@ -4,6 +4,22 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-05-21
+
+Adds flat dual-key external-id fields across write inputs, response entities, and webhook payload. The same field name now appears at every layer (REST request body / REST response / webhook payload / GraphQL).
+
+### Added
+
+- `CreateCheckoutSessionParams.orderMerchantExternalId` — order business identifier (optional, max 128 chars). Inherited by orders, payments, and refunds; surfaces in webhook payload (`data.orderMerchantExternalId`) and GraphQL (`Order.orderMerchantExternalId` / `Payment.orderMerchantExternalId` / `Refund.orderMerchantExternalId`).
+- `CreateRefundTicketParams.refundTicketMerchantExternalId` — refund-ticket business identifier (optional, max 128 chars). Inherited by the executed refund record on PSP success; surfaces in webhook payload (`data.refundTicketMerchantExternalId`) and GraphQL (`RefundTicket.refundTicketMerchantExternalId` / `Refund.refundTicketMerchantExternalId`).
+- `RefundTicket.refundTicketMerchantExternalId` — response field (immutable across resubmits, max 128 chars).
+- `WebhookEventData.orderMerchantExternalId` — present on order/payment events and on refund events (inherited from the related order).
+- `WebhookEventData.refundTicketMerchantExternalId` — only present on `refund.*` events; coexists with `orderMerchantExternalId` on the same refund payload.
+
+### Notes
+
+Non-breaking for SDK users — all five new fields are additive. The dual flat key naming is the canonical wire surface from this version onward.
+
 ## [0.8.0] - 2026-05-17
 
 ### Fixed

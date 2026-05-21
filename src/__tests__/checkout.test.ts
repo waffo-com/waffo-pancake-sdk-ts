@@ -114,6 +114,40 @@ describe("checkout.anonymous", () => {
     expect(body.billingDetail).toEqual({ country: "US", isBusiness: false, postcode: "10001" });
   });
 
+  it("should forward orderMerchantExternalId in the request body", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_ref",
+        checkoutUrl: "https://pancake.waffo.ai/store/s/checkout/cs_ref",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.anonymous.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      orderMerchantExternalId: "ORDER-2026-00891",
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.orderMerchantExternalId).toBe("ORDER-2026-00891");
+  });
+
+  it("should reject orderMerchantExternalId exceeding 128 characters", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    await expect(
+      client.checkout.anonymous.create({
+        productId: "PROD_0000000000000000000000",
+        currency: "USD",
+        orderMerchantExternalId: "x".repeat(129),
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("should propagate API errors", async () => {
     const mockFetch = createErrorFetch(400, [{ message: "Invalid product", layer: "order" }]);
     const client = createClient(mockFetch);
@@ -312,6 +346,52 @@ describe("checkout.authenticated", () => {
     expect(sessionBody.expiresInSeconds).toBe(900);
     // buyerIdentity should not leak into session body
     expect(sessionBody.buyerIdentity).toBeUndefined();
+  });
+
+  it("should forward orderMerchantExternalId to create-session", async () => {
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes("issue-session-token")) {
+        return { status: 200, json: () => Promise.resolve({ data: { token: "jwt.ref", expiresAt: "2026-04-02T10:00:00.000Z" } }) };
+      }
+      return {
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: { sessionId: "cs_ref", checkoutUrl: "https://pancake.waffo.ai/checkout/cs_ref", expiresAt: "2026-04-02T10:00:00.000Z" },
+          }),
+      };
+    });
+    const client = createClient(mockFetch);
+
+    await client.checkout.authenticated.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      buyerIdentity: "customer@example.com",
+      orderMerchantExternalId: "ORDER-2026-00891",
+    });
+
+    const sessionCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("create-session"));
+    const sessionBody = JSON.parse(sessionCall![1].body as string);
+    expect(sessionBody.orderMerchantExternalId).toBe("ORDER-2026-00891");
+    // not sent to issue-session-token
+    const tokenCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("issue-session-token"));
+    const tokenBody = JSON.parse(tokenCall![1].body as string);
+    expect(tokenBody.orderMerchantExternalId).toBeUndefined();
+  });
+
+  it("should reject orderMerchantExternalId exceeding 128 characters", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    await expect(
+      client.checkout.authenticated.create({
+        productId: "PROD_0000000000000000000000",
+        currency: "USD",
+        buyerIdentity: "customer@example.com",
+        orderMerchantExternalId: "x".repeat(129),
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("should propagate API errors from issue-session-token", async () => {

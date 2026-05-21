@@ -34,6 +34,7 @@ export class CheckoutAuthenticatedResource {
    *   currency: "USD",
    *   buyerIdentity: "user-123",
    *   buyerEmail: "customer@example.com",
+   *   orderMerchantExternalId: "ORDER-2026-00891",
    * });
    * // Redirect to result.checkoutUrl (includes #token=...)
    */

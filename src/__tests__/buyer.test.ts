@@ -126,6 +126,59 @@ describe("buyer.createRefundTicket", () => {
     expect(body.reason).toBe("Product not as described");
     expect(body.requestedAmount).toEqual({ amount: "29.00", currency: "USD" });
   });
+
+  it("should forward refundTicketMerchantExternalId in the request body", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        ticket: {
+          id: "TKT_0000000000000000000000",
+          type: "refund",
+          status: "pending",
+          subjectId: "PAY_0000000000000000000000",
+          submitterId: "buyer@test.com",
+          submitterType: "customer",
+          currentVersionId: "TVER_xxx",
+          reviewerId: null,
+          reviewedAt: null,
+          reviewNote: null,
+          rejectReason: null,
+          executedAt: null,
+          metadata: {},
+          refundTicketMerchantExternalId: "REF-2026-00891",
+          versionNumber: 1,
+          versionData: { reason: "Product not as described" },
+        },
+      },
+    }));
+    const buyer = createClient(mockFetch).buyer("token");
+
+    const { ticket } = await buyer.createRefundTicket({
+      paymentId: "PAY_0000000000000000000000",
+      reason: "Product not as described",
+      requestedAmount: { amount: "29.00", currency: "USD" },
+      refundTicketMerchantExternalId: "REF-2026-00891",
+    });
+
+    expect(ticket.refundTicketMerchantExternalId).toBe("REF-2026-00891");
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.refundTicketMerchantExternalId).toBe("REF-2026-00891");
+  });
+
+  it("should reject refundTicketMerchantExternalId exceeding 128 characters", async () => {
+    const mockFetch = vi.fn();
+    const buyer = createClient(mockFetch).buyer("token");
+
+    await expect(
+      buyer.createRefundTicket({
+        paymentId: "PAY_0000000000000000000000",
+        reason: "Product not as described",
+        requestedAmount: { amount: "29.00", currency: "USD" },
+        refundTicketMerchantExternalId: "x".repeat(129),
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 });
 
 describe("buyer.resubmitRefundTicket", () => {

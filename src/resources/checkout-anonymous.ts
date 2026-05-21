@@ -28,12 +28,13 @@ export class CheckoutAnonymousResource {
    * });
    *
    * @example
-   * // Pre-fill email and billing without issuing a session token
+   * // Pre-fill email + billing + attach business-side order reference
    * const result = await client.checkout.anonymous.create({
    *   productId: "PROD_xxx",
    *   currency: "USD",
    *   buyerEmail: "customer@example.com",
    *   billingDetail: { country: "US", isBusiness: false, postcode: "10001" },
+   *   orderMerchantExternalId: "ORDER-2026-00891",
    * });
    */
   async create(params: AnonymousCheckoutParams): Promise<CheckoutSessionResult & { warnings?: Notice[] }> {

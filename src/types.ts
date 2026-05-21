@@ -829,6 +829,8 @@ export interface CreateCheckoutSessionParams {
   darkMode?: boolean;
   /** Custom metadata */
   metadata?: Record<string, string>;
+  /** Order-side business identifier (max 128 chars); inherited by orders, payments, refunds */
+  orderMerchantExternalId?: string;
 }
 
 /** Result of creating a checkout session. */
@@ -902,6 +904,8 @@ export interface CreateRefundTicketParams {
   requestedAmount: RequestedAmount;
   /** Custom metadata */
   metadata?: Record<string, unknown>;
+  /** Refund-ticket business-side identifier (max 128 chars); inherited by the executed refund on PSP success */
+  refundTicketMerchantExternalId?: string;
 }
 
 /** Parameters for resubmitting a rejected refund ticket (buyer-side). */
@@ -944,6 +948,8 @@ export interface RefundTicket {
   executedAt: string | null;
   /** Custom metadata */
   metadata: Record<string, unknown>;
+  /** Refund-ticket business-side identifier (max 128 chars, immutable across resubmits) */
+  refundTicketMerchantExternalId: string | null;
   /** Current version number */
   versionNumber: number | null;
   /** Current (latest) version data */
@@ -1094,6 +1100,10 @@ export interface WebhookEventData {
   buyerEmail: string;
   /** Merchant-provided buyer identity from checkout session */
   merchantProvidedBuyerIdentity?: string;
+  /** Order business identifier; present on order/payment + refund events (inherited from order) */
+  orderMerchantExternalId?: string;
+  /** Refund-ticket business identifier; only present on refund.* events */
+  refundTicketMerchantExternalId?: string;
   currency: string;
   /** Billing/shipping address (structured object) */
   billingDetail?: Record<string, unknown>;

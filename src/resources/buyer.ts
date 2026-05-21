@@ -1,5 +1,5 @@
 import { unwrapAction } from "./internal.js";
-import { validateAmountString, validateCurrencyCode, validateRequired, validateShortId } from "../validation.js";
+import { validateAmountString, validateCurrencyCode, validateMaxLength, validateRequired, validateShortId } from "../validation.js";
 
 import type { BuyerHttpClient } from "../buyer-http-client.js";
 import type {
@@ -94,6 +94,7 @@ export class BuyerSession {
    *   paymentId: "PAY_xxx",
    *   reason: "Product not as described",
    *   requestedAmount: { amount: "29.00", currency: "USD" },
+   *   refundTicketMerchantExternalId: "REF-2026-00891",
    * });
    */
   async createRefundTicket(params: CreateRefundTicketParams): Promise<{ ticket: RefundTicket; warnings?: Notice[] }> {
@@ -101,6 +102,7 @@ export class BuyerSession {
     validateRequired("reason", params.reason);
     validateAmountString("requestedAmount.amount", params.requestedAmount.amount);
     validateCurrencyCode("requestedAmount.currency", params.requestedAmount.currency);
+    validateMaxLength("refundTicketMerchantExternalId", params.refundTicketMerchantExternalId, 128);
     return unwrapAction(await this.http.post<{ ticket: RefundTicket }>("/v1/actions/refund-ticket/create-ticket", params));
   }
 
