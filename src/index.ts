@@ -46,6 +46,7 @@ export type {
   CheckoutThemeSettings,
   CreateStoreParams,
   DeleteStoreParams,
+  MerchantWritableNotificationSettings,
   NotificationSettings,
   Store,
   UpdateStoreParams,

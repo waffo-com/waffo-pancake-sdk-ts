@@ -369,18 +369,16 @@ const { store } = await client.stores.create({ name: "My Store" });
 
 // Update settings (notification, checkout theme).
 // NOTE: webhook configuration moved to client.webhooks (see Webhooks section below).
+// NOTE: only merchant-facing `notify*` toggles (notifyNewOrders / notifyNewSubscriptions /
+//       notifySubscription* / notifyChargeback / notifyPayout*) are writable here;
+//       consumer email toggles (emailOrderConfirmation, emailSubscription*, emailTrial*) are
+//       managed by the PANCAKE platform and silently dropped if passed.
 const { store: updated } = await client.stores.update({
   id: store.id,
   supportEmail: "help@example.com",
   notificationSettings: {
-    emailOrderConfirmation: true,
-    emailSubscriptionConfirmation: true,
-    emailSubscriptionCycled: true,
-    emailSubscriptionCanceled: true,
-    emailSubscriptionRevoked: true,
-    emailSubscriptionPastDue: true,
     notifyNewOrders: true,
-    notifyNewSubscriptions: true,
+    notifyNewSubscriptions: false,
   },
 });
 

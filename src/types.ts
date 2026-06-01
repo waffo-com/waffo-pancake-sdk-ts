@@ -375,9 +375,42 @@ export interface NotificationSettings {
   emailSubscriptionCanceled: boolean;
   emailSubscriptionRevoked: boolean;
   emailSubscriptionPastDue: boolean;
+  emailTrialStarted: boolean;
+  emailTrialEnding: boolean;
   notifyNewOrders: boolean;
   notifyNewSubscriptions: boolean;
+  notifySubscriptionCanceled: boolean;
+  notifySubscriptionEnded: boolean;
+  notifySubscriptionPastDue: boolean;
+  notifySubscriptionRenewed: boolean;
+  notifySubscriptionUncanceled: boolean;
+  notifySubscriptionUpdated: boolean;
+  notifyChargeback: boolean;
+  notifyPayoutCompleted: boolean;
+  notifyPayoutFailed: boolean;
 }
+
+/**
+ * Merchant-writable subset of {@link NotificationSettings}.
+ *
+ * Consumer-email toggles (`email*`) are managed by the PANCAKE platform (admin-only
+ * via DB) and **not** writable from this SDK; they would be silently dropped by the
+ * `update-store` endpoint if included. Use this type for any merchant-side update.
+ */
+export type MerchantWritableNotificationSettings = Pick<
+  NotificationSettings,
+  | "notifyNewOrders"
+  | "notifyNewSubscriptions"
+  | "notifySubscriptionCanceled"
+  | "notifySubscriptionEnded"
+  | "notifySubscriptionPastDue"
+  | "notifySubscriptionRenewed"
+  | "notifySubscriptionUncanceled"
+  | "notifySubscriptionUpdated"
+  | "notifyChargeback"
+  | "notifyPayoutCompleted"
+  | "notifyPayoutFailed"
+>;
 
 /**
  * Single-theme checkout page styling.
@@ -453,7 +486,7 @@ export interface UpdateStoreParams {
   /** Store website URL (set to `null` to remove) */
   website?: string | null;
   /** Notification preferences (partial update — omitted fields keep existing values, set to `null` to clear all) */
-  notificationSettings?: Partial<NotificationSettings> | null;
+  notificationSettings?: Partial<MerchantWritableNotificationSettings> | null;
   /** Checkout page theme configuration (partial update — omitted fields keep existing values, set to `null` to clear all) */
   checkoutSettings?: Partial<CheckoutSettings> | null;
 }

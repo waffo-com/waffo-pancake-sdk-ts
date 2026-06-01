@@ -4,6 +4,40 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-06-01
+
+Expands `NotificationSettings` to the full 19-field schema (8 consumer-email + 11 merchant-notify toggles) and narrows `UpdateStoreParams.notificationSettings` to the merchant-writable subset.
+
+### Added
+
+- **`NotificationSettings`** gains 11 fields aligning with the platform schema:
+  - Consumer email (platform-managed): `emailTrialStarted`, `emailTrialEnding`
+  - Merchant notify (merchant-writable): `notifySubscriptionCanceled`, `notifySubscriptionEnded`, `notifySubscriptionPastDue`, `notifySubscriptionRenewed`, `notifySubscriptionUncanceled`, `notifySubscriptionUpdated`, `notifyChargeback`, `notifyPayoutCompleted`, `notifyPayoutFailed`
+- **`MerchantWritableNotificationSettings`** — new type exposing only the 11 `notify*` toggles. Use this for any merchant-side `update-store` call. `email*` toggles are managed by the PANCAKE platform (admin via DB) and silently dropped if passed to the merchant API.
+
+### Changed
+
+- **`UpdateStoreParams.notificationSettings` narrowed** from `Partial<NotificationSettings>` to `Partial<MerchantWritableNotificationSettings>`. Passing `email*` keys now fails TypeScript compilation rather than being silently dropped at the server.
+- README "Update store" example pruned to only show writable `notify*` fields with an explicit comment on the platform-managed `email*` subset.
+
+### Migration
+
+If your `client.stores.update` calls passed any `emailOrderConfirmation` / `emailSubscription*` / `emailTrial*` keys in `notificationSettings`, remove them — these were already being dropped server-side as of v2026.5 (returned as a `warnings[].aiHint`). Only `notify*` keys are merchant-writable.
+
+```diff
+ await client.stores.update({
+   id: storeId,
+   notificationSettings: {
+-    emailOrderConfirmation: true,
+-    emailSubscriptionCycled: true,
+     notifyNewOrders: true,
+     notifyNewSubscriptions: false,
++    notifyChargeback: true,
++    notifyPayoutFailed: true,
+   },
+ });
+```
+
 ## [0.9.0] - 2026-05-21
 
 Adds flat dual-key external-id fields across write inputs, response entities, and webhook payload. The same field name now appears at every layer (REST request body / REST response / webhook payload / GraphQL).
