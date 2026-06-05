@@ -630,9 +630,9 @@ export interface CreateOnetimeProductParams {
   storeId: string;
   name: string;
   prices: Prices;
-  description?: string;
+  description?: string | null;
   media?: MediaItem[];
-  successUrl?: string;
+  successUrl?: string | null;
   metadata?: Record<string, unknown>;
 }
 
@@ -644,9 +644,9 @@ export interface UpdateOnetimeProductParams {
   id: string;
   name?: string;
   prices?: Prices;
-  description?: string;
+  description?: string | null;
   media?: MediaItem[];
-  successUrl?: string;
+  successUrl?: string | null;
   metadata?: Record<string, unknown>;
 }
 
@@ -697,9 +697,9 @@ export interface CreateSubscriptionProductParams {
   name: string;
   billingPeriod: BillingPeriod;
   prices: Prices;
-  description?: string;
+  description?: string | null;
   media?: MediaItem[];
-  successUrl?: string;
+  successUrl?: string | null;
   metadata?: Record<string, unknown>;
 }
 
@@ -712,9 +712,9 @@ export interface UpdateSubscriptionProductParams {
   name?: string;
   billingPeriod?: BillingPeriod;
   prices?: Prices;
-  description?: string;
+  description?: string | null;
   media?: MediaItem[];
-  successUrl?: string;
+  successUrl?: string | null;
   metadata?: Record<string, unknown>;
 }
 
