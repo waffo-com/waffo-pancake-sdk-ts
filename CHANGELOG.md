@@ -4,6 +4,30 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-06-05
+
+Aligns Create/Update Product params with backend product-service v2026.6.4: `description` and `successUrl` accept `null` for explicit field clearing (previously only `undefined` / omitted). Backend also tightens `name` to ≤ 64 characters to match the PSP `goodsName` cap — passing a longer name now returns 400.
+
+### Changed
+
+- **`CreateOnetimeProductParams.description` / `successUrl`** — typed `string | null` (was `string`).
+- **`UpdateOnetimeProductParams.description` / `successUrl`** — typed `string | null`.
+- **`CreateSubscriptionProductParams.description` / `successUrl`** — typed `string | null`.
+- **`UpdateSubscriptionProductParams.description` / `successUrl`** — typed `string | null`.
+
+### Migration
+
+If you currently omit `description` / `successUrl` (or pass `undefined`), no change needed — the backend keeps the existing value. To explicitly clear a previously-set value:
+
+```diff
+-await client.onetimeProducts.update({ id, description: undefined });   // keeps existing value
++await client.onetimeProducts.update({ id, description: null });        // clears the field
+```
+
+Backend also accepts `""` for the same effect; SDK uses `null` as the canonical "clear" sentinel.
+
+Note `name.length` must now be ≤ 64. The backend enforced no limit previously; existing names > 64 chars are rare (production scan found 1 internal test outlier, no real merchant data). New attempts > 64 chars return `400 { errors: [{ message: "name must not exceed 64 characters", layer: "product" }] }`.
+
 ## [0.10.0] - 2026-06-01
 
 Expands `NotificationSettings` to the full 19-field schema (8 consumer-email + 11 merchant-notify toggles) and narrows `UpdateStoreParams.notificationSettings` to the merchant-writable subset.
