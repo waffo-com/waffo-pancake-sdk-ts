@@ -9,8 +9,8 @@ import type { CheckoutSessionResult, CreateCheckoutSessionParams, Notice } from 
  * Checkout resource — create checkout sessions for payments.
  *
  * Provides two convenience sub-resources for the common checkout flows:
- * - `anonymous` — no buyer identity, empty form
- * - `authenticated` — merchant provides buyer identity, pre-filled form + token
+ * - `anonymous` — no customer identity, empty form
+ * - `authenticated` — merchant provides customer identity, pre-filled form + token
  *
  * The low-level `createSession()` method is still available for full control.
  *
@@ -22,7 +22,7 @@ import type { CheckoutSessionResult, CreateCheckoutSessionParams, Notice } from 
  * });
  *
  * @example
- * // Authenticated checkout (with buyer identity)
+ * // Authenticated checkout (with customer identity)
  * const result = await client.checkout.authenticated.create({
  *   productId: "PROD_xxx",
  *   currency: "USD",
@@ -32,9 +32,9 @@ import type { CheckoutSessionResult, CreateCheckoutSessionParams, Notice } from 
  * // result.checkoutUrl includes #token=...
  */
 export class CheckoutResource {
-  /** Anonymous checkout — no buyer identity, empty form. */
+  /** Anonymous checkout — no customer identity, empty form. */
   readonly anonymous: CheckoutAnonymousResource;
-  /** Authenticated checkout — merchant provides buyer identity. */
+  /** Authenticated checkout — merchant provides customer identity. */
   readonly authenticated: CheckoutAuthenticatedResource;
 
   constructor(private readonly http: HttpClient) {

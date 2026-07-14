@@ -1,7 +1,7 @@
 import { unwrapAction } from "./internal.js";
 import { validateAmountString, validateCurrencyCode, validateMaxLength, validateRequired, validateShortId } from "../validation.js";
 
-import type { BuyerHttpClient } from "../buyer-http-client.js";
+import type { CustomerHttpClient } from "../customer-http-client.js";
 import type {
   CancelOnetimeOrderParams,
   CancelOnetimeOrderResult,
@@ -18,9 +18,9 @@ import type {
 } from "../types.js";
 
 /**
- * Buyer session — lets authenticated buyers manage their own orders and subscriptions.
+ * Customer session — lets authenticated customers manage their own orders and subscriptions.
  *
- * Created via `client.buyer(token)` using a session token issued by
+ * Created via `client.customer(token)` using a session token issued by
  * `client.auth.issueSessionToken()`. All requests use Bearer token authentication.
  *
  * @example
@@ -28,15 +28,15 @@ import type {
  *   storeId: "STO_xxx",
  *   buyerIdentity: "customer@example.com",
  * });
- * const buyer = client.buyer(token);
- * await buyer.cancelSubscription({ orderId: "ORD_xxx" });
+ * const customer = client.customer(token);
+ * await customer.cancelSubscription({ orderId: "ORD_xxx" });
  */
-export class BuyerSession {
-  /** GraphQL query access scoped to the buyer's data. */
-  readonly graphql: BuyerGraphQL;
+export class CustomerSession {
+  /** GraphQL query access scoped to the customer's data. */
+  readonly graphql: CustomerGraphQL;
 
-  constructor(private readonly http: BuyerHttpClient) {
-    this.graphql = new BuyerGraphQL(http);
+  constructor(private readonly http: CustomerHttpClient) {
+    this.graphql = new CustomerGraphQL(http);
   }
 
   /**
@@ -46,7 +46,7 @@ export class BuyerSession {
    * @returns Order ID and resulting status
    *
    * @example
-   * const { orderId, status } = await buyer.cancelSubscription({ orderId: "ORD_xxx" });
+   * const { orderId, status } = await customer.cancelSubscription({ orderId: "ORD_xxx" });
    * // status: "canceled" (was pending) or "canceling" (was active)
    */
   async cancelSubscription(params: CancelSubscriptionParams): Promise<CancelSubscriptionResult & { warnings?: Notice[] }> {
@@ -61,7 +61,7 @@ export class BuyerSession {
    * @returns Order ID and resulting status
    *
    * @example
-   * const { orderId, status } = await buyer.cancelOnetimeOrder({ orderId: "ORD_xxx" });
+   * const { orderId, status } = await customer.cancelOnetimeOrder({ orderId: "ORD_xxx" });
    */
   async cancelOnetimeOrder(params: CancelOnetimeOrderParams): Promise<CancelOnetimeOrderResult & { warnings?: Notice[] }> {
     validateShortId("orderId", params.orderId, "ORD");
@@ -75,7 +75,7 @@ export class BuyerSession {
    * @returns Order ID and resulting status
    *
    * @example
-   * const { orderId, status } = await buyer.reactivateSubscription({ orderId: "ORD_xxx" });
+   * const { orderId, status } = await customer.reactivateSubscription({ orderId: "ORD_xxx" });
    * // status: "active"
    */
   async reactivateSubscription(params: ReactivateSubscriptionParams): Promise<ReactivateSubscriptionResult & { warnings?: Notice[] }> {
@@ -90,7 +90,7 @@ export class BuyerSession {
    * @returns Created refund ticket
    *
    * @example
-   * const { ticket } = await buyer.createRefundTicket({
+   * const { ticket } = await customer.createRefundTicket({
    *   paymentId: "PAY_xxx",
    *   reason: "Product not as described",
    *   requestedAmount: { amount: "29.00", currency: "USD" },
@@ -113,7 +113,7 @@ export class BuyerSession {
    * @returns Updated refund ticket
    *
    * @example
-   * const { ticket } = await buyer.resubmitRefundTicket({
+   * const { ticket } = await customer.resubmitRefundTicket({
    *   ticketId: "TKT_xxx",
    *   paymentId: "PAY_xxx",
    *   reason: "Updated reason with more detail",
@@ -131,19 +131,19 @@ export class BuyerSession {
 }
 
 /**
- * GraphQL access scoped to the buyer's session token.
+ * GraphQL access scoped to the customer's session token.
  */
-class BuyerGraphQL {
-  constructor(private readonly http: BuyerHttpClient) {}
+class CustomerGraphQL {
+  constructor(private readonly http: CustomerHttpClient) {}
 
   /**
-   * Execute a GraphQL query scoped to the buyer's data.
+   * Execute a GraphQL query scoped to the customer's data.
    *
    * @param params - GraphQL query and variables
    * @returns GraphQL response
    *
    * @example
-   * const result = await buyer.graphql.query({
+   * const result = await customer.graphql.query({
    *   query: `query { orders { id status } }`,
    * });
    */

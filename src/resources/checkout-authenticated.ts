@@ -5,11 +5,11 @@ import type { HttpClient } from "../http-client.js";
 import type { AuthenticatedCheckoutParams, AuthenticatedCheckoutResult, CheckoutSessionResult, Notice, SessionToken } from "../types.js";
 
 /**
- * Authenticated checkout — merchant provides buyer identity.
+ * Authenticated checkout — merchant provides customer identity.
  *
  * Issues a session token, creates a checkout session, and returns a
  * checkout URL with the token appended as a URL fragment (`#token=...`).
- * The checkout page reads the fragment to pre-fill buyer information.
+ * The checkout page reads the fragment to pre-fill customer information.
  */
 export class CheckoutAuthenticatedResource {
   constructor(private readonly http: HttpClient) {}
@@ -25,7 +25,7 @@ export class CheckoutAuthenticatedResource {
    * `buyerIdentity` and `buyerEmail` are independent inputs: identity is for the JWT,
    * email is for pre-filling the checkout page. The SDK forwards each to its own endpoint.
    *
-   * @param params - Checkout parameters including buyer identity
+   * @param params - Checkout parameters including customer identity
    * @returns Session details with token-appended checkout URL
    *
    * @example

@@ -93,7 +93,7 @@ export type {
   SubscriptionProductGroup,
   UpdateSubscriptionProductGroupParams,
 
-  // Buyer self-service
+  // Customer self-service
   CancelOnetimeOrderParams,
   CancelOnetimeOrderResult,
   CreateRefundTicketParams,

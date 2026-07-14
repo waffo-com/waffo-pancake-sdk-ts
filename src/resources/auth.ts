@@ -5,12 +5,12 @@ import { validateRequired, validateShortId } from "../validation.js";
 import type { HttpClient } from "../http-client.js";
 import type { IssueSessionTokenParams, Notice, SessionToken } from "../types.js";
 
-/** Authentication resource — issue session tokens for buyers. */
+/** Authentication resource — issue session tokens for customers. */
 export class AuthResource {
   constructor(private readonly http: HttpClient) {}
 
   /**
-   * Issue a session token for a buyer.
+   * Issue a session token for a customer.
    *
    * @param params - Token issuance parameters
    * @returns Issued session token with expiration

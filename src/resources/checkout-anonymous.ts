@@ -5,9 +5,9 @@ import type { HttpClient } from "../http-client.js";
 import type { AnonymousCheckoutParams, CheckoutSessionResult, Notice } from "../types.js";
 
 /**
- * Anonymous checkout — no buyer identity provided.
+ * Anonymous checkout — no customer identity provided.
  *
- * The buyer reaches the checkout page without a session token. Merchants may still
+ * The customer reaches the checkout page without a session token. Merchants may still
  * pre-fill `buyerEmail` and `billingDetail` on the page by passing them here.
  * Internally creates a checkout session and returns the redirect URL.
  */
@@ -17,11 +17,11 @@ export class CheckoutAnonymousResource {
   /**
    * Create an anonymous checkout session.
    *
-   * @param params - Checkout parameters (no buyer identity required)
+   * @param params - Checkout parameters (no customer identity required)
    * @returns Session ID, checkout URL, and expiration
    *
    * @example
-   * // Minimal — buyer fills everything on the page
+   * // Minimal — customer fills everything on the page
    * const result = await client.checkout.anonymous.create({
    *   productId: "PROD_xxx",
    *   currency: "USD",

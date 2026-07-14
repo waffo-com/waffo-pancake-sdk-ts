@@ -5,16 +5,16 @@ import type { PostResult, WaffoPancakeConfig } from "./types.js";
 const DEFAULT_BASE_URL = "https://api.waffo.ai";
 
 /**
- * Internal HTTP client for buyer-side requests using Bearer token authentication.
+ * Internal HTTP client for customer-side requests using Bearer token authentication.
  *
  * Unlike {@link HttpClient} which signs requests with RSA-SHA256 (API Key auth),
  * this client attaches a session token as `Authorization: Bearer <token>` and
- * never sends an idempotency key (buyer session actions are not protected by
+ * never sends an idempotency key (customer session actions are not protected by
  * gateway idempotency in the current architecture).
  *
- * Not exported publicly — used internally by {@link BuyerSession}.
+ * Not exported publicly — used internally by {@link CustomerSession}.
  */
-export class BuyerHttpClient {
+export class CustomerHttpClient {
   private readonly token: string;
   private readonly baseUrl: string;
   private readonly _fetch: typeof fetch;
