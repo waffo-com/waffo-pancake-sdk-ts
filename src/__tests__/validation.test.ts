@@ -338,11 +338,11 @@ describe("integration: validation prevents network request", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("buyer.createRefundTicket — invalid paymentId", async () => {
+  it("customer.createRefundTicket — invalid paymentId", async () => {
     const { client, mockFetch } = createClient();
-    const buyer = client.buyer("token");
+    const customer = client.customer("token");
     await expect(
-      buyer.createRefundTicket({
+      customer.createRefundTicket({
         paymentId: "bad",
         reason: "test",
         requestedAmount: { amount: "9.99", currency: "USD" },

@@ -264,7 +264,7 @@ export enum ErrorLayer {
 // ---------------------------------------------------------------------------
 
 /**
- * Parameters for issuing a buyer session token.
+ * Parameters for issuing a customer session token.
  *
  * Provide either `storeId` or `productId` (at least one required).
  * When `productId` is given without `storeId`, the server derives the store from the product.
@@ -273,7 +273,7 @@ export enum ErrorLayer {
  */
 export interface IssueSessionTokenParams {
   /**
-   * Buyer identity — encoded into the JWT payload for merchant-side buyer
+   * Customer identity — encoded into the JWT payload for merchant-side customer
    * identification. Accepts an email or any merchant-provided identifier string.
    * To pre-fill the checkout page's email field, use `buyerEmail` on
    * `checkout.authenticated.create`.
@@ -819,7 +819,7 @@ export interface CancelSubscriptionResult {
 }
 
 /**
- * Buyer billing details for checkout.
+ * Customer billing details for checkout.
  * @see waffo-pancake-order-service/app/lib/types.ts
  */
 export interface BillingDetail {
@@ -850,7 +850,7 @@ export interface CreateCheckoutSessionParams {
   priceSnapshot?: PriceInfo;
   /** Trial toggle override (subscription only) */
   withTrial?: boolean;
-  /** Pre-filled buyer email */
+  /** Pre-filled customer email */
   buyerEmail?: string;
   /** Pre-filled billing details */
   billingDetail?: BillingDetail;
@@ -877,10 +877,10 @@ export interface CheckoutSessionResult {
 }
 
 // ---------------------------------------------------------------------------
-// Buyer self-service
+// Customer self-service
 // ---------------------------------------------------------------------------
 
-/** Parameters for canceling a one-time order (buyer-side). */
+/** Parameters for canceling a one-time order (customer-side). */
 export interface CancelOnetimeOrderParams {
   /** Order ID */
   orderId: string;
@@ -894,7 +894,7 @@ export interface CancelOnetimeOrderResult {
   status: string;
 }
 
-/** Parameters for reactivating a subscription (buyer-side). */
+/** Parameters for reactivating a subscription (customer-side). */
 export interface ReactivateSubscriptionParams {
   /** Subscription order ID */
   orderId: string;
@@ -921,13 +921,13 @@ export interface RequestedAmount {
  * multiple times; this is the shape of a single submission.
  */
 export interface RefundTicketVersionData {
-  /** Refund reason supplied by the buyer */
+  /** Refund reason supplied by the customer */
   reason: string;
   /** Requested refund amount; `null` if the version has no amount recorded */
   requestedAmount: RequestedAmount | null;
 }
 
-/** Parameters for creating a refund ticket (buyer-side). */
+/** Parameters for creating a refund ticket (customer-side). */
 export interface CreateRefundTicketParams {
   /** Payment ID to refund */
   paymentId: string;
@@ -941,7 +941,7 @@ export interface CreateRefundTicketParams {
   refundTicketMerchantExternalId?: string;
 }
 
-/** Parameters for resubmitting a rejected refund ticket (buyer-side). */
+/** Parameters for resubmitting a rejected refund ticket (customer-side). */
 export interface ResubmitRefundTicketParams {
   /** Existing ticket ID */
   ticketId: string;
@@ -1000,7 +1000,7 @@ export interface RefundTicket {
 /**
  * Parameters for anonymous checkout.
  *
- * The buyer reaches the checkout page without a session token. Merchants may still
+ * The customer reaches the checkout page without a session token. Merchants may still
  * pre-fill `buyerEmail` and `billingDetail`; omitting them leaves the form blank.
  *
  * Accepts every field of {@link CreateCheckoutSessionParams} — this wrapper simply
@@ -1027,15 +1027,15 @@ export type AnonymousCheckoutParams = CreateCheckoutSessionParams;
  * const result = await client.checkout.authenticated.create({
  *   productId: "PROD_xxx",
  *   currency: "USD",
- *   buyerIdentity: "user-123",            // merchant-side buyer id (goes into JWT)
+ *   buyerIdentity: "user-123",            // merchant-side customer id (goes into JWT)
  *   buyerEmail: "customer@example.com",   // pre-filled on the checkout page
  * });
  * // Redirect to result.checkoutUrl (includes #token=...)
  */
 export interface AuthenticatedCheckoutParams extends CreateCheckoutSessionParams {
   /**
-   * Buyer identity — sent to `issue-session-token` and encoded into the JWT
-   * payload for merchant-side buyer identification. Accepts an email or any
+   * Customer identity — sent to `issue-session-token` and encoded into the JWT
+   * payload for merchant-side customer identification. Accepts an email or any
    * merchant-provided identifier string. Use `buyerEmail` to pre-fill the
    * checkout page's email input.
    */
@@ -1105,9 +1105,9 @@ export enum WebhookEventType {
   SubscriptionActivated = "subscription.activated",
   /** Subscription renewal payment succeeded */
   SubscriptionPaymentSucceeded = "subscription.payment_succeeded",
-  /** Buyer initiated cancellation (expires at end of current period) */
+  /** Customer initiated cancellation (expires at end of current period) */
   SubscriptionCanceling = "subscription.canceling",
-  /** Buyer withdrew cancellation (subscription restored) */
+  /** Customer withdrew cancellation (subscription restored) */
   SubscriptionUncanceled = "subscription.uncanceled",
   /** Subscription product changed (upgrade/downgrade) */
   SubscriptionUpdated = "subscription.updated",
@@ -1131,7 +1131,7 @@ export interface WebhookEventData {
   /** Order status (e.g., "completed", "active", "canceling") */
   orderStatus?: string;
   buyerEmail: string;
-  /** Merchant-provided buyer identity from checkout session */
+  /** Merchant-provided customer identity from checkout session */
   merchantProvidedBuyerIdentity?: string;
   /** Order business identifier; present on order/payment + refund events (inherited from order) */
   orderMerchantExternalId?: string;

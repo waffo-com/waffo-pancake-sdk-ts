@@ -1,8 +1,8 @@
-import { BuyerHttpClient } from "./buyer-http-client.js";
+import { CustomerHttpClient } from "./customer-http-client.js";
 import { HttpClient } from "./http-client.js";
 import { AuthResource } from "./resources/auth.js";
-import { BuyerSession } from "./resources/buyer.js";
 import { CheckoutResource } from "./resources/checkout.js";
+import { CustomerSession } from "./resources/customer.js";
 import { GraphQLResource } from "./resources/graphql.js";
 import { OnetimeProductsResource } from "./resources/onetime-products.js";
 import { OrdersResource } from "./resources/orders.js";
@@ -98,28 +98,45 @@ export class WaffoPancake {
   }
 
   /**
-   * Create a buyer session for self-service operations.
+   * Create a customer session for self-service operations.
    *
    * The returned session uses Bearer token authentication and provides
    * methods for order cancellation, subscription management, refund tickets,
    * and scoped GraphQL queries.
    *
    * @param token - Session token from `client.auth.issueSessionToken()`
-   * @returns A buyer session with self-service methods
+   * @returns A customer session with self-service methods
    *
    * @example
    * const { token } = await client.auth.issueSessionToken({
    *   storeId: "STO_xxx",
    *   buyerIdentity: "customer@example.com",
    * });
-   * const buyer = client.buyer(token);
-   * await buyer.cancelSubscription({ orderId: "ORD_xxx" });
+   * const customer = client.customer(token);
+   * await customer.cancelSubscription({ orderId: "ORD_xxx" });
    */
-  buyer(token: string): BuyerSession {
-    const buyerHttp = new BuyerHttpClient(token, {
+  customer(token: string): CustomerSession {
+    const customerHttp = new CustomerHttpClient(token, {
       baseUrl: this.config.baseUrl,
       fetch: this.config.fetch,
     });
-    return new BuyerSession(buyerHttp);
+    return new CustomerSession(customerHttp);
+  }
+
+  /**
+   * Create a customer session for self-service operations.
+   *
+   * @param token - Session token from `client.auth.issueSessionToken()`
+   * @returns A customer session with self-service methods
+   *
+   * @example
+   * ```typescript
+   * const session = client.buyer(token); // prefer client.customer(token)
+   * ```
+   *
+   * @deprecated Use {@link WaffoPancake.customer} instead.
+   */
+  buyer(token: string): CustomerSession {
+    return this.customer(token);
   }
 }

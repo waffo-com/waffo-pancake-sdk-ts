@@ -4,6 +4,18 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-07-14
+
+Renames the "buyer" persona to "customer" across the SDK's public API — "customer" is the Waffo term for the merchant's end consumer (the session-token JWT role). Old names remain available as deprecated aliases. Wire-level request and webhook field names (`buyerIdentity`, `buyerEmail`, `merchantProvidedBuyerIdentity`) are part of the server contract and are unchanged.
+
+### Changed
+
+- **`client.customer(token)`** — creates the customer self-service session (class `CustomerSession`, previously `BuyerSession`). Same methods: `cancelSubscription()`, `cancelOnetimeOrder()`, `reactivateSubscription()`, `createRefundTicket()`, `resubmitRefundTicket()`, `graphql.query<T>()`.
+
+### Deprecated
+
+- **`client.buyer(token)`** — use `client.customer(token)` instead. Thin wrapper around `client.customer()`, identical behavior; will be removed in a future major version.
+
 ## [0.11.0] - 2026-06-05
 
 Aligns Create/Update Product params with backend product-service v2026.6.4: `description` and `successUrl` accept `null` for explicit field clearing (previously only `undefined` / omitted). Backend also tightens `name` to ≤ 64 characters to match the PSP `goodsName` cap — passing a longer name now returns 400.

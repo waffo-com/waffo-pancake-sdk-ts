@@ -15,7 +15,7 @@ npm install @waffo/pancake-ts
 
 ## Quick Start
 
-> Most merchants create stores and products in the [Dashboard](https://pancake.waffo.ai/dashboard). The SDK is primarily used for **checkout integration** — redirecting buyers from your site to the Waffo checkout page.
+> Most merchants create stores and products in the [Dashboard](https://pancake.waffo.ai/dashboard). The SDK is primarily used for **checkout integration** — redirecting customers from your site to the Waffo checkout page.
 
 ```typescript
 import { WaffoPancake } from "@waffo/pancake-ts";
@@ -33,7 +33,7 @@ const result = await client.checkout.authenticated.create({
   buyerIdentity: req.user.email, // your user's identity
 });
 
-// Redirect buyer to the checkout page (opens in new tab)
+// Redirect customer to the checkout page (opens in new tab)
 res.json({ checkoutUrl: result.checkoutUrl });
 // => checkoutUrl includes #token=... (form pre-filled)
 ```
@@ -52,24 +52,24 @@ The SDK auto-normalizes key formats: standard PEM, PKCS#1, literal `\n` from env
 
 ## Checkout Integration
 
-Waffo supports two checkout modes based on whether the merchant knows the buyer's identity:
+Waffo supports two checkout modes based on whether the merchant knows the customer's identity:
 
-- **Merchants with their own sites** know who the buyer is — they have user accounts, login systems, or collect buyer info before checkout. The merchant provides the buyer's identity upfront, and the checkout form arrives pre-filled.
-- **Template stores and shared links** have no prior buyer context — the buyer arrives directly at the checkout page and fills in their own details.
+- **Merchants with their own sites** know who the customer is — they have user accounts, login systems, or collect customer info before checkout. The merchant provides the customer's identity upfront, and the checkout form arrives pre-filled.
+- **Template stores and shared links** have no prior customer context — the customer arrives directly at the checkout page and fills in their own details.
 
-| Mode              | Method                            | Buyer Identity    | Form State | Use Case                                 |
+| Mode              | Method                            | Customer Identity | Form State | Use Case                                 |
 | ----------------- | --------------------------------- | ----------------- | ---------- | ---------------------------------------- |
 | **Authenticated** | `checkout.authenticated.create()` | Merchant provides | Pre-filled | Merchant sites with user accounts        |
 | **Anonymous**     | `checkout.anonymous.create()`     | Not provided      | Empty      | Template stores, one-time purchase links |
 
-> **We recommend authenticated checkout whenever possible.** The most important reason: authenticated checkout binds the order to the `buyerIdentity` you provide, which is a **merchant-controlled stable identifier**. Even if the buyer changes the email on the checkout form, the order is still tied to the identity you specified. In anonymous mode, the buyer self-reports their email on the form — if they enter a different address, the system treats them as a new user, which means **previous orders become unlinked** and **subscription trial periods can be exploited** (a new email = a new user = a fresh trial).
+> **We recommend authenticated checkout whenever possible.** The most important reason: authenticated checkout binds the order to the `buyerIdentity` you provide, which is a **merchant-controlled stable identifier**. Even if the customer changes the email on the checkout form, the order is still tied to the identity you specified. In anonymous mode, the customer self-reports their email on the form — if they enter a different address, the system treats them as a new user, which means **previous orders become unlinked** and **subscription trial periods can be exploited** (a new email = a new user = a fresh trial).
 >
-> |                   | Authenticated                                                     | Anonymous                                          |
-> | ----------------- | ----------------------------------------------------------------- | -------------------------------------------------- |
-> | **Identity**      | Merchant-provided, stable across orders                           | Self-reported email, may vary                      |
-> | **Form**          | Pre-filled from merchant-provided identity                        | Empty, buyer fills manually                        |
-> | **Post-purchase** | Full self-service (see [Buyer Self-Service](#buyer-self-service)) | Create orders only — no post-purchase self-service |
-> | **Session**       | 5-minute TTL, auto-refreshes                                      | 1-minute, single-use                               |
+> |                   | Authenticated                                                           | Anonymous                                          |
+> | ----------------- | ----------------------------------------------------------------------- | -------------------------------------------------- |
+> | **Identity**      | Merchant-provided, stable across orders                                 | Self-reported email, may vary                      |
+> | **Form**          | Pre-filled from merchant-provided identity                              | Empty, customer fills manually                     |
+> | **Post-purchase** | Full self-service (see [Customer Self-Service](#customer-self-service)) | Create orders only — no post-purchase self-service |
+> | **Session**       | 5-minute TTL, auto-refreshes                                            | 1-minute, single-use                               |
 
 Both modes support **dynamic pricing** and **trial control** at checkout time:
 
@@ -78,12 +78,12 @@ Both modes support **dynamic pricing** and **trial control** at checkout time:
 
 ### Authenticated Checkout (Recommended)
 
-The merchant provides buyer identity — the SDK issues a session token, creates a checkout session, and returns a checkout URL with the token appended as a URL fragment. One call does everything.
+The merchant provides customer identity — the SDK issues a session token, creates a checkout session, and returns a checkout URL with the token appended as a URL fragment. One call does everything.
 
 `buyerIdentity` is for order attribution and trial tracking only — it is not rendered on the checkout page. To pre-fill the email field on the checkout form, pass `buyerEmail` explicitly.
 
 ```typescript
-// Basic — buyer identity only (checkout page email field stays empty)
+// Basic — customer identity only (checkout page email field stays empty)
 const result = await client.checkout.authenticated.create({
   productId: "PROD_xxx",
   currency: "USD",
@@ -118,7 +118,7 @@ The token is passed via the URL fragment (after `#`), which is never sent to the
 
 ### Anonymous Checkout
 
-No buyer identity required — the buyer fills in billing details manually on the checkout page.
+No customer identity required — the customer fills in billing details manually on the checkout page.
 
 ```typescript
 const result = await client.checkout.anonymous.create({
@@ -142,7 +142,7 @@ window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
 
 **We recommend opening the checkout page in a new tab** rather than navigating in the current page:
 
-- Buyers can return to your site immediately after payment or if they close the checkout tab
+- Customers can return to your site immediately after payment or if they close the checkout tab
 - Merchant page state (cart, forms, scroll position) is preserved
 - Payment flow is decoupled from the browsing experience, reducing checkout abandonment
 
@@ -154,13 +154,13 @@ window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
 // <a href={checkoutUrl} target="_blank" rel="noopener noreferrer">Proceed to Checkout</a>
 ```
 
-> **Not recommended:** `window.location.href = result.checkoutUrl` replaces the current page, preventing buyers from returning to your site without browser back navigation.
+> **Not recommended:** `window.location.href = result.checkoutUrl` replaces the current page, preventing customers from returning to your site without browser back navigation.
 
 See [API Reference — Checkout](docs/api-reference.md#checkout) for full parameter tables and `BillingDetail` field requirements.
 
 ## Webhook Verification
 
-After a buyer completes payment, Waffo sends webhook events to your server with rich data including order details, amounts, product info, and event-specific fields (payment, subscription, or refund). The SDK provides two ways to verify signatures:
+After a customer completes payment, Waffo sends webhook events to your server with rich data including order details, amounts, product info, and event-specific fields (payment, subscription, or refund). The SDK provides two ways to verify signatures:
 
 ### Standalone Function (built-in keys)
 
@@ -179,7 +179,7 @@ app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
       case WebhookEventType.OrderCompleted:
         // Rich data: order, amount, product, payment fields
         console.log(`Order ${event.data.orderId} completed — ${event.data.total} ${event.data.currency}`);
-        console.log(`Product: ${event.data.productName}, Buyer: ${event.data.buyerEmail}`);
+        console.log(`Product: ${event.data.productName}, Customer: ${event.data.buyerEmail}`);
         if (event.data.orderMetadata) console.log("Metadata:", event.data.orderMetadata);
         break;
       case WebhookEventType.SubscriptionActivated:
@@ -226,34 +226,34 @@ const event = client.webhooks.verify(rawBody, sig, { environment: "prod" });
 
 See [Webhook Guide](docs/webhook-guide.md) for event types, `WebhookEventData` field reference, dual-environment key architecture, key resolution chain, retry mechanism, and best practices.
 
-## Buyer Self-Service
+## Customer Self-Service
 
-Beyond checkout, you can let buyers manage their own orders and subscriptions — for example, embedding a "Cancel Subscription" or "Request Refund" button in your site.
+Beyond checkout, you can let customers manage their own orders and subscriptions — for example, embedding a "Cancel Subscription" or "Request Refund" button in your site.
 
-Issue a session token, then use `client.buyer(token)` to get a session with self-service methods:
+Issue a session token, then use `client.customer(token)` to get a session with self-service methods:
 
 ```typescript
-// Your backend — issue a session token for the buyer
+// Your backend — issue a session token for the customer
 const { token } = await client.auth.issueSessionToken({
   storeId: "STO_xxx",
   buyerIdentity: req.user.email,
 });
 
-// Create a buyer session
-const buyer = client.buyer(token);
+// Create a customer session
+const customer = client.customer(token);
 
 // Cancel a subscription
-const { orderId, status } = await buyer.cancelSubscription({ orderId: "ORD_xxx" });
+const { orderId, status } = await customer.cancelSubscription({ orderId: "ORD_xxx" });
 // status: "canceling" (active) or "canceled" (pending)
 
 // Reactivate a canceled subscription
-await buyer.reactivateSubscription({ orderId: "ORD_xxx" });
+await customer.reactivateSubscription({ orderId: "ORD_xxx" });
 
 // Cancel a one-time order (while payment is pending)
-await buyer.cancelOnetimeOrder({ orderId: "ORD_yyy" });
+await customer.cancelOnetimeOrder({ orderId: "ORD_yyy" });
 
 // Submit a refund request
-const { ticket } = await buyer.createRefundTicket({
+const { ticket } = await customer.createRefundTicket({
   paymentId: "PAY_xxx",
   reason: "Product not as described",
   requestedAmount: { amount: "29.00", currency: "USD" },
@@ -261,22 +261,22 @@ const { ticket } = await buyer.createRefundTicket({
 });
 
 // Resubmit a rejected refund ticket
-await buyer.resubmitRefundTicket({
+await customer.resubmitRefundTicket({
   ticketId: "TKT_xxx",
   paymentId: "PAY_xxx",
   reason: "Updated reason with more detail",
   requestedAmount: { amount: "29.00", currency: "USD" },
 });
 
-// Query the buyer's own orders via GraphQL
-const result = await buyer.graphql.query({
+// Query the customer's own orders via GraphQL
+const result = await customer.graphql.query({
   query: `query { orders { id status createdAt } }`,
 });
 ```
 
-The token is scoped to the specified store and buyer identity — buyers can only access their own data. Token TTL is 5 minutes and auto-refreshes on each API call.
+The token is scoped to the specified store and customer identity — customers can only access their own data. Token TTL is 5 minutes and auto-refreshes on each API call.
 
-> **Note**: This uses the same `buyerIdentity` as `checkout.authenticated.create()`. Orders placed via authenticated checkout are automatically tied to this identity, so the buyer can manage them later with a token issued here.
+> **Note**: This uses the same `buyerIdentity` as `checkout.authenticated.create()`. Orders placed via authenticated checkout are automatically tied to this identity, so the customer can manage them later with a token issued here.
 
 ## Business-Side Identifiers
 
@@ -285,7 +285,7 @@ Attach your own internal references to a checkout or a refund ticket so cross-sy
 | Field                            | Attach at                                   | Inherited by                                               |
 | -------------------------------- | ------------------------------------------- | ---------------------------------------------------------- |
 | `orderMerchantExternalId`        | `checkout.{authenticated,anonymous}.create` | `Order`, `Payment` (incl. subscription renewals), `Refund` |
-| `refundTicketMerchantExternalId` | `buyer.createRefundTicket`                  | `RefundTicket`, `Refund`                                   |
+| `refundTicketMerchantExternalId` | `customer.createRefundTicket`               | `RefundTicket`, `Refund`                                   |
 
 The same field name appears at every layer it surfaces: request body, response entity, webhook payload (`data.orderMerchantExternalId` / `data.refundTicketMerchantExternalId`), and every GraphQL type that carries the value. A `refund.*` webhook event carries **both** keys (order key inherited from the originating order). Query by either key via GraphQL filters — see [GraphQL Guide](docs/graphql-guide.md).
 
@@ -531,11 +531,11 @@ try {
 | `client.checkout.authenticated`    | `create()`                                                                                                               | Authenticated checkout (recommended)    |
 | `client.checkout.anonymous`        | `create()`                                                                                                               | Anonymous checkout                      |
 | `client.checkout`                  | `createSession()`                                                                                                        | Low-level checkout session              |
-| `client.buyer(token)`              | `cancelSubscription()` `cancelOnetimeOrder()` `reactivateSubscription()` `createRefundTicket()` `resubmitRefundTicket()` | Buyer self-service                      |
-| `client.buyer(token).graphql`      | `query<T>()`                                                                                                             | Buyer-scoped GraphQL queries            |
+| `client.customer(token)`           | `cancelSubscription()` `cancelOnetimeOrder()` `reactivateSubscription()` `createRefundTicket()` `resubmitRefundTicket()` | Customer self-service                   |
+| `client.customer(token).graphql`   | `query<T>()`                                                                                                             | Customer-scoped GraphQL queries         |
 | `client.webhooks`                  | `verify<T>()` `add()` `update()` `remove()`                                                                              | Webhook config + signature verification |
 | `client.graphql`                   | `query<T>()`                                                                                                             | Merchant GraphQL queries                |
-| `client.auth`                      | `issueSessionToken()`                                                                                                    | Issue a buyer session token (JWT)       |
+| `client.auth`                      | `issueSessionToken()`                                                                                                    | Issue a customer session token (JWT)    |
 | `client.stores`                    | `create()` `update()` `delete()`                                                                                         | Store management                        |
 | `client.storeMerchants`            | `add()` `remove()` `updateRole()`                                                                                        | Store members (coming soon)             |
 | `client.onetimeProducts`           | `create()` `update()` `publish()` `updateStatus()`                                                                       | One-time products                       |
@@ -603,7 +603,7 @@ src/
 ├── index.ts               # Unified export entry
 ├── client.ts              # WaffoPancake main class
 ├── http-client.ts         # HTTP client (API Key, auto-signing + idempotency)
-├── buyer-http-client.ts   # HTTP client (Bearer token, buyer self-service)
+├── customer-http-client.ts   # HTTP client (Bearer token, customer self-service)
 ├── signing.ts             # RSA-SHA256 request signing
 ├── errors.ts              # WaffoPancakeError
 ├── webhooks.ts            # Webhook verification (embedded keys)
@@ -617,7 +617,7 @@ src/
     ├── onetime-products.ts
     ├── subscription-products.ts
     ├── subscription-product-groups.ts
-    ├── buyer.ts
+    ├── customer.ts
     ├── orders.ts
     ├── checkout.ts
     ├── checkout-anonymous.ts

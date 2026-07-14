@@ -375,8 +375,8 @@ All events include the **Order**, **Amount**, and **Product** sections. Addition
 | -------------------------------- | -------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `orderId`                        | `string` | Yes      | Associated order ID                                                                                                                                                                    |
 | `orderStatus`                    | `string` | No       | Order status (e.g., `"completed"`, `"active"`, `"canceling"`)                                                                                                                          |
-| `buyerEmail`                     | `string` | Yes      | Buyer email address                                                                                                                                                                    |
-| `merchantProvidedBuyerIdentity`  | `string` | No       | Merchant-provided buyer identity from checkout session                                                                                                                                 |
+| `buyerEmail`                     | `string` | Yes      | Customer email address                                                                                                                                                                 |
+| `merchantProvidedBuyerIdentity`  | `string` | No       | Merchant-provided customer identity from checkout session                                                                                                                              |
 | `orderMerchantExternalId`        | `string` | No       | Order business-side identifier set at checkout creation (max 128 chars). Present on order / payment / subscription events and on refund events (inherited from the originating order). |
 | `refundTicketMerchantExternalId` | `string` | No       | Refund-ticket business-side identifier set at refund-ticket creation. **Only present on `refund.*` events**; coexists with `orderMerchantExternalId` on the same refund payload.       |
 | `currency`                       | `string` | Yes      | Currency code (ISO 4217)                                                                                                                                                               |
@@ -432,18 +432,18 @@ All events include the **Order**, **Amount**, and **Product** sections. Addition
 
 ## Event Types
 
-| Enum Value                     | String                           | Trigger                                                         |
-| ------------------------------ | -------------------------------- | --------------------------------------------------------------- |
-| `OrderCompleted`               | `order.completed`                | One-time order first payment succeeded                          |
-| `SubscriptionActivated`        | `subscription.activated`         | New subscription activated                                      |
-| `SubscriptionPaymentSucceeded` | `subscription.payment_succeeded` | Subscription renewal payment succeeded                          |
-| `SubscriptionCanceling`        | `subscription.canceling`         | Buyer initiated cancellation (expires at end of billing period) |
-| `SubscriptionUncanceled`       | `subscription.uncanceled`        | Buyer withdrew cancellation request                             |
-| `SubscriptionUpdated`          | `subscription.updated`           | Subscription product changed (upgrade/downgrade)                |
-| `SubscriptionCanceled`         | `subscription.canceled`          | Subscription fully terminated                                   |
-| `SubscriptionPastDue`          | `subscription.past_due`          | Renewal payment failed (past due)                               |
-| `RefundSucceeded`              | `refund.succeeded`               | Refund completed successfully                                   |
-| `RefundFailed`                 | `refund.failed`                  | Refund failed                                                   |
+| Enum Value                     | String                           | Trigger                                                            |
+| ------------------------------ | -------------------------------- | ------------------------------------------------------------------ |
+| `OrderCompleted`               | `order.completed`                | One-time order first payment succeeded                             |
+| `SubscriptionActivated`        | `subscription.activated`         | New subscription activated                                         |
+| `SubscriptionPaymentSucceeded` | `subscription.payment_succeeded` | Subscription renewal payment succeeded                             |
+| `SubscriptionCanceling`        | `subscription.canceling`         | Customer initiated cancellation (expires at end of billing period) |
+| `SubscriptionUncanceled`       | `subscription.uncanceled`        | Customer withdrew cancellation request                             |
+| `SubscriptionUpdated`          | `subscription.updated`           | Subscription product changed (upgrade/downgrade)                   |
+| `SubscriptionCanceled`         | `subscription.canceled`          | Subscription fully terminated                                      |
+| `SubscriptionPastDue`          | `subscription.past_due`          | Renewal payment failed (past due)                                  |
+| `RefundSucceeded`              | `refund.succeeded`               | Refund completed successfully                                      |
+| `RefundFailed`                 | `refund.failed`                  | Refund failed                                                      |
 
 ## Key Rotation & Migration
 

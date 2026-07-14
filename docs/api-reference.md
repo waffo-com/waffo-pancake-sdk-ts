@@ -15,7 +15,7 @@ Complete reference for all `@waffo/pancake-ts` resources, parameters, and return
 
 ### `client.auth.issueSessionToken(params)`
 
-Issue a buyer session token (JWT) for storefront authentication.
+Issue a customer session token (JWT) for storefront authentication.
 
 ```typescript
 // With storeId
@@ -37,7 +37,7 @@ const { token, expiresAt } = await client.auth.issueSessionToken({
 | --------------- | -------- | -------- | ------------------------------------------------------------------------------------------------ |
 | `storeId`       | `string` | No       | Store ID (at least one of `storeId` / `productId` required)                                      |
 | `productId`     | `string` | No       | Product ID (at least one of `storeId` / `productId` required; server derives store from product) |
-| `buyerIdentity` | `string` | Yes      | Buyer identity (email or merchant-defined identifier)                                            |
+| `buyerIdentity` | `string` | Yes      | Customer identity (email or merchant-defined identifier)                                         |
 
 **Returns `SessionToken`**:
 
@@ -541,23 +541,23 @@ const { orderId, status } = await client.orders.cancelSubscription({
 
 ---
 
-## Buyer Self-Service
+## Customer Self-Service
 
-Issue a session token and create a buyer session to let buyers manage their own orders.
+Issue a session token and create a customer session to let customers manage their own orders.
 
-### `client.buyer(token)`
+### `client.customer(token)`
 
-Create a buyer session from a session token issued by `client.auth.issueSessionToken()`.
+Create a customer session from a session token issued by `client.auth.issueSessionToken()`.
 
 ```typescript
 const { token } = await client.auth.issueSessionToken({
   storeId: "STO_xxx",
   buyerIdentity: "customer@example.com",
 });
-const buyer = client.buyer(token);
+const customer = client.customer(token);
 ```
 
-### `buyer.cancelSubscription(params)`
+### `customer.cancelSubscription(params)`
 
 | Field     | Type     | Required | Description           |
 | --------- | -------- | -------- | --------------------- |
@@ -565,7 +565,7 @@ const buyer = client.buyer(token);
 
 **Returns `CancelSubscriptionResult`**: `{ orderId, status }` — status is `"canceling"` (active) or `"canceled"` (pending)
 
-### `buyer.cancelOnetimeOrder(params)`
+### `customer.cancelOnetimeOrder(params)`
 
 | Field     | Type     | Required | Description       |
 | --------- | -------- | -------- | ----------------- |
@@ -573,7 +573,7 @@ const buyer = client.buyer(token);
 
 **Returns `CancelOnetimeOrderResult`**: `{ orderId, status }` — status is `"canceled"`
 
-### `buyer.reactivateSubscription(params)`
+### `customer.reactivateSubscription(params)`
 
 | Field     | Type     | Required | Description                                           |
 | --------- | -------- | -------- | ----------------------------------------------------- |
@@ -581,7 +581,7 @@ const buyer = client.buyer(token);
 
 **Returns `ReactivateSubscriptionResult`**: `{ orderId, status }` — status is `"active"`
 
-### `buyer.createRefundTicket(params)`
+### `customer.createRefundTicket(params)`
 
 | Field                            | Type                      | Required | Description                                                                                                                                                                                       |
 | -------------------------------- | ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -600,7 +600,7 @@ const buyer = client.buyer(token);
 
 **Returns `{ ticket: RefundTicket }`**
 
-### `buyer.resubmitRefundTicket(params)`
+### `customer.resubmitRefundTicket(params)`
 
 | Field             | Type              | Required | Description           |
 | ----------------- | ----------------- | -------- | --------------------- |
@@ -611,9 +611,9 @@ const buyer = client.buyer(token);
 
 **Returns `{ ticket: RefundTicket }`**
 
-### `buyer.graphql.query<T>(params)`
+### `customer.graphql.query<T>(params)`
 
-Same parameters as `client.graphql.query<T>()` but scoped to the buyer's own data via session token.
+Same parameters as `client.graphql.query<T>()` but scoped to the customer's own data via session token.
 
 | Field       | Type                      | Required | Description          |
 | ----------- | ------------------------- | -------- | -------------------- |
@@ -626,32 +626,32 @@ Same parameters as `client.graphql.query<T>()` but scoped to the buyer's own dat
 
 ## Checkout
 
-Waffo supports two checkout modes based on whether the merchant knows the buyer's identity at checkout time:
+Waffo supports two checkout modes based on whether the merchant knows the customer's identity at checkout time:
 
-- **Authenticated** — the merchant has a user system or collects buyer info before checkout. The buyer's identity is provided upfront, the checkout form is pre-filled, and a session token is automatically issued.
-- **Anonymous** — the buyer arrives via a template store or shared link with no prior context. They fill in billing details manually on the checkout page.
+- **Authenticated** — the merchant has a user system or collects customer info before checkout. The customer's identity is provided upfront, the checkout form is pre-filled, and a session token is automatically issued.
+- **Anonymous** — the customer arrives via a template store or shared link with no prior context. They fill in billing details manually on the checkout page.
 
-> **Authenticated checkout is recommended.** The key advantage: the order is bound to the `buyerIdentity` you provide — a **merchant-controlled stable identifier**. Even if the buyer changes the email on the checkout form, the order stays tied to your identifier. In anonymous mode, the buyer self-reports their email, and a different address means a different user — **previous orders become unlinked** and **subscription trial periods can be exploited** (new email = new user = fresh trial). Additionally, anonymous checkout only supports creating orders — buyers cannot cancel orders, manage subscriptions, or submit refund tickets afterward.
+> **Authenticated checkout is recommended.** The key advantage: the order is bound to the `buyerIdentity` you provide — a **merchant-controlled stable identifier**. Even if the customer changes the email on the checkout form, the order stays tied to your identifier. In anonymous mode, the customer self-reports their email, and a different address means a different user — **previous orders become unlinked** and **subscription trial periods can be exploited** (new email = new user = fresh trial). Additionally, anonymous checkout only supports creating orders — customers cannot cancel orders, manage subscriptions, or submit refund tickets afterward.
 
 For advanced use cases, the low-level `createSession()` is also available.
 
 ### `client.checkout.authenticated.create(params)`
 
-Authenticated checkout — the merchant provides buyer identity. The SDK issues a session token, creates a checkout session, and returns a checkout URL with the token appended as a URL fragment (`#token=...`). The checkout page pre-fills buyer information from the token.
+Authenticated checkout — the merchant provides customer identity. The SDK issues a session token, creates a checkout session, and returns a checkout URL with the token appended as a URL fragment (`#token=...`). The checkout page pre-fills customer information from the token.
 
 Internally calls `POST /v1/actions/auth/issue-session-token` and `POST /v1/actions/checkout/create-session` in parallel.
 
 `buyerIdentity` is for order attribution and trial tracking only — it is not rendered on the checkout page. To pre-fill the email field on the checkout form, pass `buyerEmail` explicitly.
 
 ```typescript
-// One-time product with buyer identity (checkout page email field stays empty)
+// One-time product with customer identity (checkout page email field stays empty)
 const result = await client.checkout.authenticated.create({
   productId: "PROD_xxx",
   currency: "USD",
   buyerIdentity: "userIdInYourSystem",
   successUrl: "https://example.com/thank-you",
 });
-// => redirect buyer to result.checkoutUrl (includes #token=...)
+// => redirect customer to result.checkoutUrl (includes #token=...)
 
 // Subscription with trial and billing detail
 const subResult = await client.checkout.authenticated.create({
@@ -670,7 +670,7 @@ const subResult = await client.checkout.authenticated.create({
 | ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                     |
 | `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                   |
-| `buyerIdentity`           | `string`                 | Yes      | Buyer identity (email or merchant-defined identifier)                                                                                                                                      |
+| `buyerIdentity`           | `string`                 | Yes      | Customer identity (email or merchant-defined identifier)                                                                                                                                   |
 | `buyerEmail`              | `string`                 | No       | Pre-fill checkout page email field (independent from `buyerIdentity`)                                                                                                                      |
 | `billingDetail`           | `BillingDetail`          | No       | Pre-filled billing details (country, tax ID, etc.)                                                                                                                                         |
 | `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                         |
@@ -693,7 +693,7 @@ const subResult = await client.checkout.authenticated.create({
 
 ### `client.checkout.anonymous.create(params)`
 
-Anonymous checkout — visitor enters without a session token. The buyer fills in billing details manually on the checkout page.
+Anonymous checkout — visitor enters without a session token. The customer fills in billing details manually on the checkout page.
 
 Internally calls `POST /v1/actions/checkout/create-session`.
 
@@ -702,7 +702,7 @@ const result = await client.checkout.anonymous.create({
   productId: "PROD_xxx",
   currency: "USD",
 });
-// => redirect buyer to result.checkoutUrl (buyer fills form manually)
+// => redirect customer to result.checkoutUrl (customer fills form manually)
 
 // With price snapshot override
 const snapshotResult = await client.checkout.anonymous.create({
@@ -754,7 +754,7 @@ const session = await client.checkout.createSession({
 | `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                  |
 | `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                        |
 | `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                   |
-| `buyerEmail`              | `string`                 | No       | Pre-filled buyer email                                                                                                                                                                    |
+| `buyerEmail`              | `string`                 | No       | Pre-filled customer email                                                                                                                                                                 |
 | `billingDetail`           | `BillingDetail`          | No       | Pre-filled billing details (country, tax ID, etc.)                                                                                                                                        |
 | `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                     |
 | `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                                                                                                                                           |
@@ -881,8 +881,8 @@ All exported type interfaces:
 | **Order**                               |                                                           |
 | `CancelSubscriptionParams`              | Cancel subscription request                               |
 | `CancelSubscriptionResult`              | Cancel subscription response                              |
-| `BillingDetail`                         | Buyer billing details (country, tax ID, etc.)             |
-| **Buyer Self-Service**                  |                                                           |
+| `BillingDetail`                         | Customer billing details (country, tax ID, etc.)          |
+| **Customer Self-Service**               |                                                           |
 | `CancelOnetimeOrderParams`              | Cancel one-time order request                             |
 | `CancelOnetimeOrderResult`              | Cancel one-time order response                            |
 | `ReactivateSubscriptionParams`          | Reactivate subscription request                           |
@@ -892,7 +892,7 @@ All exported type interfaces:
 | `RefundTicket`                          | Refund ticket entity                                      |
 | `RequestedAmount`                       | Refund amount (`{ amount, currency }`)                    |
 | **Checkout**                            |                                                           |
-| `AuthenticatedCheckoutParams`           | Authenticated checkout request (with buyer identity)      |
+| `AuthenticatedCheckoutParams`           | Authenticated checkout request (with customer identity)   |
 | `AuthenticatedCheckoutResult`           | Authenticated checkout response (URL with token + expiry) |
 | `AnonymousCheckoutParams`               | Anonymous checkout request (no identity)                  |
 | `CreateCheckoutSessionParams`           | Low-level checkout session request                        |
