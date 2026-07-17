@@ -4,6 +4,15 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2026-07-17
+
+Adds cashier language selection to checkout sessions.
+
+### Added
+
+- **`CashierLanguage`** — exported union type of the 22 supported checkout cashier languages (IETF BCP 47, e.g. `"en"`, `"pt-BR"`, `"zh-Hant-TW"`).
+- **`CreateCheckoutSessionParams.language`** — optional cashier language, forwarded to `create-session`. Sets the hosted checkout page's default language; the customer can still switch it on the page. Omit to let the payment provider infer.
+
 ## [0.12.0] - 2026-07-14
 
 Renames the "buyer" persona to "customer" across the SDK's public API — "customer" is the Waffo term for the merchant's end consumer (the session-token JWT role). Old names remain available as deprecated aliases. Wire-level request and webhook field names (`buyerIdentity`, `buyerEmail`, `merchantProvidedBuyerIdentity`) are part of the server contract and are unchanged.

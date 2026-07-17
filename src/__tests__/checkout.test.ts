@@ -81,6 +81,7 @@ describe("checkout.anonymous", () => {
       darkMode: true,
       metadata: { ref: "campaign_1" },
       expiresInSeconds: 1800,
+      language: "pt-BR",
     });
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
@@ -90,6 +91,7 @@ describe("checkout.anonymous", () => {
     expect(body.darkMode).toBe(true);
     expect(body.metadata).toEqual({ ref: "campaign_1" });
     expect(body.expiresInSeconds).toBe(1800);
+    expect(body.language).toBe("pt-BR");
   });
 
   it("should forward buyerEmail and billingDetail when provided", async () => {
@@ -334,6 +336,7 @@ describe("checkout.authenticated", () => {
       darkMode: false,
       metadata: { campaign: "spring" },
       expiresInSeconds: 900,
+      language: "es-MX",
     });
 
     const sessionCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("create-session"));
@@ -344,6 +347,7 @@ describe("checkout.authenticated", () => {
     expect(sessionBody.darkMode).toBe(false);
     expect(sessionBody.metadata).toEqual({ campaign: "spring" });
     expect(sessionBody.expiresInSeconds).toBe(900);
+    expect(sessionBody.language).toBe("es-MX");
     // buyerIdentity should not leak into session body
     expect(sessionBody.buyerIdentity).toBeUndefined();
   });

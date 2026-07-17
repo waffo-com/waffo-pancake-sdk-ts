@@ -54,6 +54,7 @@ export type {
   // Webhook management
   StoreWebhook,
   WebhookChannel,
+  CashierLanguage,
   AddWebhookParams,
   UpdateWebhookParams,
   RemoveWebhookParams,

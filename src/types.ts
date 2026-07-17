@@ -838,6 +838,37 @@ export interface BillingDetail {
 }
 
 /**
+ * Supported checkout cashier languages (IETF BCP 47 tags).
+ *
+ * The default language of the hosted checkout page. Pass one of these values as
+ * {@link CreateCheckoutSessionParams.language}; the customer can still switch language
+ * on the checkout page. Language×currency mismatches are rejected by the payment provider.
+ */
+export type CashierLanguage =
+  | "en"
+  | "pt-BR"
+  | "es-MX"
+  | "id-ID"
+  | "vi-VN"
+  | "ru-RU"
+  | "en-KE"
+  | "es-PE"
+  | "es-CO"
+  | "es-CL"
+  | "zh-Hant-TW"
+  | "zh-Hant-HK"
+  | "th-TH"
+  | "ja-JP"
+  | "en-NG"
+  | "ko-KR"
+  | "en-HK"
+  | "zh-Hans-HK"
+  | "pl-PL"
+  | "tr-TR"
+  | "zh-Hans"
+  | "ms-MY";
+
+/**
  * Parameters for creating a checkout session.
  * @see waffo-pancake-order-service/app/lib/types.ts CreateCheckoutSessionRequest
  */
@@ -864,6 +895,11 @@ export interface CreateCheckoutSessionParams {
   metadata?: Record<string, string>;
   /** Order-side business identifier (max 128 chars); inherited by orders, payments, refunds */
   orderMerchantExternalId?: string;
+  /**
+   * Default language of the hosted checkout page ({@link CashierLanguage}, IETF BCP 47).
+   * The customer can switch language on the checkout page. Omit to let the provider infer.
+   */
+  language?: CashierLanguage;
 }
 
 /** Result of creating a checkout session. */
