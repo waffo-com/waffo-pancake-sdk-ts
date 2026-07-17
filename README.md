@@ -133,6 +133,7 @@ const result = await client.checkout.anonymous.create({
   priceSnapshot: { amount: "4.99", taxCategory: "saas" },
   withTrial: false, // skip trial for this session
   orderMerchantExternalId: "ORDER-2026-00891", // optional, API Key auth only
+  language: "pt-BR", // optional, sets the default checkout language (IETF BCP 47)
 });
 
 window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
@@ -584,7 +585,7 @@ try {
 
 ### Types
 
-Key types: `WaffoPancakeConfig`, `AuthenticatedCheckoutParams`, `AuthenticatedCheckoutResult`, `AnonymousCheckoutParams`, `CheckoutSessionResult`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `WebhookEvent<T>`, `WebhookEventData`, `GraphQLResponse<T>`, and 30+ more. `WebhookEventData` includes rich fields organized by section: order info, amounts, product, payment, subscription, and refund (conditional by event type). See [API Reference](docs/api-reference.md#types) for the full list.
+Key types: `WaffoPancakeConfig`, `AuthenticatedCheckoutParams`, `AuthenticatedCheckoutResult`, `AnonymousCheckoutParams`, `CheckoutSessionResult`, `CashierLanguage`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `WebhookEvent<T>`, `WebhookEventData`, `GraphQLResponse<T>`, and 30+ more. `WebhookEventData` includes rich fields organized by section: order info, amounts, product, payment, subscription, and refund (conditional by event type). See [API Reference](docs/api-reference.md#types) for the full list.
 
 ## Development
 

@@ -680,6 +680,7 @@ const subResult = await client.checkout.authenticated.create({
 | `darkMode`                | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)                                                                                                                            |
 | `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                            |
 | `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Surfaces under the same name on `Order` / `Payment` / `Refund` GraphQL types and in webhook payload (`data.orderMerchantExternalId`). |
+| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                          |
 
 **Returns `AuthenticatedCheckoutResult`**:
 
@@ -725,6 +726,7 @@ const snapshotResult = await client.checkout.anonymous.create({
 | `darkMode`                | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)                                                                                                                                               |
 | `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                                               |
 | `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Honored on the API Key path; visitor / store-slug flows silently drop it. Same field name in webhook payload and GraphQL `Order` / `Payment` / `Refund`. |
+| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                                             |
 
 **Returns `CheckoutSessionResult`**:
 
@@ -761,6 +763,7 @@ const session = await client.checkout.createSession({
 | `darkMode`                | `boolean`                | No       | Dark mode override                                                                                                                                                                        |
 | `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                           |
 | `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Honored on the API Key (merchant) path; visitor / store-slug flows silently drop it. Same field name in webhook payload and GraphQL. |
+| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                         |
 
 **`BillingDetail` fields**:
 
