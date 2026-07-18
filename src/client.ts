@@ -2,6 +2,7 @@ import { CustomerHttpClient } from "./customer-http-client.js";
 import { HttpClient } from "./http-client.js";
 import { AuthResource } from "./resources/auth.js";
 import { CheckoutResource } from "./resources/checkout.js";
+import { ContentSafetyResource } from "./resources/content-safety.js";
 import { CustomerSession } from "./resources/customer.js";
 import { GraphQLResource } from "./resources/graphql.js";
 import { OnetimeProductsResource } from "./resources/onetime-products.js";
@@ -79,6 +80,7 @@ export class WaffoPancake {
   readonly checkout: CheckoutResource;
   readonly graphql: GraphQLResource;
   readonly webhooks: WebhooksResource;
+  readonly contentSafety: ContentSafetyResource;
 
   constructor(config: WaffoPancakeConfig) {
     validateShortId("merchantId", config.merchantId, "MER");
@@ -95,6 +97,7 @@ export class WaffoPancake {
     this.checkout = new CheckoutResource(this.http);
     this.graphql = new GraphQLResource(this.http);
     this.webhooks = new WebhooksResource(this.http, config.webhookPublicKey);
+    this.contentSafety = new ContentSafetyResource(this.http);
   }
 
   /**

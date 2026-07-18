@@ -19,6 +19,11 @@ export {
   ProductVersionStatus,
   RefundStatus,
   RefundTicketStatus,
+  ScanAction,
+  ScanPolicyCategory,
+  ScanReasonCode,
+  ScanSemanticMode,
+  ScanSemanticStatus,
   StoreRole,
   SubscriptionOrderStatus,
   TaxCategory,
@@ -126,4 +131,8 @@ export type {
   WebhookEvent,
   WebhookEventData,
   WebhookPublicKeys,
+
+  // Content Safety
+  ScanPromptParams,
+  ScanResult,
 } from "./types.js";
