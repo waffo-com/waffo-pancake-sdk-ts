@@ -4,6 +4,15 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-07-18
+
+Adds content-safety prompt scanning for AIGC generation.
+
+### Added
+
+- `client.contentSafety.scanPrompt(params)` — scan a user prompt before AIGC generation; returns a redacted verdict (`action` = allow / review / block, continue only when `allow`). Stateless (prompt text never stored); fails closed to `review` if the safety service is briefly unavailable.
+- Types: `ScanPromptParams`, `ScanResult`; enums `ScanAction`, `ScanReasonCode`, `ScanPolicyCategory`, `ScanSemanticMode`, `ScanSemanticStatus`.
+
 ## [0.13.0] - 2026-07-17
 
 Adds cashier language selection to checkout sessions.

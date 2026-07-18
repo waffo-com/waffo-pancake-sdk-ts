@@ -103,7 +103,7 @@ export interface PostResult<T> extends Envelope<T> {
 
 /**
  * Environment type.
- * @see waffo-pancake-order-service/app/lib/types.ts
+ * @see docs/api-reference/authentication.mdx
  */
 export enum Environment {
   Test = "test",
@@ -112,7 +112,7 @@ export enum Environment {
 
 /**
  * Tax category for products.
- * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ * @see docs/api-reference/endpoints/onetime-products/overview.mdx
  */
 export enum TaxCategory {
   DigitalGoods = "digital_goods",
@@ -126,7 +126,7 @@ export enum TaxCategory {
 
 /**
  * Subscription billing period.
- * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ * @see docs/api-reference/endpoints/subscription-products/overview.mdx
  */
 export enum BillingPeriod {
   Weekly = "weekly",
@@ -137,7 +137,7 @@ export enum BillingPeriod {
 
 /**
  * Product version status.
- * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ * @see docs/api-reference/endpoints/onetime-products/overview.mdx
  */
 export enum ProductVersionStatus {
   Active = "active",
@@ -146,7 +146,7 @@ export enum ProductVersionStatus {
 
 /**
  * Store entity status.
- * @see waffo-pancake-store-service/app/lib/resources/store.ts
+ * @see docs/api-reference/endpoints/stores/overview.mdx
  */
 export enum EntityStatus {
   Active = "active",
@@ -156,7 +156,7 @@ export enum EntityStatus {
 
 /**
  * Store member role.
- * @see waffo-pancake-store-service/app/lib/resources/store.ts
+ * @see docs/api-reference/endpoints/stores/overview.mdx
  */
 export enum StoreRole {
   Owner = "owner",
@@ -166,7 +166,7 @@ export enum StoreRole {
 
 /**
  * One-time order status.
- * @see waffo-pancake-order-service/app/lib/resources/onetime-order.ts
+ * @see docs/api-reference/endpoints/orders/overview.mdx
  */
 export enum OnetimeOrderStatus {
   Pending = "pending",
@@ -186,7 +186,7 @@ export enum OnetimeOrderStatus {
  * - canceled -> terminal
  * - expired -> terminal
  *
- * @see waffo-pancake-order-service/app/lib/resources/subscription-order.ts
+ * @see docs/api-reference/endpoints/subscriptions/overview.mdx
  */
 export enum SubscriptionOrderStatus {
   Pending = "pending",
@@ -200,7 +200,7 @@ export enum SubscriptionOrderStatus {
 
 /**
  * Payment status.
- * @see waffo-pancake-order-service/app/lib/resources/payment.ts
+ * @see docs/api-reference/endpoints/orders/overview.mdx
  */
 export enum PaymentStatus {
   Pending = "pending",
@@ -211,7 +211,7 @@ export enum PaymentStatus {
 
 /**
  * Refund ticket status.
- * @see waffo-pancake-order-service/app/lib/resources/refund-ticket.ts
+ * @see docs/api-reference/endpoints/refunds/overview.mdx
  */
 export enum RefundTicketStatus {
   Pending = "pending",
@@ -227,7 +227,7 @@ export enum RefundTicketStatus {
 
 /**
  * Refund status.
- * @see waffo-pancake-order-service/app/lib/resources/refund.ts
+ * @see docs/api-reference/endpoints/refunds/overview.mdx
  */
 export enum RefundStatus {
   Succeeded = "succeeded",
@@ -236,7 +236,7 @@ export enum RefundStatus {
 
 /**
  * Media asset type.
- * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ * @see docs/api-reference/endpoints/onetime-products/overview.mdx
  */
 export enum MediaType {
   Image = "image",
@@ -269,7 +269,7 @@ export enum ErrorLayer {
  * Provide either `storeId` or `productId` (at least one required).
  * When `productId` is given without `storeId`, the server derives the store from the product.
  *
- * @see waffo-pancake-user-service/app/lib/utils/jwt.ts IssueSessionTokenRequest
+ * @see docs/api-reference/endpoints/auth/issue-session-token.mdx
  */
 export interface IssueSessionTokenParams {
   /**
@@ -311,7 +311,7 @@ export type WebhookChannel = "http" | "feishu" | "discord" | "telegram" | "slack
 /**
  * Configured webhook endpoint (one row of `store.store_webhooks`).
  *
- * @see waffo-pancake-store-service/app/lib/types.ts
+ * @see docs/api-reference/endpoints/webhooks/overview.mdx
  */
 export interface StoreWebhook {
   /** Webhook UUID (not Short ID) */
@@ -366,7 +366,7 @@ export interface RemoveWebhookParams {
 
 /**
  * Notification settings (all default to true).
- * @see waffo-pancake-store-service/app/lib/types.ts
+ * @see docs/api-reference/endpoints/stores/overview.mdx
  */
 export interface NotificationSettings {
   emailOrderConfirmation: boolean;
@@ -414,7 +414,7 @@ export type MerchantWritableNotificationSettings = Pick<
 
 /**
  * Single-theme checkout page styling.
- * @see waffo-pancake-store-service/app/lib/types.ts
+ * @see docs/api-reference/endpoints/stores/overview.mdx
  */
 export interface CheckoutThemeSettings {
   checkoutLogo: string | null;
@@ -427,7 +427,7 @@ export interface CheckoutThemeSettings {
 
 /**
  * Checkout page configuration (light and dark themes).
- * @see waffo-pancake-store-service/app/lib/types.ts
+ * @see docs/api-reference/endpoints/stores/overview.mdx
  */
 export interface CheckoutSettings {
   defaultDarkMode: boolean;
@@ -437,7 +437,7 @@ export interface CheckoutSettings {
 
 /**
  * Store entity.
- * @see waffo-pancake-store-service/app/lib/resources/store.ts
+ * @see docs/api-reference/endpoints/stores/overview.mdx
  */
 export interface Store {
   id: string;
@@ -555,7 +555,7 @@ export interface UpdateRoleResult {
  * Amounts are represented as display strings (e.g., "9.99" for USD, "1000" for JPY).
  * The server handles conversion to/from smallest currency units internally.
  *
- * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ * @see docs/api-reference/endpoints/onetime-products/overview.mdx
  *
  * @example
  * // USD $9.99
@@ -575,7 +575,7 @@ export interface PriceInfo {
 /**
  * Multi-currency prices (keyed by ISO 4217 currency code).
  *
- * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ * @see docs/api-reference/endpoints/onetime-products/overview.mdx
  *
  * @example
  * {
@@ -587,7 +587,7 @@ export type Prices = Record<string, PriceInfo>;
 
 /**
  * Media asset (image or video).
- * @see waffo-pancake-product-service/app/lib/resources/types.ts
+ * @see docs/api-reference/endpoints/onetime-products/overview.mdx
  */
 export interface MediaItem {
   /** Media type */
@@ -606,7 +606,7 @@ export interface MediaItem {
 
 /**
  * One-time product detail (public API shape).
- * @see waffo-pancake-product-service/app/lib/resources/onetime-product.ts OnetimeProductDetail
+ * @see docs/api-reference/endpoints/onetime-products/overview.mdx
  */
 export interface OnetimeProductDetail {
   id: string;
@@ -624,7 +624,7 @@ export interface OnetimeProductDetail {
 
 /**
  * Parameters for creating a one-time product.
- * @see waffo-pancake-product-service/app/lib/resources/onetime-product.ts CreateOnetimeProductRequestBody
+ * @see docs/api-reference/endpoints/onetime-products/create-product.mdx
  */
 export interface CreateOnetimeProductParams {
   storeId: string;
@@ -638,7 +638,7 @@ export interface CreateOnetimeProductParams {
 
 /**
  * Parameters for updating a one-time product (creates a new version; skips if unchanged).
- * @see waffo-pancake-product-service/app/lib/resources/onetime-product.ts UpdateOnetimeProductContentRequestBody
+ * @see docs/api-reference/endpoints/onetime-products/update-product.mdx
  */
 export interface UpdateOnetimeProductParams {
   id: string;
@@ -658,7 +658,7 @@ export interface PublishOnetimeProductParams {
 
 /**
  * Parameters for updating a one-time product's status.
- * @see waffo-pancake-product-service/app/lib/resources/onetime-product.ts UpdateOnetimeStatusRequestBody
+ * @see docs/api-reference/endpoints/onetime-products/update-status.mdx
  */
 export interface UpdateOnetimeStatusParams {
   id: string;
@@ -671,7 +671,7 @@ export interface UpdateOnetimeStatusParams {
 
 /**
  * Subscription product detail (public API shape).
- * @see waffo-pancake-product-service/app/lib/resources/subscription-product.ts SubscriptionProductDetail
+ * @see docs/api-reference/endpoints/subscription-products/overview.mdx
  */
 export interface SubscriptionProductDetail {
   id: string;
@@ -690,7 +690,7 @@ export interface SubscriptionProductDetail {
 
 /**
  * Parameters for creating a subscription product.
- * @see waffo-pancake-product-service/app/lib/resources/subscription-product.ts CreateSubscriptionProductRequestBody
+ * @see docs/api-reference/endpoints/subscription-products/create-product.mdx
  */
 export interface CreateSubscriptionProductParams {
   storeId: string;
@@ -705,7 +705,7 @@ export interface CreateSubscriptionProductParams {
 
 /**
  * Parameters for updating a subscription product (creates a new version; skips if unchanged).
- * @see waffo-pancake-product-service/app/lib/resources/subscription-product.ts UpdateSubscriptionProductContentRequestBody
+ * @see docs/api-reference/endpoints/subscription-products/update-product.mdx
  */
 export interface UpdateSubscriptionProductParams {
   id: string;
@@ -726,7 +726,7 @@ export interface PublishSubscriptionProductParams {
 
 /**
  * Parameters for updating a subscription product's status.
- * @see waffo-pancake-product-service/app/lib/resources/subscription-product.ts UpdateSubscriptionStatusRequestBody
+ * @see docs/api-reference/endpoints/subscription-products/update-status.mdx
  */
 export interface UpdateSubscriptionStatusParams {
   id: string;
@@ -739,7 +739,7 @@ export interface UpdateSubscriptionStatusParams {
 
 /**
  * Group rules for subscription product groups.
- * @see waffo-pancake-product-service/app/lib/resources/subscription-product-group.ts
+ * @see docs/api-reference/endpoints/subscription-products/overview.mdx
  */
 export interface GroupRules {
   /** Whether trial period is shared across products in the group */
@@ -748,7 +748,7 @@ export interface GroupRules {
 
 /**
  * Subscription product group entity.
- * @see waffo-pancake-product-service/app/lib/resources/subscription-product-group.ts
+ * @see docs/api-reference/endpoints/subscription-products/overview.mdx
  */
 export interface SubscriptionProductGroup {
   id: string;
@@ -764,7 +764,7 @@ export interface SubscriptionProductGroup {
 
 /**
  * Parameters for creating a subscription product group.
- * @see waffo-pancake-product-service/app/lib/resources/subscription-product-group.ts CreateGroupRequestBody
+ * @see docs/api-reference/endpoints/subscription-products/create-group.mdx
  */
 export interface CreateSubscriptionProductGroupParams {
   storeId: string;
@@ -776,7 +776,7 @@ export interface CreateSubscriptionProductGroupParams {
 
 /**
  * Parameters for updating a subscription product group (`productIds` is a full replacement).
- * @see waffo-pancake-product-service/app/lib/resources/subscription-product-group.ts UpdateGroupRequestBody
+ * @see docs/api-reference/endpoints/subscription-products/update-group.mdx
  */
 export interface UpdateSubscriptionProductGroupParams {
   id: string;
@@ -810,7 +810,7 @@ export interface CancelSubscriptionParams {
 
 /**
  * Result of canceling a subscription order.
- * @see waffo-pancake-order-service cancel-order route.ts
+ * @see docs/api-reference/endpoints/subscriptions/cancel-subscription.mdx
  */
 export interface CancelSubscriptionResult {
   orderId: string;
@@ -820,7 +820,7 @@ export interface CancelSubscriptionResult {
 
 /**
  * Customer billing details for checkout.
- * @see waffo-pancake-order-service/app/lib/types.ts
+ * @see docs/api-reference/endpoints/orders/overview.mdx
  */
 export interface BillingDetail {
   /** Country code (ISO 3166-1 alpha-2) */
@@ -870,7 +870,7 @@ export type CashierLanguage =
 
 /**
  * Parameters for creating a checkout session.
- * @see waffo-pancake-order-service/app/lib/types.ts CreateCheckoutSessionRequest
+ * @see docs/api-reference/endpoints/orders/create-checkout-session.mdx
  */
 export interface CreateCheckoutSessionParams {
   /** Product ID */
@@ -1309,4 +1309,90 @@ export interface VerifyWebhookOptions {
    * 5. Built-in hardcoded key
    */
   publicKeys?: WebhookPublicKeys;
+}
+
+// ---------------------------------------------------------------------------
+// Content Safety — from waffo-pancake-verification-service
+// ---------------------------------------------------------------------------
+
+/**
+ * Content-safety scan verdict.
+ * @see docs/api-reference/endpoints/content-safety/scan-prompt.mdx
+ */
+export enum ScanAction {
+  Allow = "allow",
+  Review = "review",
+  Block = "block",
+}
+
+/**
+ * Scan verdict reason code.
+ * @see docs/api-reference/endpoints/content-safety/scan-prompt.mdx
+ */
+export enum ScanReasonCode {
+  Allowed = "allowed",
+  ReviewRequired = "review_required",
+  RestrictedContent = "restricted_content",
+  ServiceDegraded = "service_degraded",
+}
+
+/**
+ * Matched content-safety policy category.
+ * @see docs/api-reference/endpoints/content-safety/scan-prompt.mdx
+ */
+export enum ScanPolicyCategory {
+  CsamMinor = "csam_minor",
+  SexualViolenceNonconsensual = "sexual_violence_nonconsensual",
+  UndressTransform = "undress_transform",
+  FaceSwapIdentity = "face_swap_identity",
+  BestialityRestricted = "bestiality_restricted",
+  AdultNsfw = "adult_nsfw",
+}
+
+/**
+ * Semantic scan channel mode.
+ * @see docs/api-reference/endpoints/content-safety/scan-prompt.mdx
+ */
+export enum ScanSemanticMode {
+  Off = "off",
+  Shadow = "shadow",
+  Enforce = "enforce",
+}
+
+/**
+ * Semantic scan channel status.
+ * @see docs/api-reference/endpoints/content-safety/scan-prompt.mdx
+ */
+export enum ScanSemanticStatus {
+  Disabled = "disabled",
+  Scored = "scored",
+  ShadowScored = "shadow_scored",
+  SkippedRulesBlock = "skipped_rules_block",
+  SkippedBudget = "skipped_budget",
+  ProviderTimeout = "provider_timeout",
+  ProviderError = "provider_error",
+}
+
+/** Parameters for scanning a prompt before AIGC generation. */
+export interface ScanPromptParams {
+  /** The user's text prompt to scan (1–10,000 characters). */
+  prompt: string;
+  /** Prompt text language (default "en"). */
+  locale?: "ja" | "en" | "zh";
+  /** How the external semantic channel participates. */
+  semantic?: ScanSemanticMode;
+}
+
+/** Redacted scan verdict — no scores, thresholds, or keyword text. */
+export interface ScanResult {
+  /** Final verdict; continue only when `allow`. */
+  action: ScanAction;
+  /** Stable machine-readable reason. */
+  reasonCode: ScanReasonCode;
+  /** Matched policy categories; empty when allowed. */
+  matchedCategories: ScanPolicyCategory[];
+  /** Correlation id for support and appeals; safe to log. */
+  requestId: string;
+  /** Whether/how the semantic channel contributed to this scan. */
+  semanticStatus: ScanSemanticStatus;
 }

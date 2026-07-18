@@ -507,6 +507,17 @@ const { orderId, status } = await client.orders.cancelSubscription({
 // status: "canceled" (was pending) or "canceling" (was active, PSP notified)
 ```
 
+### Content Safety
+
+Scan a user's prompt for content-safety compliance before AIGC generation — continue only when `action` is `allow`. Stateless (prompt text is never stored); fails closed to `review` if the safety service is briefly unavailable.
+
+```typescript
+const verdict = await client.contentSafety.scanPrompt({ prompt: "a cat riding a bike" });
+if (verdict.action !== "allow") {
+  // do not generate — verdict.action is "review" or "block"
+}
+```
+
 ## Error Handling
 
 API errors throw `WaffoPancakeError` with the HTTP status code and a call-stack-ordered errors array.
@@ -543,6 +554,7 @@ try {
 | `client.subscriptionProducts`      | `create()` `update()` `publish()` `updateStatus()`                                                                       | Subscription products                   |
 | `client.subscriptionProductGroups` | `create()` `update()` `delete()` `publish()`                                                                             | Product groups                          |
 | `client.orders`                    | `cancelSubscription()`                                                                                                   | Order management                        |
+| `client.contentSafety`             | `scanPrompt()`                                                                                                           | AIGC prompt content-safety scan         |
 
 ## Documentation
 
