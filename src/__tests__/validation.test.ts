@@ -12,6 +12,7 @@ import {
   validateCurrencyCode,
   validateEnum,
   validateMaxLength,
+  validatePaymentMethods,
   validatePositiveInteger,
   validatePrices,
   validateRequired,
@@ -266,6 +267,32 @@ describe("validateCheckoutCommon", () => {
 
   it("should validate billingDetail when present", () => {
     expect(() => validateCheckoutCommon({ ...valid, billingDetail: { country: "usa", isBusiness: false } })).toThrow(WaffoPancakeError);
+  });
+
+  it("should validate paymentMethods when present", () => {
+    expect(() => validateCheckoutCommon({ ...valid, paymentMethods: [] })).toThrow(WaffoPancakeError);
+  });
+});
+
+describe("validatePaymentMethods", () => {
+  it("should not throw when undefined (omitted, keeps current behavior)", () => {
+    expect(() => validatePaymentMethods(undefined)).not.toThrow();
+  });
+
+  it("should throw for an empty array", () => {
+    expect(() => validatePaymentMethods([])).toThrow(WaffoPancakeError);
+  });
+
+  it("should throw for a blank entry", () => {
+    expect(() => validatePaymentMethods(["CREDITCARD", ""])).toThrow(WaffoPancakeError);
+  });
+
+  it("should throw for duplicate entries", () => {
+    expect(() => validatePaymentMethods(["CREDITCARD", "CREDITCARD"])).toThrow(WaffoPancakeError);
+  });
+
+  it("should not throw for a valid ordered list", () => {
+    expect(() => validatePaymentMethods(["APPLEPAY", "CREDITCARD"])).not.toThrow();
   });
 });
 

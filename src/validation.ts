@@ -142,6 +142,28 @@ export function validateBillingDetail(detail: { country: string; isBusiness: boo
 }
 
 /**
+ * Validate the paymentMethods allowlist shape (non-empty, no duplicates, no blank entries).
+ * Whether a given method is actually available for the checkout's currency/product type is
+ * validated server-side against the authoritative capability source.
+ */
+export function validatePaymentMethods(methods: string[] | undefined): void {
+  if (methods === undefined) return;
+  if (methods.length === 0) {
+    fail("paymentMethods must not be empty");
+  }
+  const seen = new Set<string>();
+  for (const method of methods) {
+    if (!method) {
+      fail("paymentMethods entries must not be empty");
+    }
+    if (seen.has(method)) {
+      fail(`paymentMethods must not contain duplicates: ${method}`);
+    }
+    seen.add(method);
+  }
+}
+
+/**
  * Validate checkout session common fields.
  */
 export function validateCheckoutCommon(params: {
@@ -151,6 +173,7 @@ export function validateCheckoutCommon(params: {
   billingDetail?: { country: string; isBusiness: boolean };
   expiresInSeconds?: number;
   orderMerchantExternalId?: string;
+  paymentMethods?: string[];
 }): void {
   validateShortId("productId", params.productId, "PROD");
   validateCurrencyCode("currency", params.currency);
@@ -165,4 +188,5 @@ export function validateCheckoutCommon(params: {
     validatePositiveInteger("expiresInSeconds", params.expiresInSeconds);
   }
   validateMaxLength("orderMerchantExternalId", params.orderMerchantExternalId, 128);
+  validatePaymentMethods(params.paymentMethods);
 }
