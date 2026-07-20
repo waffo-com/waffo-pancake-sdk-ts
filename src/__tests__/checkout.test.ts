@@ -82,6 +82,7 @@ describe("checkout.anonymous", () => {
       metadata: { ref: "campaign_1" },
       expiresInSeconds: 1800,
       language: "pt-BR",
+      paymentMethods: ["APPLEPAY", "CREDITCARD"],
     });
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
@@ -92,6 +93,46 @@ describe("checkout.anonymous", () => {
     expect(body.metadata).toEqual({ ref: "campaign_1" });
     expect(body.expiresInSeconds).toBe(1800);
     expect(body.language).toBe("pt-BR");
+    expect(body.paymentMethods).toEqual(["APPLEPAY", "CREDITCARD"]);
+  });
+
+  it("should preserve merchant-specified paymentMethods order in the serialized body", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_methods",
+        checkoutUrl: "https://pancake.waffo.ai/store/s/checkout/cs_methods",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.anonymous.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      paymentMethods: ["EWALLET", "GOOGLEPAY", "CREDITCARD"],
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.paymentMethods).toEqual(["EWALLET", "GOOGLEPAY", "CREDITCARD"]);
+  });
+
+  it("should not send a paymentMethods key when omitted (backward compatibility)", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_default",
+        checkoutUrl: "https://pancake.waffo.ai/store/s/checkout/cs_default",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.anonymous.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect("paymentMethods" in body).toBe(false);
   });
 
   it("should forward buyerEmail and billingDetail when provided", async () => {

@@ -60,6 +60,7 @@ export type {
   StoreWebhook,
   WebhookChannel,
   CashierLanguage,
+  PaymentMethodId,
   AddWebhookParams,
   UpdateWebhookParams,
   RemoveWebhookParams,
