@@ -12,6 +12,7 @@ import {
   validateCurrencyCode,
   validateEnum,
   validateMaxLength,
+  validatePaymentMethods,
   validatePositiveInteger,
   validatePrices,
   validateRequired,
@@ -266,6 +267,36 @@ describe("validateCheckoutCommon", () => {
 
   it("should validate billingDetail when present", () => {
     expect(() => validateCheckoutCommon({ ...valid, billingDetail: { country: "usa", isBusiness: false } })).toThrow(WaffoPancakeError);
+  });
+
+  it("should validate paymentMethods when present", () => {
+    expect(() => validateCheckoutCommon({ ...valid, paymentMethods: [] })).toThrow(WaffoPancakeError);
+  });
+
+  it("should pass when paymentMethods is omitted", () => {
+    expect(() => validateCheckoutCommon(valid)).not.toThrow();
+  });
+});
+
+describe("validatePaymentMethods", () => {
+  it("should pass for undefined (optional field omitted)", () => {
+    expect(() => validatePaymentMethods("paymentMethods", undefined)).not.toThrow();
+  });
+
+  it("should pass for a valid non-empty ordered list", () => {
+    expect(() => validatePaymentMethods("paymentMethods", ["APPLEPAY", "CREDITCARD"])).not.toThrow();
+  });
+
+  it("should throw for an empty array", () => {
+    expect(() => validatePaymentMethods("paymentMethods", [])).toThrow(WaffoPancakeError);
+  });
+
+  it("should throw for an empty-string entry", () => {
+    expect(() => validatePaymentMethods("paymentMethods", ["CREDITCARD", ""])).toThrow(WaffoPancakeError);
+  });
+
+  it("should throw for duplicate entries", () => {
+    expect(() => validatePaymentMethods("paymentMethods", ["CREDITCARD", "CREDITCARD"])).toThrow(WaffoPancakeError);
   });
 });
 

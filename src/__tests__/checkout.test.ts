@@ -150,6 +150,88 @@ describe("checkout.anonymous", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
+  it("should forward paymentMethods, preserving order, in the request body", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_pm",
+        checkoutUrl: "https://pancake.waffo.ai/store/s/checkout/cs_pm",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.anonymous.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      paymentMethods: ["APPLEPAY", "CREDITCARD"],
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.paymentMethods).toEqual(["APPLEPAY", "CREDITCARD"]);
+  });
+
+  it("should not include paymentMethods in the request body when omitted (backward compatible)", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_no_pm",
+        checkoutUrl: "https://pancake.waffo.ai/store/s/checkout/cs_no_pm",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.anonymous.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.paymentMethods).toBeUndefined();
+    expect("paymentMethods" in body).toBe(false);
+  });
+
+  it("should reject an empty paymentMethods array without a network call", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    await expect(
+      client.checkout.anonymous.create({
+        productId: "PROD_0000000000000000000000",
+        currency: "USD",
+        paymentMethods: [],
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should reject duplicate paymentMethods entries without a network call", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    await expect(
+      client.checkout.anonymous.create({
+        productId: "PROD_0000000000000000000000",
+        currency: "USD",
+        paymentMethods: ["CREDITCARD", "CREDITCARD"],
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should reject an empty-string paymentMethods entry without a network call", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    await expect(
+      client.checkout.anonymous.create({
+        productId: "PROD_0000000000000000000000",
+        currency: "USD",
+        paymentMethods: [""],
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("should propagate API errors", async () => {
     const mockFetch = createErrorFetch(400, [{ message: "Invalid product", layer: "order" }]);
     const client = createClient(mockFetch);
@@ -431,5 +513,25 @@ describe("checkout.createSession (low-level)", () => {
 
     expect(result.sessionId).toBe("cs_low");
     expect(mockFetch).toHaveBeenCalledOnce();
+  });
+
+  it("should forward paymentMethods when provided directly", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_low_pm",
+        checkoutUrl: "https://pancake.waffo.ai/checkout/cs_low_pm",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.createSession({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      paymentMethods: ["GOOGLEPAY", "APPLEPAY", "CREDITCARD"],
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.paymentMethods).toEqual(["GOOGLEPAY", "APPLEPAY", "CREDITCARD"]);
   });
 });

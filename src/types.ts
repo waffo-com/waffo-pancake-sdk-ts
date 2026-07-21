@@ -900,6 +900,14 @@ export interface CreateCheckoutSessionParams {
    * The customer can switch language on the checkout page. Omit to let the provider infer.
    */
   language?: CashierLanguage;
+  /**
+   * Optional ordered allowlist of payment methods to show on the hosted checkout page
+   * (e.g. `["APPLEPAY", "CREDITCARD"]`). The cashier shows only these methods, in this
+   * order. Omit to preserve the current default behavior (all methods available for the
+   * checkout's currency/product type). Each method must currently be available for the
+   * requested currency and product type, or session creation is rejected.
+   */
+  paymentMethods?: string[];
 }
 
 /** Result of creating a checkout session. */

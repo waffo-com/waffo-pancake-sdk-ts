@@ -132,6 +132,29 @@ export function validatePrices(field: string, prices: Record<string, { amount: s
 }
 
 /**
+ * Validate the optional ordered payment method allowlist (when present).
+ *
+ * This only catches obviously malformed shapes (empty array, non-string/empty entries,
+ * duplicates) before a network request. Whether each method is actually available for the
+ * checkout's currency/product type is validated server-side against the real capability
+ * boundary, not duplicated here.
+ */
+export function validatePaymentMethods(field: string, value: string[] | undefined): void {
+  if (value === undefined) return;
+  if (value.length === 0) {
+    fail(`${field} must not be an empty array`);
+  }
+  for (const method of value) {
+    if (typeof method !== "string" || method.trim() === "") {
+      fail(`${field} entries must be non-empty strings`);
+    }
+  }
+  if (new Set(value).size !== value.length) {
+    fail(`${field} must not contain duplicate values`);
+  }
+}
+
+/**
  * Validate BillingDetail fields (when present).
  */
 export function validateBillingDetail(detail: { country: string; isBusiness: boolean }): void {
@@ -151,6 +174,7 @@ export function validateCheckoutCommon(params: {
   billingDetail?: { country: string; isBusiness: boolean };
   expiresInSeconds?: number;
   orderMerchantExternalId?: string;
+  paymentMethods?: string[];
 }): void {
   validateShortId("productId", params.productId, "PROD");
   validateCurrencyCode("currency", params.currency);
@@ -165,4 +189,5 @@ export function validateCheckoutCommon(params: {
     validatePositiveInteger("expiresInSeconds", params.expiresInSeconds);
   }
   validateMaxLength("orderMerchantExternalId", params.orderMerchantExternalId, 128);
+  validatePaymentMethods("paymentMethods", params.paymentMethods);
 }
