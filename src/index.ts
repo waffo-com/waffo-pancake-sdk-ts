@@ -121,6 +121,7 @@ export type {
   CancelSubscriptionResult,
   CheckoutSessionResult,
   CreateCheckoutSessionParams,
+  PaymentMethod,
 
   // GraphQL
   GraphQLParams,

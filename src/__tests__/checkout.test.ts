@@ -82,6 +82,7 @@ describe("checkout.anonymous", () => {
       metadata: { ref: "campaign_1" },
       expiresInSeconds: 1800,
       language: "pt-BR",
+      paymentMethods: ["CREDITCARD", "APPLEPAY"],
     });
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
@@ -92,6 +93,26 @@ describe("checkout.anonymous", () => {
     expect(body.metadata).toEqual({ ref: "campaign_1" });
     expect(body.expiresInSeconds).toBe(1800);
     expect(body.language).toBe("pt-BR");
+    expect(body.paymentMethods).toEqual(["CREDITCARD", "APPLEPAY"]);
+  });
+
+  it("should omit paymentMethods from the request body when not provided", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_no_pm",
+        checkoutUrl: "https://pancake.waffo.ai/store/s/checkout/cs_no_pm",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.anonymous.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.paymentMethods).toBeUndefined();
   });
 
   it("should forward buyerEmail and billingDetail when provided", async () => {
@@ -337,6 +358,7 @@ describe("checkout.authenticated", () => {
       metadata: { campaign: "spring" },
       expiresInSeconds: 900,
       language: "es-MX",
+      paymentMethods: ["EWALLET", "CREDITCARD"],
     });
 
     const sessionCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("create-session"));
@@ -348,6 +370,7 @@ describe("checkout.authenticated", () => {
     expect(sessionBody.metadata).toEqual({ campaign: "spring" });
     expect(sessionBody.expiresInSeconds).toBe(900);
     expect(sessionBody.language).toBe("es-MX");
+    expect(sessionBody.paymentMethods).toEqual(["EWALLET", "CREDITCARD"]);
     // buyerIdentity should not leak into session body
     expect(sessionBody.buyerIdentity).toBeUndefined();
   });

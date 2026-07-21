@@ -869,6 +869,15 @@ export type CashierLanguage =
   | "ms-MY";
 
 /**
+ * Supported checkout payment methods.
+ *
+ * Pass an ordered, non-empty list as {@link CreateCheckoutSessionParams.paymentMethods} to
+ * restrict the hosted cashier to only these methods, shown in the given order. Omit to show
+ * every method available for the checkout's currency and product type.
+ */
+export type PaymentMethod = "CREDITCARD" | "DEBITCARD" | "APPLEPAY" | "GOOGLEPAY" | "EWALLET";
+
+/**
  * Parameters for creating a checkout session.
  * @see docs/api-reference/endpoints/orders/create-checkout-session.mdx
  */
@@ -900,6 +909,13 @@ export interface CreateCheckoutSessionParams {
    * The customer can switch language on the checkout page. Omit to let the provider infer.
    */
   language?: CashierLanguage;
+  /**
+   * Ordered, non-empty allowlist of payment methods to show on the hosted cashier
+   * ({@link PaymentMethod}). The cashier shows only these methods, in this order, and the
+   * server rejects methods that are unknown, duplicated, or unavailable for the checkout's
+   * currency and product type. Omit to show every available method.
+   */
+  paymentMethods?: PaymentMethod[];
 }
 
 /** Result of creating a checkout session. */
