@@ -906,6 +906,14 @@ export interface CreateCheckoutSessionParams {
    * order. Omit to preserve the current default behavior (all methods available for the
    * checkout's currency/product type). Each method must currently be available for the
    * requested currency and product type, or session creation is rejected.
+   *
+   * This field is honored on every request made through this SDK — including
+   * `checkout.anonymous.create` — because every SDK request is signed with the merchant's
+   * API key regardless of whether a customer identity is attached ("anonymous" here means
+   * no customer identity, not unauthenticated). It only has no effect on a checkout session
+   * created by a *different* caller against the raw `/v1/actions/checkout/create-session`
+   * endpoint using store-slug (visitor) authentication instead of an API key — that request
+   * shape isn't reachable through this SDK.
    */
   paymentMethods?: string[];
 }
