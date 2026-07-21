@@ -869,6 +869,17 @@ export type CashierLanguage =
   | "ms-MY";
 
 /**
+ * Supported hosted-cashier payment method identifiers.
+ *
+ * Pass an ordered, non-empty subset as {@link CreateCheckoutSessionParams.paymentMethods}
+ * to restrict and order which methods the hosted cashier shows for that checkout. Pancake
+ * validates the requested methods against what is actually available for the checkout's
+ * currency, product type, and environment; unavailable or unknown values are rejected with
+ * a 4xx error rather than silently falling back.
+ */
+export type PaymentMethod = "CREDITCARD" | "DEBITCARD" | "APPLEPAY" | "GOOGLEPAY" | "EWALLET";
+
+/**
  * Parameters for creating a checkout session.
  * @see docs/api-reference/endpoints/orders/create-checkout-session.mdx
  */
@@ -900,6 +911,14 @@ export interface CreateCheckoutSessionParams {
    * The customer can switch language on the checkout page. Omit to let the provider infer.
    */
   language?: CashierLanguage;
+  /**
+   * Optional ordered, non-empty allow-list of payment methods ({@link PaymentMethod}) to
+   * show on the hosted cashier, in the given order. Omit to keep current default behavior
+   * (all methods available for the checkout's currency/product type, provider default order).
+   * Unavailable, unknown, duplicate, or empty values are rejected with a 4xx error and no
+   * session is created.
+   */
+  paymentMethods?: PaymentMethod[];
 }
 
 /** Result of creating a checkout session. */

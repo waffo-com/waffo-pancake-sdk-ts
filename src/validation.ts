@@ -87,6 +87,30 @@ export function validateEnum(field: string, value: string, allowed: string[]): v
   }
 }
 
+/** Payment method identifiers currently supported by the hosted cashier. */
+const SUPPORTED_PAYMENT_METHODS = ["CREDITCARD", "DEBITCARD", "APPLEPAY", "GOOGLEPAY", "EWALLET"];
+
+/**
+ * Validate an optional ordered payment-methods allow-list: non-empty when present, no
+ * duplicates, and every value a known identifier. This only catches obviously malformed
+ * input client-side — real availability (currency/product type/environment) is always
+ * re-validated server-side and cannot be bypassed by skipping this check.
+ */
+export function validatePaymentMethods(field: string, value: string[] | undefined): void {
+  if (value === undefined) return;
+  if (value.length === 0) {
+    fail(`${field} must not be empty when provided`);
+  }
+  if (new Set(value).size !== value.length) {
+    fail(`${field} must not contain duplicate values`);
+  }
+  for (const method of value) {
+    if (!SUPPORTED_PAYMENT_METHODS.includes(method)) {
+      fail(`Invalid ${field} entry: expected one of [${SUPPORTED_PAYMENT_METHODS.join(", ")}], got "${method}"`);
+    }
+  }
+}
+
 /**
  * Validate that an optional string does not exceed `max` characters.
  */
@@ -151,6 +175,7 @@ export function validateCheckoutCommon(params: {
   billingDetail?: { country: string; isBusiness: boolean };
   expiresInSeconds?: number;
   orderMerchantExternalId?: string;
+  paymentMethods?: string[];
 }): void {
   validateShortId("productId", params.productId, "PROD");
   validateCurrencyCode("currency", params.currency);
@@ -161,6 +186,7 @@ export function validateCheckoutCommon(params: {
   if (params.billingDetail) {
     validateBillingDetail(params.billingDetail);
   }
+  validatePaymentMethods("paymentMethods", params.paymentMethods);
   if (params.expiresInSeconds !== undefined) {
     validatePositiveInteger("expiresInSeconds", params.expiresInSeconds);
   }

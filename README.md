@@ -139,6 +139,38 @@ const result = await client.checkout.anonymous.create({
 window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
 ```
 
+### Restricting Payment Methods
+
+Pass an ordered, non-empty `paymentMethods` allow-list (works with both `authenticated` and
+`anonymous` checkout) to control which methods the hosted cashier shows, and in what order.
+Omit it to keep current default behavior (all methods available for the checkout's
+currency/product type, provider default order). Unavailable, unknown, or duplicate values are
+rejected with a 4xx error and no session is created — Pancake never silently falls back to an
+unrequested method.
+
+```typescript
+// Cards only
+const result = await client.checkout.anonymous.create({
+  productId: "PROD_xxx",
+  currency: "USD",
+  paymentMethods: ["CREDITCARD", "DEBITCARD"],
+});
+
+// Wallets first, cards as a fallback choice — cashier renders in this exact order
+const result2 = await client.checkout.authenticated.create({
+  productId: "PROD_xxx",
+  currency: "USD",
+  buyerIdentity: "userIdInYourSystem",
+  paymentMethods: ["APPLEPAY", "GOOGLEPAY", "CREDITCARD"],
+});
+```
+
+Supported identifiers ({@link PaymentMethod}): `CREDITCARD`, `DEBITCARD`, `APPLEPAY`,
+`GOOGLEPAY`, `EWALLET`. Availability still depends on the checkout's currency, product type,
+and environment — Pancake is the single source of truth and validates the requested list
+server-side even though the SDK also rejects obviously malformed input (empty/duplicate/unknown
+values) before making a network request.
+
 ### Opening the Checkout Page
 
 **We recommend opening the checkout page in a new tab** rather than navigating in the current page:

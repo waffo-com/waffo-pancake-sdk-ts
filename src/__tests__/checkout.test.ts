@@ -150,6 +150,87 @@ describe("checkout.anonymous", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
+  it("should forward paymentMethods in the request body, preserving order", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_methods",
+        checkoutUrl: "https://pancake.waffo.ai/store/s/checkout/cs_methods",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.anonymous.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      paymentMethods: ["EWALLET", "CREDITCARD"],
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.paymentMethods).toEqual(["EWALLET", "CREDITCARD"]);
+  });
+
+  it("should omit paymentMethods from the request body when not provided", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_no_methods",
+        checkoutUrl: "https://pancake.waffo.ai/store/s/checkout/cs_no_methods",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.anonymous.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.paymentMethods).toBeUndefined();
+  });
+
+  it("should reject an empty paymentMethods array client-side", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    await expect(
+      client.checkout.anonymous.create({
+        productId: "PROD_0000000000000000000000",
+        currency: "USD",
+        paymentMethods: [],
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should reject duplicate paymentMethods entries client-side", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    await expect(
+      client.checkout.anonymous.create({
+        productId: "PROD_0000000000000000000000",
+        currency: "USD",
+        paymentMethods: ["CREDITCARD", "CREDITCARD"],
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should reject an unknown paymentMethods entry client-side", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    await expect(
+      client.checkout.anonymous.create({
+        productId: "PROD_0000000000000000000000",
+        currency: "USD",
+        paymentMethods: ["ALIPAY" as never],
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("should propagate API errors", async () => {
     const mockFetch = createErrorFetch(400, [{ message: "Invalid product", layer: "order" }]);
     const client = createClient(mockFetch);
@@ -228,6 +309,37 @@ describe("checkout.authenticated", () => {
     expect(sessionBody.buyerEmail).toBeUndefined();
     // buyerIdentity must not leak into the session payload under any name
     expect(sessionBody.buyerIdentity).toBeUndefined();
+  });
+
+  it("should forward paymentMethods to create-session while keeping it out of issue-session-token", async () => {
+    const mockFetch = createMockFetch((url) => {
+      if (url.includes("issue-session-token")) {
+        return { data: { token: "jwt", expiresAt: "2026-04-02T09:05:00.000Z" } };
+      }
+      return {
+        data: {
+          sessionId: "cs_methods_auth",
+          checkoutUrl: "https://pancake.waffo.ai/checkout/cs_methods_auth",
+          expiresAt: "2026-04-02T10:00:00.000Z",
+        },
+      };
+    });
+    const client = createClient(mockFetch);
+
+    await client.checkout.authenticated.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      buyerIdentity: "user-id-123",
+      paymentMethods: ["CREDITCARD", "APPLEPAY"],
+    });
+
+    const tokenCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("issue-session-token"));
+    const sessionCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("create-session"));
+    const tokenBody = JSON.parse(tokenCall![1].body as string);
+    const sessionBody = JSON.parse(sessionCall![1].body as string);
+
+    expect(sessionBody.paymentMethods).toEqual(["CREDITCARD", "APPLEPAY"]);
+    expect(tokenBody.paymentMethods).toBeUndefined();
   });
 
   it("should use explicit buyerEmail when provided", async () => {
