@@ -75,6 +75,7 @@ Both modes support **dynamic pricing** and **trial control** at checkout time:
 
 - `priceSnapshot` — override the product's stored price with a custom amount (e.g., coupon, volume discount)
 - `withTrial` — explicitly enable or disable the trial period for subscriptions (`true` = force trial, `false` = skip trial, omit = use default rules)
+- `paymentMethods` — optional ordered allow-list restricting which payment methods the hosted cashier shows (e.g. `["card"]` for card-only, or `["card", "ewallet"]` to show card first). Omit to keep the default behavior (all methods available for the checkout's currency/product type). Values must be one of `"card"`, `"applepay"`, `"googlepay"`, `"ewallet"` — non-empty, no duplicates, and available for the checkout's currency/environment, or the request is rejected with a 400.
 
 ### Authenticated Checkout (Recommended)
 

@@ -666,21 +666,22 @@ const subResult = await client.checkout.authenticated.create({
 
 **Parameters `AuthenticatedCheckoutParams`**:
 
-| Field                     | Type                     | Required | Description                                                                                                                                                                                |
-| ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                     |
-| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                   |
-| `buyerIdentity`           | `string`                 | Yes      | Customer identity (email or merchant-defined identifier)                                                                                                                                   |
-| `buyerEmail`              | `string`                 | No       | Pre-fill checkout page email field (independent from `buyerIdentity`)                                                                                                                      |
-| `billingDetail`           | `BillingDetail`          | No       | Pre-filled billing details (country, tax ID, etc.)                                                                                                                                         |
-| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                         |
-| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                    |
-| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                      |
-| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                                                                                                                                            |
-| `darkMode`                | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)                                                                                                                            |
-| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                            |
-| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Surfaces under the same name on `Order` / `Payment` / `Refund` GraphQL types and in webhook payload (`data.orderMerchantExternalId`). |
-| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                          |
+| Field                     | Type                     | Required | Description                                                                                                                                                                                                                                                                                       |
+| ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                                                                                                                            |
+| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                                                                                                                          |
+| `buyerIdentity`           | `string`                 | Yes      | Customer identity (email or merchant-defined identifier)                                                                                                                                                                                                                                          |
+| `buyerEmail`              | `string`                 | No       | Pre-fill checkout page email field (independent from `buyerIdentity`)                                                                                                                                                                                                                             |
+| `billingDetail`           | `BillingDetail`          | No       | Pre-filled billing details (country, tax ID, etc.)                                                                                                                                                                                                                                                |
+| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                                                                                                                                |
+| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                                                                                                                           |
+| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                                                                                                                             |
+| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                                                                                                                                                                                                                                                   |
+| `darkMode`                | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)                                                                                                                                                                                                                                   |
+| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                                                                                                                                   |
+| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Surfaces under the same name on `Order` / `Payment` / `Refund` GraphQL types and in webhook payload (`data.orderMerchantExternalId`).                                                                                                        |
+| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                                                                                                                                 |
+| `paymentMethods`          | `PaymentMethod[]`        | No       | Ordered allow-list of payment methods (`"card"`, `"applepay"`, `"googlepay"`, `"ewallet"`). The hosted cashier only shows these, in this order. Omit to keep default behavior (all methods for the checkout's currency/product type). Non-empty, no duplicates; unavailable methods return a 400. |
 
 **Returns `AuthenticatedCheckoutResult`**:
 
@@ -715,18 +716,19 @@ const snapshotResult = await client.checkout.anonymous.create({
 
 **Parameters `AnonymousCheckoutParams`**:
 
-| Field                     | Type                     | Required | Description                                                                                                                                                                                                   |
-| ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                                        |
-| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                                      |
-| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                                            |
-| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                                       |
-| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                                         |
-| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                                                                                                                                                               |
-| `darkMode`                | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)                                                                                                                                               |
-| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                                               |
-| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Honored on the API Key path; visitor / store-slug flows silently drop it. Same field name in webhook payload and GraphQL `Order` / `Payment` / `Refund`. |
-| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                                             |
+| Field                     | Type                     | Required | Description                                                                                                                                                                                                                                |
+| ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                                                                     |
+| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                                                                   |
+| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                                                                         |
+| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                                                                    |
+| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                                                                      |
+| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                                                                                                                                                                                            |
+| `darkMode`                | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)                                                                                                                                                                            |
+| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                                                                            |
+| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Honored on the API Key path; visitor / store-slug flows silently drop it. Same field name in webhook payload and GraphQL `Order` / `Payment` / `Refund`.                              |
+| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                                                                          |
+| `paymentMethods`          | `PaymentMethod[]`        | No       | Ordered allow-list of payment methods (`"card"`, `"applepay"`, `"googlepay"`, `"ewallet"`). The hosted cashier only shows these, in this order. Omit to keep default behavior. Non-empty, no duplicates; unavailable methods return a 400. |
 
 **Returns `CheckoutSessionResult`**:
 
@@ -750,20 +752,21 @@ const session = await client.checkout.createSession({
 
 **Parameters `CreateCheckoutSessionParams`**:
 
-| Field                     | Type                     | Required | Description                                                                                                                                                                               |
-| ------------------------- | ------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                    |
-| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                  |
-| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                        |
-| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                   |
-| `buyerEmail`              | `string`                 | No       | Pre-filled customer email                                                                                                                                                                 |
-| `billingDetail`           | `BillingDetail`          | No       | Pre-filled billing details (country, tax ID, etc.)                                                                                                                                        |
-| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                     |
-| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                                                                                                                                           |
-| `darkMode`                | `boolean`                | No       | Dark mode override                                                                                                                                                                        |
-| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                           |
-| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Honored on the API Key (merchant) path; visitor / store-slug flows silently drop it. Same field name in webhook payload and GraphQL. |
-| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                         |
+| Field                     | Type                     | Required | Description                                                                                                                                                                                                                                |
+| ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                                                                     |
+| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                                                                   |
+| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                                                                         |
+| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                                                                    |
+| `buyerEmail`              | `string`                 | No       | Pre-filled customer email                                                                                                                                                                                                                  |
+| `billingDetail`           | `BillingDetail`          | No       | Pre-filled billing details (country, tax ID, etc.)                                                                                                                                                                                         |
+| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                                                                      |
+| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                                                                                                                                                                                            |
+| `darkMode`                | `boolean`                | No       | Dark mode override                                                                                                                                                                                                                         |
+| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                                                                            |
+| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Honored on the API Key (merchant) path; visitor / store-slug flows silently drop it. Same field name in webhook payload and GraphQL.                                                  |
+| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                                                                          |
+| `paymentMethods`          | `PaymentMethod[]`        | No       | Ordered allow-list of payment methods (`"card"`, `"applepay"`, `"googlepay"`, `"ewallet"`). The hosted cashier only shows these, in this order. Omit to keep default behavior. Non-empty, no duplicates; unavailable methods return a 400. |
 
 **`BillingDetail` fields**:
 
@@ -830,80 +833,81 @@ See [GraphQL Guide](graphql-guide.md) for introspection, filters, pagination, an
 
 All exported type interfaces:
 
-| Export                                  | Description                                               |
-| --------------------------------------- | --------------------------------------------------------- |
-| **Config**                              |                                                           |
-| `WaffoPancakeConfig`                    | Client configuration                                      |
-| **Response Envelope**                   |                                                           |
-| `ApiError`                              | Error object (`{ message, layer }`)                       |
-| `ApiErrorResponse`                      | Error response (`{ data: null, errors }`)                 |
-| `ApiResponse<T>`                        | Union of success and error responses                      |
-| `ApiSuccessResponse<T>`                 | Success response (`{ data: T }`)                          |
-| **Auth**                                |                                                           |
-| `IssueSessionTokenParams`               | Issue token request                                       |
-| `SessionToken`                          | Token response                                            |
-| **Store**                               |                                                           |
-| `Store`                                 | Store entity                                              |
-| `CreateStoreParams`                     | Create store request                                      |
-| `UpdateStoreParams`                     | Update store request                                      |
-| `DeleteStoreParams`                     | Delete store request                                      |
-| `WebhookSettings`                       | Webhook endpoint configuration (test/prod)                |
-| `NotificationSettings`                  | Email notification preferences                            |
-| `CheckoutSettings`                      | Checkout page theme (light/dark)                          |
-| `CheckoutThemeSettings`                 | Single-theme checkout styling                             |
-| **Store Merchant**                      |                                                           |
-| `AddMerchantParams`                     | Add merchant request                                      |
-| `AddMerchantResult`                     | Add merchant response                                     |
-| `RemoveMerchantParams`                  | Remove merchant request                                   |
-| `RemoveMerchantResult`                  | Remove merchant response                                  |
-| `UpdateRoleParams`                      | Update role request                                       |
-| `UpdateRoleResult`                      | Update role response                                      |
-| **Product (shared)**                    |                                                           |
-| `PriceInfo`                             | Single-currency price (amount in smallest unit)           |
-| `Prices`                                | Multi-currency prices (`Record<currencyCode, PriceInfo>`) |
-| `MediaItem`                             | Media asset (image or video)                              |
-| **Onetime Product**                     |                                                           |
-| `OnetimeProductDetail`                  | One-time product entity                                   |
-| `CreateOnetimeProductParams`            | Create request                                            |
-| `UpdateOnetimeProductParams`            | Update request (creates new version)                      |
-| `PublishOnetimeProductParams`           | Publish test → prod                                       |
-| `UpdateOnetimeStatusParams`             | Activate / deactivate                                     |
-| **Subscription Product**                |                                                           |
-| `SubscriptionProductDetail`             | Subscription product entity                               |
-| `CreateSubscriptionProductParams`       | Create request                                            |
-| `UpdateSubscriptionProductParams`       | Update request (creates new version)                      |
-| `PublishSubscriptionProductParams`      | Publish test → prod                                       |
-| `UpdateSubscriptionStatusParams`        | Activate / deactivate                                     |
-| **Subscription Product Group**          |                                                           |
-| `SubscriptionProductGroup`              | Product group entity                                      |
-| `GroupRules`                            | Group rules (shared trial, etc.)                          |
-| `CreateSubscriptionProductGroupParams`  | Create request                                            |
-| `UpdateSubscriptionProductGroupParams`  | Update request (`productIds` = full replacement)          |
-| `DeleteSubscriptionProductGroupParams`  | Delete request                                            |
-| `PublishSubscriptionProductGroupParams` | Publish test → prod                                       |
-| **Order**                               |                                                           |
-| `CancelSubscriptionParams`              | Cancel subscription request                               |
-| `CancelSubscriptionResult`              | Cancel subscription response                              |
-| `BillingDetail`                         | Customer billing details (country, tax ID, etc.)          |
-| **Customer Self-Service**               |                                                           |
-| `CancelOnetimeOrderParams`              | Cancel one-time order request                             |
-| `CancelOnetimeOrderResult`              | Cancel one-time order response                            |
-| `ReactivateSubscriptionParams`          | Reactivate subscription request                           |
-| `ReactivateSubscriptionResult`          | Reactivate subscription response                          |
-| `CreateRefundTicketParams`              | Create refund ticket request                              |
-| `ResubmitRefundTicketParams`            | Resubmit refund ticket request                            |
-| `RefundTicket`                          | Refund ticket entity                                      |
-| `RequestedAmount`                       | Refund amount (`{ amount, currency }`)                    |
-| **Checkout**                            |                                                           |
-| `AuthenticatedCheckoutParams`           | Authenticated checkout request (with customer identity)   |
-| `AuthenticatedCheckoutResult`           | Authenticated checkout response (URL with token + expiry) |
-| `AnonymousCheckoutParams`               | Anonymous checkout request (no identity)                  |
-| `CreateCheckoutSessionParams`           | Low-level checkout session request                        |
-| `CheckoutSessionResult`                 | Checkout session response (URL + expiry)                  |
-| **GraphQL**                             |                                                           |
-| `GraphQLParams`                         | GraphQL query parameters                                  |
-| `GraphQLResponse<T>`                    | GraphQL response envelope                                 |
-| **Webhook**                             |                                                           |
-| `WebhookEvent<T>`                       | Webhook event payload                                     |
-| `WebhookEventData`                      | Common event data fields                                  |
-| `VerifyWebhookOptions`                  | Verification options (environment, tolerance)             |
+| Export                                  | Description                                                                       |
+| --------------------------------------- | --------------------------------------------------------------------------------- |
+| **Config**                              |                                                                                   |
+| `WaffoPancakeConfig`                    | Client configuration                                                              |
+| **Response Envelope**                   |                                                                                   |
+| `ApiError`                              | Error object (`{ message, layer }`)                                               |
+| `ApiErrorResponse`                      | Error response (`{ data: null, errors }`)                                         |
+| `ApiResponse<T>`                        | Union of success and error responses                                              |
+| `ApiSuccessResponse<T>`                 | Success response (`{ data: T }`)                                                  |
+| **Auth**                                |                                                                                   |
+| `IssueSessionTokenParams`               | Issue token request                                                               |
+| `SessionToken`                          | Token response                                                                    |
+| **Store**                               |                                                                                   |
+| `Store`                                 | Store entity                                                                      |
+| `CreateStoreParams`                     | Create store request                                                              |
+| `UpdateStoreParams`                     | Update store request                                                              |
+| `DeleteStoreParams`                     | Delete store request                                                              |
+| `WebhookSettings`                       | Webhook endpoint configuration (test/prod)                                        |
+| `NotificationSettings`                  | Email notification preferences                                                    |
+| `CheckoutSettings`                      | Checkout page theme (light/dark)                                                  |
+| `CheckoutThemeSettings`                 | Single-theme checkout styling                                                     |
+| **Store Merchant**                      |                                                                                   |
+| `AddMerchantParams`                     | Add merchant request                                                              |
+| `AddMerchantResult`                     | Add merchant response                                                             |
+| `RemoveMerchantParams`                  | Remove merchant request                                                           |
+| `RemoveMerchantResult`                  | Remove merchant response                                                          |
+| `UpdateRoleParams`                      | Update role request                                                               |
+| `UpdateRoleResult`                      | Update role response                                                              |
+| **Product (shared)**                    |                                                                                   |
+| `PriceInfo`                             | Single-currency price (amount in smallest unit)                                   |
+| `Prices`                                | Multi-currency prices (`Record<currencyCode, PriceInfo>`)                         |
+| `MediaItem`                             | Media asset (image or video)                                                      |
+| **Onetime Product**                     |                                                                                   |
+| `OnetimeProductDetail`                  | One-time product entity                                                           |
+| `CreateOnetimeProductParams`            | Create request                                                                    |
+| `UpdateOnetimeProductParams`            | Update request (creates new version)                                              |
+| `PublishOnetimeProductParams`           | Publish test → prod                                                               |
+| `UpdateOnetimeStatusParams`             | Activate / deactivate                                                             |
+| **Subscription Product**                |                                                                                   |
+| `SubscriptionProductDetail`             | Subscription product entity                                                       |
+| `CreateSubscriptionProductParams`       | Create request                                                                    |
+| `UpdateSubscriptionProductParams`       | Update request (creates new version)                                              |
+| `PublishSubscriptionProductParams`      | Publish test → prod                                                               |
+| `UpdateSubscriptionStatusParams`        | Activate / deactivate                                                             |
+| **Subscription Product Group**          |                                                                                   |
+| `SubscriptionProductGroup`              | Product group entity                                                              |
+| `GroupRules`                            | Group rules (shared trial, etc.)                                                  |
+| `CreateSubscriptionProductGroupParams`  | Create request                                                                    |
+| `UpdateSubscriptionProductGroupParams`  | Update request (`productIds` = full replacement)                                  |
+| `DeleteSubscriptionProductGroupParams`  | Delete request                                                                    |
+| `PublishSubscriptionProductGroupParams` | Publish test → prod                                                               |
+| **Order**                               |                                                                                   |
+| `CancelSubscriptionParams`              | Cancel subscription request                                                       |
+| `CancelSubscriptionResult`              | Cancel subscription response                                                      |
+| `BillingDetail`                         | Customer billing details (country, tax ID, etc.)                                  |
+| **Customer Self-Service**               |                                                                                   |
+| `CancelOnetimeOrderParams`              | Cancel one-time order request                                                     |
+| `CancelOnetimeOrderResult`              | Cancel one-time order response                                                    |
+| `ReactivateSubscriptionParams`          | Reactivate subscription request                                                   |
+| `ReactivateSubscriptionResult`          | Reactivate subscription response                                                  |
+| `CreateRefundTicketParams`              | Create refund ticket request                                                      |
+| `ResubmitRefundTicketParams`            | Resubmit refund ticket request                                                    |
+| `RefundTicket`                          | Refund ticket entity                                                              |
+| `RequestedAmount`                       | Refund amount (`{ amount, currency }`)                                            |
+| **Checkout**                            |                                                                                   |
+| `AuthenticatedCheckoutParams`           | Authenticated checkout request (with customer identity)                           |
+| `AuthenticatedCheckoutResult`           | Authenticated checkout response (URL with token + expiry)                         |
+| `AnonymousCheckoutParams`               | Anonymous checkout request (no identity)                                          |
+| `CreateCheckoutSessionParams`           | Low-level checkout session request                                                |
+| `CheckoutSessionResult`                 | Checkout session response (URL + expiry)                                          |
+| `PaymentMethod`                         | Payment method identifier (`"card"` / `"applepay"` / `"googlepay"` / `"ewallet"`) |
+| **GraphQL**                             |                                                                                   |
+| `GraphQLParams`                         | GraphQL query parameters                                                          |
+| `GraphQLResponse<T>`                    | GraphQL response envelope                                                         |
+| **Webhook**                             |                                                                                   |
+| `WebhookEvent<T>`                       | Webhook event payload                                                             |
+| `WebhookEventData`                      | Common event data fields                                                          |
+| `VerifyWebhookOptions`                  | Verification options (environment, tolerance)                                     |

@@ -869,6 +869,15 @@ export type CashierLanguage =
   | "ms-MY";
 
 /**
+ * Supported payment method identifiers for the `paymentMethods` allow-list.
+ *
+ * `card` covers both credit and debit cards. `ewallet` is a single toggle for the provider's
+ * e-wallet channel (e.g. Alipay/WeChat Pay are not currently exposed as independently orderable
+ * identifiers — enabling/disabling `ewallet` controls them as one group).
+ */
+export type PaymentMethod = "card" | "applepay" | "googlepay" | "ewallet";
+
+/**
  * Parameters for creating a checkout session.
  * @see docs/api-reference/endpoints/orders/create-checkout-session.mdx
  */
@@ -900,6 +909,13 @@ export interface CreateCheckoutSessionParams {
    * The customer can switch language on the checkout page. Omit to let the provider infer.
    */
   language?: CashierLanguage;
+  /**
+   * Optional ordered allow-list of payment methods ({@link PaymentMethod}). The hosted cashier
+   * only shows these methods, in this order. Omit to keep the default behavior (all methods
+   * available for the checkout's currency/product type, provider default order). The list must
+   * be non-empty and free of duplicates; unavailable methods are rejected with a 400 error.
+   */
+  paymentMethods?: PaymentMethod[];
 }
 
 /** Result of creating a checkout session. */
