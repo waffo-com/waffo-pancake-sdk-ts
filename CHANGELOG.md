@@ -4,6 +4,15 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-07-22
+
+Adds an ordered payment-method allow-list to checkout sessions.
+
+### Added
+
+- **`PaymentMethod`** — exported union type of supported payment method identifiers (`"card"`, `"applepay"`, `"googlepay"`, `"ewallet"`).
+- **`CreateCheckoutSessionParams.paymentMethods`** — optional ordered allow-list, forwarded to `create-session`. The hosted cashier only shows these methods, in this order. Omit to keep the default behavior (all methods available for the checkout's currency/product type). Non-empty, no duplicates; unavailable methods are rejected with a 400 error.
+
 ## [0.14.0] - 2026-07-18
 
 Adds content-safety prompt scanning for AIGC generation.
