@@ -136,6 +136,87 @@ describe("checkout.anonymous", () => {
     expect(body.orderMerchantExternalId).toBe("ORDER-2026-00891");
   });
 
+  it("should forward paymentMethods in the given order", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_methods",
+        checkoutUrl: "https://pancake.waffo.ai/store/s/checkout/cs_methods",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.anonymous.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      paymentMethods: ["EWALLET", "CREDITCARD"],
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.paymentMethods).toEqual(["EWALLET", "CREDITCARD"]);
+  });
+
+  it("should not include paymentMethods in the request body when omitted", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_no_methods",
+        checkoutUrl: "https://pancake.waffo.ai/store/s/checkout/cs_no_methods",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.anonymous.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body).not.toHaveProperty("paymentMethods");
+  });
+
+  it("should reject an empty paymentMethods array", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    await expect(
+      client.checkout.anonymous.create({
+        productId: "PROD_0000000000000000000000",
+        currency: "USD",
+        paymentMethods: [],
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should reject an unknown paymentMethods entry", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    await expect(
+      client.checkout.anonymous.create({
+        productId: "PROD_0000000000000000000000",
+        currency: "USD",
+        paymentMethods: ["BITCOIN" as never],
+      }),
+    ).rejects.toThrow(/Invalid paymentMethods entry/);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should reject duplicate paymentMethods entries", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    await expect(
+      client.checkout.anonymous.create({
+        productId: "PROD_0000000000000000000000",
+        currency: "USD",
+        paymentMethods: ["CREDITCARD", "CREDITCARD"],
+      }),
+    ).rejects.toThrow(/duplicates/);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("should reject orderMerchantExternalId exceeding 128 characters", async () => {
     const mockFetch = vi.fn();
     const client = createClient(mockFetch);
@@ -381,6 +462,36 @@ describe("checkout.authenticated", () => {
     const tokenCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("issue-session-token"));
     const tokenBody = JSON.parse(tokenCall![1].body as string);
     expect(tokenBody.orderMerchantExternalId).toBeUndefined();
+  });
+
+  it("should forward paymentMethods to create-session but not to issue-session-token", async () => {
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes("issue-session-token")) {
+        return { status: 200, json: () => Promise.resolve({ data: { token: "jwt.pm", expiresAt: "2026-04-02T10:00:00.000Z" } }) };
+      }
+      return {
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: { sessionId: "cs_pm", checkoutUrl: "https://pancake.waffo.ai/checkout/cs_pm", expiresAt: "2026-04-02T10:00:00.000Z" },
+          }),
+      };
+    });
+    const client = createClient(mockFetch);
+
+    await client.checkout.authenticated.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      buyerIdentity: "customer@example.com",
+      paymentMethods: ["APPLEPAY", "GOOGLEPAY"],
+    });
+
+    const sessionCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("create-session"));
+    const sessionBody = JSON.parse(sessionCall![1].body as string);
+    expect(sessionBody.paymentMethods).toEqual(["APPLEPAY", "GOOGLEPAY"]);
+    const tokenCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("issue-session-token"));
+    const tokenBody = JSON.parse(tokenCall![1].body as string);
+    expect(tokenBody.paymentMethods).toBeUndefined();
   });
 
   it("should reject orderMerchantExternalId exceeding 128 characters", async () => {

@@ -141,6 +141,26 @@ export function validateBillingDetail(detail: { country: string; isBusiness: boo
   }
 }
 
+/** Supported checkout payment method identifiers (mirrors {@link PaymentMethod}). */
+const SUPPORTED_PAYMENT_METHODS = ["CREDITCARD", "DEBITCARD", "APPLEPAY", "GOOGLEPAY", "EWALLET"];
+
+/**
+ * Validate the ordered payment method whitelist (format only; availability is checked server-side).
+ */
+export function validatePaymentMethods(field: string, methods: string[]): void {
+  if (methods.length === 0) {
+    fail(`${field} must not be empty`);
+  }
+  for (const method of methods) {
+    if (!SUPPORTED_PAYMENT_METHODS.includes(method)) {
+      fail(`Invalid ${field} entry "${method}", must be one of: ${SUPPORTED_PAYMENT_METHODS.join(", ")}`);
+    }
+  }
+  if (new Set(methods).size !== methods.length) {
+    fail(`${field} must not contain duplicates`);
+  }
+}
+
 /**
  * Validate checkout session common fields.
  */
@@ -151,6 +171,7 @@ export function validateCheckoutCommon(params: {
   billingDetail?: { country: string; isBusiness: boolean };
   expiresInSeconds?: number;
   orderMerchantExternalId?: string;
+  paymentMethods?: string[];
 }): void {
   validateShortId("productId", params.productId, "PROD");
   validateCurrencyCode("currency", params.currency);
@@ -165,4 +186,7 @@ export function validateCheckoutCommon(params: {
     validatePositiveInteger("expiresInSeconds", params.expiresInSeconds);
   }
   validateMaxLength("orderMerchantExternalId", params.orderMerchantExternalId, 128);
+  if (params.paymentMethods !== undefined) {
+    validatePaymentMethods("paymentMethods", params.paymentMethods);
+  }
 }

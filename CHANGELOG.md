@@ -4,6 +4,16 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-07-22
+
+Adds an optional ordered payment method whitelist to checkout session creation (WAF-508).
+
+### Added
+
+- `CreateCheckoutSessionParams.paymentMethods?: PaymentMethod[]` — restrict and order which payment methods the hosted checkout page offers. Non-empty, no duplicates, and must actually be available for the session's currency/environment/product type, or `create-session` returns a 4xx error. Omitting the field keeps current default behavior.
+- New type `PaymentMethod` (`"CREDITCARD" | "DEBITCARD" | "APPLEPAY" | "GOOGLEPAY" | "EWALLET"`), exported from the package root.
+- Client-side format validation (non-empty, known identifiers, no duplicates) added to `validateCheckoutCommon`.
+
 ## [0.14.0] - 2026-07-18
 
 Adds content-safety prompt scanning for AIGC generation.
