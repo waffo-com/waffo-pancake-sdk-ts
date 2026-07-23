@@ -869,6 +869,16 @@ export type CashierLanguage =
   | "ms-MY";
 
 /**
+ * Supported checkout payment method identifiers.
+ *
+ * These reflect the payment methods Pancake's PSP integration can actually offer at
+ * checkout (card networks, wallets); they are not provider-specific local payment
+ * methods (e.g. no separate Alipay/WeChat identifiers exist today — the closest
+ * generic bucket for either is `"EWALLET"`).
+ */
+export type PaymentMethodId = "CREDITCARD" | "DEBITCARD" | "APPLEPAY" | "GOOGLEPAY" | "EWALLET";
+
+/**
  * Parameters for creating a checkout session.
  * @see docs/api-reference/endpoints/orders/create-checkout-session.mdx
  */
@@ -900,6 +910,14 @@ export interface CreateCheckoutSessionParams {
    * The customer can switch language on the checkout page. Omit to let the provider infer.
    */
   language?: CashierLanguage;
+  /**
+   * Optional, non-empty, ordered whitelist of payment methods to offer at checkout
+   * ({@link PaymentMethodId}). The hosted cashier shows only these methods, in this
+   * order. Omit to keep the existing default behavior (all methods available for the
+   * checkout's currency/product type). Methods not actually available for the
+   * checkout context are rejected with a 400 error — no fallback is silently added.
+   */
+  paymentMethods?: PaymentMethodId[];
 }
 
 /** Result of creating a checkout session. */

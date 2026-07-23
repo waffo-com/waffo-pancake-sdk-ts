@@ -12,7 +12,10 @@
 
 import { WaffoPancakeError } from "./errors.js";
 
+import type { PaymentMethodId } from "./types.js";
+
 const SHORT_ID_REGEX = /^[A-Z]{2,5}_[0-9A-Za-z]{22}$/;
+const SUPPORTED_PAYMENT_METHODS: readonly PaymentMethodId[] = ["CREDITCARD", "DEBITCARD", "APPLEPAY", "GOOGLEPAY", "EWALLET"];
 const CURRENCY_CODE_REGEX = /^[A-Z]{3}$/;
 const COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 const AMOUNT_STRING_REGEX = /^\d+(\.\d+)?$/;
@@ -142,6 +145,28 @@ export function validateBillingDetail(detail: { country: string; isBusiness: boo
 }
 
 /**
+ * Validate an optional ordered payment-method whitelist (when present):
+ * non-empty, no duplicates, and every value a known payment method identifier.
+ *
+ * Does NOT validate whether a method is actually available for a given checkout
+ * (currency/product type/store) — that is enforced server-side.
+ */
+export function validatePaymentMethods(field: string, value: PaymentMethodId[] | undefined): void {
+  if (value === undefined) return;
+  if (!Array.isArray(value) || value.length === 0) {
+    fail(`${field} must be a non-empty array when provided`);
+  }
+  if (new Set(value).size !== value.length) {
+    fail(`${field} must not contain duplicate values`);
+  }
+  for (const method of value) {
+    if (!SUPPORTED_PAYMENT_METHODS.includes(method)) {
+      fail(`Invalid ${field}: expected one of [${SUPPORTED_PAYMENT_METHODS.join(", ")}], got "${method}"`);
+    }
+  }
+}
+
+/**
  * Validate checkout session common fields.
  */
 export function validateCheckoutCommon(params: {
@@ -151,6 +176,7 @@ export function validateCheckoutCommon(params: {
   billingDetail?: { country: string; isBusiness: boolean };
   expiresInSeconds?: number;
   orderMerchantExternalId?: string;
+  paymentMethods?: PaymentMethodId[];
 }): void {
   validateShortId("productId", params.productId, "PROD");
   validateCurrencyCode("currency", params.currency);
@@ -165,4 +191,5 @@ export function validateCheckoutCommon(params: {
     validatePositiveInteger("expiresInSeconds", params.expiresInSeconds);
   }
   validateMaxLength("orderMerchantExternalId", params.orderMerchantExternalId, 128);
+  validatePaymentMethods("paymentMethods", params.paymentMethods);
 }

@@ -12,6 +12,7 @@ import {
   validateCurrencyCode,
   validateEnum,
   validateMaxLength,
+  validatePaymentMethods,
   validatePositiveInteger,
   validatePrices,
   validateRequired,
@@ -266,6 +267,44 @@ describe("validateCheckoutCommon", () => {
 
   it("should validate billingDetail when present", () => {
     expect(() => validateCheckoutCommon({ ...valid, billingDetail: { country: "usa", isBusiness: false } })).toThrow(WaffoPancakeError);
+  });
+
+  it("should pass when paymentMethods is a valid non-empty ordered list", () => {
+    expect(() => validateCheckoutCommon({ ...valid, paymentMethods: ["APPLEPAY", "CREDITCARD"] })).not.toThrow();
+  });
+
+  it("should throw when paymentMethods is an empty array", () => {
+    expect(() => validateCheckoutCommon({ ...valid, paymentMethods: [] })).toThrow(WaffoPancakeError);
+  });
+
+  it("should throw when paymentMethods contains an unknown identifier", () => {
+    expect(() => validateCheckoutCommon({ ...valid, paymentMethods: ["ALIPAY"] as never })).toThrow(WaffoPancakeError);
+  });
+
+  it("should throw when paymentMethods contains duplicates", () => {
+    expect(() => validateCheckoutCommon({ ...valid, paymentMethods: ["CREDITCARD", "CREDITCARD"] })).toThrow(WaffoPancakeError);
+  });
+});
+
+describe("validatePaymentMethods", () => {
+  it("should pass for a valid non-empty ordered list", () => {
+    expect(() => validatePaymentMethods("paymentMethods", ["APPLEPAY", "CREDITCARD"])).not.toThrow();
+  });
+
+  it("should pass when omitted (undefined)", () => {
+    expect(() => validatePaymentMethods("paymentMethods", undefined)).not.toThrow();
+  });
+
+  it("should throw for an empty array", () => {
+    expect(() => validatePaymentMethods("paymentMethods", [])).toThrow(WaffoPancakeError);
+  });
+
+  it("should throw for an unknown identifier", () => {
+    expect(() => validatePaymentMethods("paymentMethods", ["WECHAT"] as never)).toThrow(WaffoPancakeError);
+  });
+
+  it("should throw for duplicate values", () => {
+    expect(() => validatePaymentMethods("paymentMethods", ["GOOGLEPAY", "GOOGLEPAY"])).toThrow(WaffoPancakeError);
   });
 });
 
