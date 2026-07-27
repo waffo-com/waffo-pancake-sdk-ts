@@ -4,6 +4,18 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-07-27
+
+Notification settings contract update for platform-managed payout notifications.
+
+### Added
+
+- `NotificationSettings.emailUpcomingCharge` — platform-managed toggle for the upcoming-charge reminder email (renewal notice sent before a subscription charge).
+
+### Removed
+
+- **Breaking**: `NotificationSettings.notifyPayoutCompleted` / `notifyPayoutFailed` and their entries in `MerchantWritableNotificationSettings`. Payout result emails are platform-managed and always delivered (merchant-level platform notification) — they have no toggle. The `update-store` endpoint silently drops the legacy keys with a `warnings[]` entry.
+
 ## [0.14.0] - 2026-07-18
 
 Adds content-safety prompt scanning for AIGC generation.

@@ -377,6 +377,7 @@ export interface NotificationSettings {
   emailSubscriptionPastDue: boolean;
   emailTrialStarted: boolean;
   emailTrialEnding: boolean;
+  emailUpcomingCharge: boolean;
   notifyNewOrders: boolean;
   notifyNewSubscriptions: boolean;
   notifySubscriptionCanceled: boolean;
@@ -386,16 +387,15 @@ export interface NotificationSettings {
   notifySubscriptionUncanceled: boolean;
   notifySubscriptionUpdated: boolean;
   notifyChargeback: boolean;
-  notifyPayoutCompleted: boolean;
-  notifyPayoutFailed: boolean;
 }
 
 /**
  * Merchant-writable subset of {@link NotificationSettings}.
  *
- * Consumer-email toggles (`email*`) are managed by the PANCAKE platform (admin-only
- * via DB) and **not** writable from this SDK; they would be silently dropped by the
- * `update-store` endpoint if included. Use this type for any merchant-side update.
+ * Consumer-email toggles (`email*`) are managed by the PANCAKE platform and **not**
+ * writable from this SDK; they would be silently dropped by the `update-store`
+ * endpoint if included. Payout result notifications are platform-managed and always
+ * delivered — they have no toggle key. Use this type for any merchant-side update.
  */
 export type MerchantWritableNotificationSettings = Pick<
   NotificationSettings,
@@ -408,8 +408,6 @@ export type MerchantWritableNotificationSettings = Pick<
   | "notifySubscriptionUncanceled"
   | "notifySubscriptionUpdated"
   | "notifyChargeback"
-  | "notifyPayoutCompleted"
-  | "notifyPayoutFailed"
 >;
 
 /**
