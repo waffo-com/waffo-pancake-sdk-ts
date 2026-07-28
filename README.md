@@ -134,6 +134,7 @@ const result = await client.checkout.anonymous.create({
   withTrial: false, // skip trial for this session
   orderMerchantExternalId: "ORDER-2026-00891", // optional, API Key auth only
   language: "pt-BR", // optional, sets the default checkout language (IETF BCP 47)
+  includePaymentMethods: ["card", "applepay"], // optional whitelist; or excludePaymentMethods to drop specific ones
 });
 
 window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
