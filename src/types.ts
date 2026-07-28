@@ -867,6 +867,16 @@ export type CashierLanguage =
   | "ms-MY";
 
 /**
+ * Payment methods that can be offered on the hosted checkout page.
+ *
+ * Availability depends on the product type × currency pair. One-time: `USD` supports all four;
+ * `EUR` / `GBP` / `HKD` / `JPY` support `card` / `applepay` / `googlepay`; `CNY` supports `wechat`.
+ * Subscription: `USD` / `EUR` / `GBP` / `HKD` / `JPY` support `card` / `applepay` / `googlepay`.
+ * Currencies outside this matrix cannot be charged at all — checkout session creation is rejected with a 400.
+ */
+export type PaymentMethod = "card" | "applepay" | "googlepay" | "wechat";
+
+/**
  * Parameters for creating a checkout session.
  * @see docs/api-reference/endpoints/orders/create-checkout-session.mdx
  */
@@ -898,6 +908,19 @@ export interface CreateCheckoutSessionParams {
    * The customer can switch language on the checkout page. Omit to let the provider infer.
    */
   language?: CashierLanguage;
+  /**
+   * Whitelist — offer only these payment methods ({@link PaymentMethod}).
+   * Every value must be supported by the product type × currency pair, otherwise the request is rejected.
+   * Mutually exclusive with {@link CreateCheckoutSessionParams.excludePaymentMethods}.
+   * Omit both to offer every method the currency supports.
+   */
+  includePaymentMethods?: PaymentMethod[];
+  /**
+   * Blacklist — offer every method the currency supports except these ({@link PaymentMethod}).
+   * Values the currency does not offer are ignored, so one blacklist can be reused across currencies.
+   * Mutually exclusive with {@link CreateCheckoutSessionParams.includePaymentMethods}.
+   */
+  excludePaymentMethods?: PaymentMethod[];
 }
 
 /** Result of creating a checkout session. */

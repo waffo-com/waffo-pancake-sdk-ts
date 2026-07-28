@@ -82,6 +82,7 @@ describe("checkout.anonymous", () => {
       metadata: { ref: "campaign_1" },
       expiresInSeconds: 1800,
       language: "pt-BR",
+      includePaymentMethods: ["card", "applepay"],
     });
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
@@ -92,6 +93,7 @@ describe("checkout.anonymous", () => {
     expect(body.metadata).toEqual({ ref: "campaign_1" });
     expect(body.expiresInSeconds).toBe(1800);
     expect(body.language).toBe("pt-BR");
+    expect(body.includePaymentMethods).toEqual(["card", "applepay"]);
   });
 
   it("should forward buyerEmail and billingDetail when provided", async () => {

@@ -4,6 +4,23 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2026-07-28
+
+Per-transaction payment method selection on the hosted checkout page.
+
+### Added
+
+- `PaymentMethod` — payment methods offered on the checkout page: `card` / `applepay` / `googlepay` / `wechat`
+- `CreateCheckoutSessionParams.includePaymentMethods` — whitelist: offer only these. Every value must be supported by the product type × currency pair, otherwise the request is rejected with a 400.
+- `CreateCheckoutSessionParams.excludePaymentMethods` — blacklist: offer everything the currency supports except these. Values the currency does not offer are ignored, so one blacklist can be reused across currencies. Mutually exclusive with `includePaymentMethods`; omit both to offer every method the currency supports.
+
+### Changed
+
+- Currencies outside the payment method matrix are now rejected at checkout session creation (400) instead of falling through to the provider. One-time supports `USD` / `EUR` / `GBP` / `HKD` / `JPY` / `CNY`; subscription supports `USD` / `EUR` / `GBP` / `HKD` / `JPY`. Affects one-time `THB` and subscription `CNY`, neither of which has ever produced a successful charge.
+- Both fields require API Key authentication. Store Slug (visitor) sessions ignore them and always offer every method the currency supports — payment method selection is a merchant-side commercial decision (channel fees, settlement terms).
+
+---
+
 ## [0.15.0] - 2026-07-27
 
 Notification settings contract update for platform-managed payout notifications.
