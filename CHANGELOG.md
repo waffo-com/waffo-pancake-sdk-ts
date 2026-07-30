@@ -4,6 +4,14 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.1] - 2026-07-30
+
+Pre-filling a billing country restricts which payment methods the hosted cashier offers.
+
+### Changed
+
+- `createCheckoutSession` — passing `billingDetail` couples the hosted cashier to the order's billing country: it then offers only that country's payment market and the customer cannot switch. The country that applies is the one on the finished order, not the one you sent; a country outside the payment markets we cover applies no restriction. If the coupled market offers none of your enabled payment methods the order cannot be paid. Omit `billingDetail` to leave the cashier unrestricted. Types unchanged — no code migration.
+
 ## [0.16.0] - 2026-07-28
 
 Per-transaction payment method selection on the hosted checkout page.

@@ -891,7 +891,12 @@ export interface CreateCheckoutSessionParams {
   withTrial?: boolean;
   /** Pre-filled customer email */
   buyerEmail?: string;
-  /** Pre-filled billing details */
+  /**
+   * Pre-filled billing details. Passing this couples the cashier to the order's billing country: it then offers
+   * only that country's payment market and the customer cannot switch. The country that applies is the one on the
+   * finished order, not the one you sent; a country outside the payment markets we cover applies no restriction.
+   * Omit to leave the cashier unrestricted.
+   */
   billingDetail?: BillingDetail;
   /** Redirect URL after successful payment */
   successUrl?: string;
