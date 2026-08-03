@@ -375,9 +375,10 @@ const { store } = await client.stores.create({ name: "My Store" });
 //       notifySubscription* / notifyChargeback / notifyPayout*) are writable here;
 //       consumer email toggles (emailOrderConfirmation, emailSubscription*, emailTrial*) are
 //       managed by the PANCAKE platform and silently dropped if passed.
+// NOTE: supportEmail and website are not writable here — they are set by
+//       ownership verification (email code / domain) or KYB approval.
 const { store: updated } = await client.stores.update({
   id: store.id,
-  supportEmail: "help@example.com",
   notificationSettings: {
     notifyNewOrders: true,
     notifyNewSubscriptions: false,
