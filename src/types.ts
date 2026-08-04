@@ -466,6 +466,11 @@ export interface CreateStoreParams {
  * existing values, `null` clears a field, and a concrete value sets it.
  * Pass the entire settings object as `null` to clear all fields in the group.
  *
+ * `supportEmail` and `website` are not writable here. They are derived from
+ * ownership verification and are set only by the flows that prove it: email
+ * code binding and domain verification, or KYB approval. Read them back from
+ * {@link Store}.
+ *
  * **BREAKING (2026-05)**: the legacy `webhookSettings` field is removed.
  * Manage webhooks via `client.webhooks.add / update / remove`; query the
  * webhook list through GraphQL `Store.storeWebhooks`.
@@ -479,10 +484,6 @@ export interface UpdateStoreParams {
   status?: EntityStatus;
   /** Store logo URL (set to `null` to remove) */
   logo?: string | null;
-  /** Support email address (set to `null` to remove) */
-  supportEmail?: string | null;
-  /** Store website URL (set to `null` to remove) */
-  website?: string | null;
   /** Notification preferences (partial update — omitted fields keep existing values, set to `null` to clear all) */
   notificationSettings?: Partial<MerchantWritableNotificationSettings> | null;
   /** Checkout page theme configuration (partial update — omitted fields keep existing values, set to `null` to clear all) */

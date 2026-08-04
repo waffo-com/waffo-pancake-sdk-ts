@@ -4,6 +4,14 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2026-08-03
+
+`supportEmail` and `website` were never applied by the update-store endpoint — passing them was silently ignored.
+
+### Removed
+
+- `UpdateStoreParams.supportEmail` and `UpdateStoreParams.website` — the endpoint never wrote these fields, so passing them had no effect. They are derived from ownership verification and are set only by the flows that prove it: email code binding, domain verification, or KYB approval. Both remain readable on `Store`. Migration: drop them from your `stores.update()` calls; a `null` you were passing to "clear" them was never clearing anything.
+
 ## [0.16.1] - 2026-07-30
 
 Pre-filling a billing country restricts which payment methods the hosted cashier offers.
