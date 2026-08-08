@@ -1,6 +1,6 @@
 {
   "name": "@waffo/pancake-ts",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "description": "TypeScript SDK for Waffo Pancake MoR platform — RSA-SHA256 signing, zero runtime dependencies",
   "type": "module",
   "main": "./dist/index.cjs",

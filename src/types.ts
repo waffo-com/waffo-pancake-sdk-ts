@@ -12,6 +12,21 @@ export interface WaffoPancakeConfig {
   /** Custom fetch implementation (default: global fetch) */
   fetch?: typeof fetch;
   /**
+   * Environment that customer sessions operate in (sent as the `X-Environment`
+   * header alongside the session token's Bearer credential).
+   *
+   * API Key requests do not need this — the gateway derives their environment
+   * from the key itself. Session tokens carry no environment, so the gateway
+   * requires the header and rejects the request with HTTP 400 without it.
+   *
+   * There is no default: a wrong guess would route the call to the other
+   * environment. Supply it here, or per session via
+   * {@link CustomerSessionOptions.environment}.
+   *
+   * @see {@link WaffoPancake.customer}
+   */
+  environment?: `${Environment}`;
+  /**
    * Custom RSA public key(s) for webhook signature verification.
    *
    * - `string` — single key used for both test and prod environments
@@ -21,6 +36,17 @@ export interface WaffoPancakeConfig {
    * @see {@link VerifyWebhookOptions} for per-call overrides
    */
   webhookPublicKey?: WebhookPublicKeys;
+}
+
+/** Options for {@link WaffoPancake.customer}. */
+export interface CustomerSessionOptions {
+  /**
+   * Environment this session operates in, overriding
+   * {@link WaffoPancakeConfig.environment} for a single session.
+   *
+   * Required when the client config omits `environment`.
+   */
+  environment?: `${Environment}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -1313,11 +1339,27 @@ export interface VerifyWebhookOptions {
    */
   environment?: `${Environment}`;
   /**
-   * Timestamp tolerance window in milliseconds for replay protection.
-   * Set to 0 to skip timestamp checking.
-   * @default 300000 (5 minutes)
+   * How far in the past a signature timestamp may be, in milliseconds.
+   * Set to 0 to skip timestamp checking entirely (this also skips
+   * {@link futureToleranceMs}).
+   *
+   * The default covers the full delivery retry schedule: the timestamp is
+   * stamped before the first attempt and retries reuse it, so the last retry
+   * arrives with a timestamp as old as the schedule itself.
+   *
+   * @default 2700000 (45 minutes)
    */
   toleranceMs?: number;
+  /**
+   * How far in the future a signature timestamp may be, in milliseconds.
+   * Only clock skew on the receiving server puts a timestamp ahead of now, so
+   * this stays tight — it matches the gateway's API Key check.
+   *
+   * Ignored when `toleranceMs` is 0.
+   *
+   * @default 60000 (1 minute)
+   */
+  futureToleranceMs?: number;
   /**
    * Per-call public key override (highest priority).
    * When provided, skips all other key resolution (config, env vars, built-in).

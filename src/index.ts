@@ -34,6 +34,7 @@ export {
 export type {
   // Config
   WaffoPancakeConfig,
+  CustomerSessionOptions,
 
   // Response envelope (handbook: { data, errors?, warnings? } — same shape for REST + GraphQL)
   Notice,

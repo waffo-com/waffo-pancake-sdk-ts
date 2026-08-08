@@ -1,6 +1,6 @@
 import { WaffoPancakeError } from "./errors.js";
 
-import type { PostResult, WaffoPancakeConfig } from "./types.js";
+import type { Environment, PostResult, WaffoPancakeConfig } from "./types.js";
 
 const DEFAULT_BASE_URL = "https://api.waffo.ai";
 
@@ -12,21 +12,30 @@ const DEFAULT_BASE_URL = "https://api.waffo.ai";
  * never sends an idempotency key (customer session actions are not protected by
  * gateway idempotency in the current architecture).
  *
+ * Session tokens carry no environment of their own, so every request also sends
+ * `X-Environment`. The gateway treats a Bearer credential without it as an
+ * incomplete JWT header set and answers HTTP 400.
+ *
  * Not exported publicly — used internally by {@link CustomerSession}.
  */
 export class CustomerHttpClient {
   private readonly token: string;
+  private readonly environment: `${Environment}`;
   private readonly baseUrl: string;
   private readonly _fetch: typeof fetch;
 
-  constructor(token: string, config: Pick<WaffoPancakeConfig, "baseUrl" | "fetch">) {
+  constructor(token: string, environment: `${Environment}`, config: Pick<WaffoPancakeConfig, "baseUrl" | "fetch">) {
     this.token = token;
+    this.environment = environment;
     this.baseUrl = (config.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
     this._fetch = config.fetch ?? globalThis.fetch.bind(globalThis);
   }
 
   /**
    * Send a Bearer-authenticated POST and return the full envelope plus HTTP status.
+   *
+   * Sends `Authorization: Bearer <token>` and `X-Environment` — the gateway
+   * requires both to accept a session token.
    *
    * Does NOT throw on `errors[]` or non-2xx status — caller inspects the result.
    * Throws {@link WaffoPancakeError} only when the response body is not valid JSON.
@@ -37,6 +46,7 @@ export class CustomerHttpClient {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${this.token}`,
+        "X-Environment": this.environment,
       },
       body: JSON.stringify(body),
     });

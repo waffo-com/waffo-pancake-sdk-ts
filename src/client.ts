@@ -1,4 +1,5 @@
 import { CustomerHttpClient } from "./customer-http-client.js";
+import { WaffoPancakeError } from "./errors.js";
 import { HttpClient } from "./http-client.js";
 import { AuthResource } from "./resources/auth.js";
 import { CheckoutResource } from "./resources/checkout.js";
@@ -12,9 +13,9 @@ import { StoresResource } from "./resources/stores.js";
 import { SubscriptionProductGroupsResource } from "./resources/subscription-product-groups.js";
 import { SubscriptionProductsResource } from "./resources/subscription-products.js";
 import { WebhooksResource } from "./resources/webhooks.js";
-import { validateShortId } from "./validation.js";
+import { validateEnum, validateShortId } from "./validation.js";
 
-import type { WaffoPancakeConfig } from "./types.js";
+import type { CustomerSessionOptions, WaffoPancakeConfig } from "./types.js";
 
 /**
  * Waffo Pancake TypeScript SDK client.
@@ -107,19 +108,42 @@ export class WaffoPancake {
    * methods for order cancellation, subscription management, refund tickets,
    * and scoped GraphQL queries.
    *
+   * Session tokens expire 5 minutes after issuance, so issue one right before
+   * use rather than caching it.
+   *
    * @param token - Session token from `client.auth.issueSessionToken()`
+   * @param options - Per-session overrides
    * @returns A customer session with self-service methods
+   * @throws {WaffoPancakeError} When no environment is available from either
+   *   `options.environment` or `WaffoPancakeConfig.environment`
    *
    * @example
    * const { token } = await client.auth.issueSessionToken({
    *   storeId: "STO_xxx",
    *   buyerIdentity: "customer@example.com",
    * });
-   * const customer = client.customer(token);
+   * const customer = client.customer(token, { environment: "test" });
    * await customer.cancelSubscription({ orderId: "ORD_xxx" });
+   *
+   * @example
+   * // Set the environment once on the client instead
+   * const client = new WaffoPancake({ merchantId, privateKey, environment: "test" });
+   * const customer = client.customer(token);
    */
-  customer(token: string): CustomerSession {
-    const customerHttp = new CustomerHttpClient(token, {
+  customer(token: string, options?: CustomerSessionOptions): CustomerSession {
+    const environment = options?.environment ?? this.config.environment;
+    if (environment === undefined) {
+      throw new WaffoPancakeError(400, [
+        {
+          message:
+            "Missing required field: environment — set it on the client config or pass client.customer(token, { environment: 'test' | 'prod' })",
+          layer: "sdk",
+        },
+      ]);
+    }
+    validateEnum("environment", environment, ["test", "prod"]);
+
+    const customerHttp = new CustomerHttpClient(token, environment, {
       baseUrl: this.config.baseUrl,
       fetch: this.config.fetch,
     });
@@ -130,6 +154,7 @@ export class WaffoPancake {
    * Create a customer session for self-service operations.
    *
    * @param token - Session token from `client.auth.issueSessionToken()`
+   * @param options - Per-session overrides
    * @returns A customer session with self-service methods
    *
    * @example
@@ -139,7 +164,7 @@ export class WaffoPancake {
    *
    * @deprecated Use {@link WaffoPancake.customer} instead.
    */
-  buyer(token: string): CustomerSession {
-    return this.customer(token);
+  buyer(token: string, options?: CustomerSessionOptions): CustomerSession {
+    return this.customer(token, options);
   }
 }

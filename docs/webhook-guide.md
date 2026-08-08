@@ -7,7 +7,7 @@ Waffo Pancake sends webhook events to your configured endpoint when payment, sub
 - **Algorithm**: RSA-SHA256 with environment-specific key pairs
 - **Dual environment**: Test and production use separate key pairs; the SDK resolves the correct key automatically
 - **Multi-level key loading**: Config parameter → environment variable → built-in hardcoded key
-- **Replay protection**: 5-minute timestamp tolerance by default
+- **Replay protection**: 45-minute past / 1-minute future timestamp tolerance by default
 - **Environment auto-detection**: Tries the production key first, falls back to test
 
 ## Signature Verification
@@ -16,8 +16,15 @@ Waffo Pancake sends webhook events to your configured endpoint when payment, sub
 1. Parse X-Waffo-Signature header → t (timestamp) + v1 (Base64 signature)
 2. Build signature input: `${t}.${rawBody}`
 3. Verify v1 with RSA-SHA256 using the Waffo public key
-4. Check timestamp (default 5-minute tolerance to prevent replay attacks)
+4. Check timestamp (default: up to 45 minutes old, up to 1 minute ahead)
 ```
+
+The timestamp is stamped once, before the first delivery attempt. Retries reuse
+the original header, so the final retry of a schedule arrives with a timestamp as
+old as the schedule itself — the past-facing window has to cover it. Treat the
+window as a bound on how long a captured request stays replayable, not as your
+primary defense: every event carries a stable `id`, and your handler should be
+idempotent on it.
 
 ## Usage
 
@@ -83,8 +90,11 @@ const event = verifyWebhook(body, sig, { environment: "prod" });
 // Disable replay protection (useful for testing)
 const event = verifyWebhook(body, sig, { toleranceMs: 0 });
 
-// Custom tolerance window (10 minutes)
+// Custom past-facing tolerance window (10 minutes)
 const event = verifyWebhook(body, sig, { toleranceMs: 600000 });
+
+// Loosen the future-facing window for a server with known clock skew
+const event = verifyWebhook(body, sig, { futureToleranceMs: 300000 });
 ```
 
 ## Parameters
@@ -97,12 +107,13 @@ const event = verifyWebhook(body, sig, { toleranceMs: 600000 });
 
 ### `VerifyWebhookOptions`
 
-| Field         | Type                         | Default          | Description                                                                                                     |
-| ------------- | ---------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------- |
-| `environment` | `"test" \| "prod"`           | auto-detect      | Which environment's key to resolve. When omitted, tries prod first, then test. Ignored when `publicKey` is set. |
-| `toleranceMs` | `number`                     | `300000` (5 min) | Timestamp tolerance in ms. Set to `0` to skip timestamp check                                                   |
-| `publicKey`   | `string`                     | —                | Per-call public key override (highest priority, skips all resolution)                                           |
-| `publicKeys`  | `string \| { test?, prod? }` | —                | Config-level key(s) for the resolution chain. Typically injected automatically by `client.webhooks.verify()`    |
+| Field               | Type                         | Default            | Description                                                                                                     |
+| ------------------- | ---------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `environment`       | `"test" \| "prod"`           | auto-detect        | Which environment's key to resolve. When omitted, tries prod first, then test. Ignored when `publicKey` is set. |
+| `toleranceMs`       | `number`                     | `2700000` (45 min) | How far in the past a timestamp may be, in ms. Set to `0` to skip the timestamp check entirely                  |
+| `futureToleranceMs` | `number`                     | `60000` (1 min)    | How far in the future a timestamp may be, in ms. Ignored when `toleranceMs` is `0`                              |
+| `publicKey`         | `string`                     | —                  | Per-call public key override (highest priority, skips all resolution)                                           |
+| `publicKeys`        | `string \| { test?, prod? }` | —                  | Config-level key(s) for the resolution chain. Typically injected automatically by `client.webhooks.verify()`    |
 
 ## Dual-Environment Public Key Architecture
 
