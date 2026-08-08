@@ -280,6 +280,7 @@ describe("integration: validation prevents network request", () => {
       merchantId: "MER_0000000000000000000000",
       privateKey: TEST_PRIVATE_KEY,
       baseUrl: "https://api.test.com",
+      environment: "test",
       fetch: mockFetch as unknown as typeof fetch,
     });
     return { client, mockFetch };

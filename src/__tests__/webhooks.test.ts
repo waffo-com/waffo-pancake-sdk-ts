@@ -35,10 +35,39 @@ describe("verifyWebhook", () => {
 
   describe("replay protection", () => {
     it("should throw on stale timestamp", () => {
-      const staleTs = (Date.now() - 10 * 60 * 1000).toString(); // 10 min ago
+      const staleTs = (Date.now() - 60 * 60 * 1000).toString(); // 60 min ago
       const header = `t=${staleTs},v1=dummysig`;
 
       expect(() => verifyWebhook("{}", header)).toThrow("tolerance window");
+    });
+
+    it("should accept a timestamp from within the retry schedule", () => {
+      const retryTs = (Date.now() - 31 * 60 * 1000).toString(); // last retry of a 31-min schedule
+      const header = `t=${retryTs},v1=dummysig`;
+
+      // Passes the timestamp check, then fails on signature verification
+      expect(() => verifyWebhook("{}", header)).toThrow("Invalid webhook signature");
+    });
+
+    it("should throw on a timestamp too far in the future", () => {
+      const futureTs = (Date.now() + 5 * 60 * 1000).toString(); // 5 min ahead
+      const header = `t=${futureTs},v1=dummysig`;
+
+      expect(() => verifyWebhook("{}", header)).toThrow("tolerance window");
+    });
+
+    it("should tolerate small clock skew ahead of now", () => {
+      const skewedTs = (Date.now() + 30 * 1000).toString(); // 30s ahead, within the 60s window
+      const header = `t=${skewedTs},v1=dummysig`;
+
+      expect(() => verifyWebhook("{}", header)).toThrow("Invalid webhook signature");
+    });
+
+    it("should honor a custom futureToleranceMs", () => {
+      const futureTs = (Date.now() + 5 * 60 * 1000).toString();
+      const header = `t=${futureTs},v1=dummysig`;
+
+      expect(() => verifyWebhook("{}", header, { futureToleranceMs: 10 * 60 * 1000 })).toThrow("Invalid webhook signature");
     });
 
     it("should throw on invalid timestamp", () => {

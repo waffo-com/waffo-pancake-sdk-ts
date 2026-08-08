@@ -545,7 +545,7 @@ const { orderId, status } = await client.orders.cancelSubscription({
 
 Issue a session token and create a customer session to let customers manage their own orders.
 
-### `client.customer(token)`
+### `client.customer(token, options?)`
 
 Create a customer session from a session token issued by `client.auth.issueSessionToken()`.
 
@@ -554,8 +554,21 @@ const { token } = await client.auth.issueSessionToken({
   storeId: "STO_xxx",
   buyerIdentity: "customer@example.com",
 });
-const customer = client.customer(token);
+const customer = client.customer(token, { environment: "test" });
 ```
+
+| Option        | Type               | Required                        | Description                                      |
+| ------------- | ------------------ | ------------------------------- | ------------------------------------------------ |
+| `environment` | `"test" \| "prod"` | Unless set on the client config | Sent as `X-Environment` on every session request |
+
+An environment must come from either `options.environment` or
+`WaffoPancakeConfig.environment` — the session token carries none of its own, and
+the gateway rejects a Bearer credential without the header. There is no default:
+guessing would route the call to the other environment. When neither supplies
+one, this throws `WaffoPancakeError` (400, `layer: "sdk"`).
+
+Session tokens expire 5 minutes after issuance — issue one right before use
+rather than caching it.
 
 ### `customer.cancelSubscription(params)`
 

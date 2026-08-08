@@ -5,7 +5,26 @@ import { normalizePublicKey } from "./signing.js";
 import type { VerifyWebhookOptions, WebhookEvent, WebhookPublicKeys } from "./types.js";
 
 /** Default tolerance: 5 minutes */
-const DEFAULT_TOLERANCE_MS = 5 * 60 * 1000;
+/**
+ * Replay-protection window for timestamps in the past.
+ *
+ * The signature timestamp is stamped once, before the first delivery attempt —
+ * retries carry the original header, so by the last attempt the timestamp is as
+ * old as the whole retry schedule (observed above 31 minutes). A window shorter
+ * than that rejects legitimate retries. 45 minutes covers the schedule plus
+ * clock skew on the receiving server.
+ *
+ * A window this wide does not make replay attacks cheap on its own: every event
+ * carries a stable `id`, and handlers are expected to be idempotent on it.
+ */
+const DEFAULT_TOLERANCE_MS = 45 * 60 * 1000;
+
+/**
+ * Replay-protection window for timestamps in the future, matching the gateway's
+ * API Key check. Only clock skew puts a timestamp ahead of now, so this stays
+ * tight.
+ */
+const DEFAULT_FUTURE_TOLERANCE_MS = 60 * 1000;
 
 /** Waffo Pancake test environment webhook verification public key. */
 const TEST_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
@@ -171,14 +190,16 @@ export function verifyWebhook<T = Record<string, unknown>>(
     throw new Error("Malformed X-Waffo-Signature header: missing t or v1");
   }
 
-  // Replay protection
+  // Replay protection — asymmetric, matching the gateway's API Key check
   const toleranceMs = options?.toleranceMs ?? DEFAULT_TOLERANCE_MS;
   if (toleranceMs > 0) {
     const timestampMs = Number(t);
     if (Number.isNaN(timestampMs)) {
       throw new Error("Invalid timestamp in X-Waffo-Signature header");
     }
-    if (Math.abs(Date.now() - timestampMs) > toleranceMs) {
+    const futureToleranceMs = options?.futureToleranceMs ?? DEFAULT_FUTURE_TOLERANCE_MS;
+    const ageMs = Date.now() - timestampMs;
+    if (ageMs > toleranceMs || ageMs < -futureToleranceMs) {
       throw new Error("Webhook timestamp outside tolerance window (possible replay attack)");
     }
   }

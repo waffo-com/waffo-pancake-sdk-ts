@@ -23,6 +23,16 @@ function createClient(mockFetch: ReturnType<typeof vi.fn>) {
     merchantId: "MER_0000000000000000000000",
     privateKey: TEST_PRIVATE_KEY,
     baseUrl: "https://api.test.com",
+    environment: "test",
+    fetch: mockFetch as unknown as typeof fetch,
+  });
+}
+
+function createClientWithoutEnvironment(mockFetch: ReturnType<typeof vi.fn>) {
+  return new WaffoPancake({
+    merchantId: "MER_0000000000000000000000",
+    privateKey: TEST_PRIVATE_KEY,
+    baseUrl: "https://api.test.com",
     fetch: mockFetch as unknown as typeof fetch,
   });
 }
@@ -33,6 +43,53 @@ describe("client.customer()", () => {
     const customer = client.customer("test-token");
     expect(customer).toBeDefined();
     expect(customer.graphql).toBeDefined();
+  });
+
+  it("should send X-Environment from the client config", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: { orderId: "ORD_0000000000000000000000", status: "canceling" },
+    }));
+    const customer = createClient(mockFetch).customer("session-token-123");
+
+    await customer.cancelSubscription({ orderId: "ORD_0000000000000000000000" });
+
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options.headers["X-Environment"]).toBe("test");
+  });
+
+  it("should let per-session environment override the client config", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: { orderId: "ORD_0000000000000000000000", status: "canceling" },
+    }));
+    const customer = createClient(mockFetch).customer("session-token-123", { environment: "prod" });
+
+    await customer.cancelSubscription({ orderId: "ORD_0000000000000000000000" });
+
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options.headers["X-Environment"]).toBe("prod");
+  });
+
+  it("should accept a per-session environment when the config omits it", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: { orderId: "ORD_0000000000000000000000", status: "canceling" },
+    }));
+    const customer = createClientWithoutEnvironment(mockFetch).customer("session-token-123", { environment: "prod" });
+
+    await customer.cancelSubscription({ orderId: "ORD_0000000000000000000000" });
+
+    const [, options] = mockFetch.mock.calls[0];
+    expect(options.headers["X-Environment"]).toBe("prod");
+  });
+
+  it("should throw when no environment is available", () => {
+    const client = createClientWithoutEnvironment(vi.fn());
+    expect(() => client.customer("session-token-123")).toThrow(WaffoPancakeError);
+    expect(() => client.customer("session-token-123")).toThrow(/Missing required field: environment/);
+  });
+
+  it("should reject an invalid environment value", () => {
+    const client = createClient(vi.fn());
+    expect(() => client.customer("session-token-123", { environment: "staging" as "test" })).toThrow(/Invalid environment/);
   });
 });
 

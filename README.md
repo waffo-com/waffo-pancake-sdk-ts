@@ -40,13 +40,14 @@ res.json({ checkoutUrl: result.checkoutUrl });
 
 ## Configuration
 
-| Parameter          | Type                         | Required | Description                                                                        |
-| ------------------ | ---------------------------- | -------- | ---------------------------------------------------------------------------------- |
-| `merchantId`       | `string`                     | Yes      | Merchant ID in `MER_{base62}` format                                               |
-| `privateKey`       | `string`                     | Yes      | RSA private key in PEM format (auto-normalized, see [docs](docs/api-reference.md)) |
-| `baseUrl`          | `string`                     | No       | API base URL override                                                              |
-| `fetch`            | `typeof fetch`               | No       | Custom fetch implementation                                                        |
-| `webhookPublicKey` | `string \| { test?, prod? }` | No       | Custom webhook public key(s)                                                       |
+| Parameter          | Type                         | Required              | Description                                                                                               |
+| ------------------ | ---------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------- |
+| `merchantId`       | `string`                     | Yes                   | Merchant ID in `MER_{base62}` format                                                                      |
+| `privateKey`       | `string`                     | Yes                   | RSA private key in PEM format (auto-normalized, see [docs](docs/api-reference.md))                        |
+| `baseUrl`          | `string`                     | No                    | API base URL override                                                                                     |
+| `environment`      | `"test" \| "prod"`           | For customer sessions | Sent as `X-Environment`. No default — override per session with `client.customer(token, { environment })` |
+| `fetch`            | `typeof fetch`               | No                    | Custom fetch implementation                                                                               |
+| `webhookPublicKey` | `string \| { test?, prod? }` | No                    | Custom webhook public key(s)                                                                              |
 
 The SDK auto-normalizes key formats: standard PEM, PKCS#1, literal `\n` from env vars, raw base64, and Windows line endings are all accepted.
 
@@ -232,7 +233,7 @@ See [Webhook Guide](docs/webhook-guide.md) for event types, `WebhookEventData` f
 
 Beyond checkout, you can let customers manage their own orders and subscriptions — for example, embedding a "Cancel Subscription" or "Request Refund" button in your site.
 
-Issue a session token, then use `client.customer(token)` to get a session with self-service methods:
+Issue a session token, then use `client.customer(token, options?)` to get a session with self-service methods:
 
 ```typescript
 // Your backend — issue a session token for the customer
@@ -241,8 +242,9 @@ const { token } = await client.auth.issueSessionToken({
   buyerIdentity: req.user.email,
 });
 
-// Create a customer session
-const customer = client.customer(token);
+// Create a customer session — environment is required here (or on the client config),
+// because a session token carries none of its own
+const customer = client.customer(token, { environment: "test" });
 
 // Cancel a subscription
 const { orderId, status } = await customer.cancelSubscription({ orderId: "ORD_xxx" });
@@ -545,7 +547,7 @@ try {
 | `client.checkout.authenticated`    | `create()`                                                                                                               | Authenticated checkout (recommended)    |
 | `client.checkout.anonymous`        | `create()`                                                                                                               | Anonymous checkout                      |
 | `client.checkout`                  | `createSession()`                                                                                                        | Low-level checkout session              |
-| `client.customer(token)`           | `cancelSubscription()` `cancelOnetimeOrder()` `reactivateSubscription()` `createRefundTicket()` `resubmitRefundTicket()` | Customer self-service                   |
+| `client.customer(token, opts?)`    | `cancelSubscription()` `cancelOnetimeOrder()` `reactivateSubscription()` `createRefundTicket()` `resubmitRefundTicket()` | Customer self-service                   |
 | `client.customer(token).graphql`   | `query<T>()`                                                                                                             | Customer-scoped GraphQL queries         |
 | `client.webhooks`                  | `verify<T>()` `add()` `update()` `remove()`                                                                              | Webhook config + signature verification |
 | `client.graphql`                   | `query<T>()`                                                                                                             | Merchant GraphQL queries                |

@@ -4,6 +4,27 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2026-08-08
+
+Customer sessions never reached the API, and webhook retries were rejected as replays.
+
+### Fixed
+
+- **Customer session requests now send `X-Environment`.** A session token carries no environment of its own, so the gateway requires the header next to the Bearer credential and rejects the request with a 400 without it. The header was missing, which made every `client.customer(...)` method unusable: `cancelSubscription`, `cancelOnetimeOrder`, `reactivateSubscription`, `createRefundTicket`, `resubmitRefundTicket`, and `graphql.query`. API Key requests were never affected — the gateway derives their environment from the key.
+- **Webhook verification no longer rejects legitimate retries.** The signature timestamp is stamped once, before the first delivery attempt, and retries reuse the original header — so the last retry of a schedule arrives with a timestamp as old as the schedule itself (observed above 31 minutes). Against the old 5-minute window every late retry failed verification as a suspected replay. `verifyWebhook` now allows timestamps up to **45 minutes** old.
+
+### Added
+
+- **`WaffoPancakeConfig.environment`** — `"test"` or `"prod"`, the environment customer sessions operate in.
+- **`CustomerSessionOptions`** — second argument to `client.customer(token, options)`, overriding the config for a single session.
+- **`VerifyWebhookOptions.futureToleranceMs`** — how far in the future a signature timestamp may be, default `60000` (1 minute). Raise it for a receiving server with known clock skew.
+
+### Changed
+
+- **`client.customer(token)` requires an environment** from either the config or the per-session options, and throws `WaffoPancakeError` (400, `layer: "sdk"`) when neither supplies one. There is no default — guessing would route the call to the other environment. This turns a request that always failed at the gateway into a local error; no working call changes behavior. Migration: add `environment` to your client config, or pass `client.customer(token, { environment: "test" })`.
+- `client.buyer(token, options)` (deprecated) accepts and forwards the same options.
+- **`VerifyWebhookOptions.toleranceMs` default raised from `300000` to `2700000`, and the window is now asymmetric** — matching the gateway's API Key check, which pairs a wide past-facing window with a tight future-facing one. `toleranceMs` now means "how far in the past"; the future direction is `futureToleranceMs`. `toleranceMs: 0` still disables the check entirely. A captured request stays replayable for longer under the wider window, so keep your handler idempotent on the event `id` — that, not the window, is the real defense.
+
 ## [0.17.0] - 2026-08-03
 
 `supportEmail` and `website` were never applied by the update-store endpoint — passing them was silently ignored.
