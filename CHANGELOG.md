@@ -4,6 +4,19 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2026-08-18
+
+Subscription products can now charge for the trial period.
+
+### Added
+
+- **`PriceInfo.trialAmount`** — trial period price as a display string, subscription products only. Omit it for a free trial. It requires `metadata.trialDays` on the product and must be lower than `amount`; the API rejects either violation with a 400.
+- **`PriceSnapshot`** — the type `CreateCheckoutSessionParams.priceSnapshot` accepts. Same shape as `PriceInfo` without `trialAmount`.
+
+### Changed
+
+- **`CreateCheckoutSessionParams.priceSnapshot` is typed `PriceSnapshot` rather than `PriceInfo`.** A session-level override replaces the regular period price; the trial price comes from the product version locked into the session, so a `trialAmount` passed here would be dropped server-side. Existing calls compile unchanged — the fields `PriceSnapshot` declares are exactly the two `PriceInfo` had before `trialAmount` was added.
+
 ## [0.18.0] - 2026-08-08
 
 Customer sessions never reached the API, and webhook retries were rejected as replays.
@@ -24,6 +37,7 @@ Customer sessions never reached the API, and webhook retries were rejected as re
 - **`client.customer(token)` requires an environment** from either the config or the per-session options, and throws `WaffoPancakeError` (400, `layer: "sdk"`) when neither supplies one. There is no default — guessing would route the call to the other environment. This turns a request that always failed at the gateway into a local error; no working call changes behavior. Migration: add `environment` to your client config, or pass `client.customer(token, { environment: "test" })`.
 - `client.buyer(token, options)` (deprecated) accepts and forwards the same options.
 - **`VerifyWebhookOptions.toleranceMs` default raised from `300000` to `2700000`, and the window is now asymmetric** — matching the gateway's API Key check, which pairs a wide past-facing window with a tight future-facing one. `toleranceMs` now means "how far in the past"; the future direction is `futureToleranceMs`. `toleranceMs: 0` still disables the check entirely. A captured request stays replayable for longer under the wider window, so keep your handler idempotent on the event `id` — that, not the window, is the real defense.
+
 
 ## [0.17.0] - 2026-08-03
 
