@@ -589,12 +589,18 @@ export interface UpdateRoleResult {
  * @example
  * // JPY ¥1000
  * { amount: "1000", taxCategory: "software" }
+ *
+ * @example
+ * // USD $9.99 with a $1.00 trial period (subscription products only)
+ * { amount: "9.99", taxCategory: "saas", trialAmount: "1.00" }
  */
 export interface PriceInfo {
   /** Price amount as display string (e.g., "9.99" for USD, "1000" for JPY) */
   amount: string;
   /** Tax category */
   taxCategory: TaxCategory;
+  /** Trial period price as display string; requires `metadata.trialDays` and must be lower than `amount` */
+  trialAmount?: string;
 }
 
 /**
@@ -904,6 +910,18 @@ export type CashierLanguage =
 export type PaymentMethod = "card" | "applepay" | "googlepay" | "wechat";
 
 /**
+ * Session-level price override, accepted with API Key authentication only.
+ * For subscription products it replaces the regular period price; the trial price comes from the locked product version.
+ * @see docs/api-reference/endpoints/orders/create-checkout-session.mdx
+ */
+export interface PriceSnapshot {
+  /** Price amount as display string (e.g., "9.99" for USD, "1000" for JPY) */
+  amount: string;
+  /** Tax category */
+  taxCategory: TaxCategory;
+}
+
+/**
  * Parameters for creating a checkout session.
  * @see docs/api-reference/endpoints/orders/create-checkout-session.mdx
  */
@@ -913,7 +931,7 @@ export interface CreateCheckoutSessionParams {
   /** Currency code (ISO 4217) */
   currency: string;
   /** Optional price snapshot override (reads from DB if omitted) */
-  priceSnapshot?: PriceInfo;
+  priceSnapshot?: PriceSnapshot;
   /** Trial toggle override (subscription only) */
   withTrial?: boolean;
   /** Pre-filled customer email */

@@ -74,7 +74,7 @@ Waffo supports two checkout modes based on whether the merchant knows the custom
 
 Both modes support **dynamic pricing** and **trial control** at checkout time:
 
-- `priceSnapshot` — override the product's stored price with a custom amount (e.g., coupon, volume discount)
+- `priceSnapshot` — override the product's stored price with a custom amount (e.g., coupon, volume discount); for subscription products this replaces the regular period price only
 - `withTrial` — explicitly enable or disable the trial period for subscriptions (`true` = force trial, `false` = skip trial, omit = use default rules)
 
 ### Authenticated Checkout (Recommended)

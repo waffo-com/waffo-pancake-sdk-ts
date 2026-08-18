@@ -77,6 +77,7 @@ export type {
   // Product shared
   MediaItem,
   PriceInfo,
+  PriceSnapshot,
   Prices,
 
   // Onetime Product
