@@ -47,7 +47,9 @@ export class CustomerSession {
    *
    * @example
    * const { orderId, status } = await customer.cancelSubscription({ orderId: "ORD_xxx" });
-   * // status: "canceled" (was pending) or "canceling" (was active)
+   * // status: "canceled" (was pending)
+   * //      or "canceling" (was active -> effective at period end;
+   * //                      was past_due -> effective immediately)
    */
   async cancelSubscription(params: CancelSubscriptionParams): Promise<CancelSubscriptionResult & { warnings?: Notice[] }> {
     validateShortId("orderId", params.orderId, "ORD");
@@ -70,6 +72,9 @@ export class CustomerSession {
 
   /**
    * Reactivate a subscription that is in `canceling` status.
+   *
+   * A subscription canceled while a renewal payment was outstanding cannot be
+   * reactivated and responds 400.
    *
    * @param params - Order to reactivate
    * @returns Order ID and resulting status

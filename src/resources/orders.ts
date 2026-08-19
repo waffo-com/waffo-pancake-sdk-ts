@@ -11,8 +11,13 @@ export class OrdersResource {
   /**
    * Cancel a subscription order.
    *
-   * - pending -> canceled (immediate)
-   * - active/trialing -> canceling (PSP cancel, webhook updates later)
+   * - pending -> canceled (immediate, no PSP call)
+   * - active -> canceling (PSP cancel scheduled for the end of the current period)
+   * - past_due -> canceling (PSP cancel dispatched immediately)
+   *
+   * Both canceling cases settle to canceled only once the PSP cancellation webhook
+   * arrives. A past_due cancellation emits no `subscription.canceling` event and
+   * cannot be reactivated.
    *
    * @param params - Order to cancel
    * @returns Order ID and resulting status

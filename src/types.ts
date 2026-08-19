@@ -207,7 +207,7 @@ export enum OnetimeOrderStatus {
  * - pending -> active, canceled, closed (PSP CLOSE from never-activated)
  * - active -> canceling, past_due, canceled, expired
  * - canceling -> active, canceled
- * - past_due -> active, canceled
+ * - past_due -> active, canceling, canceled
  * - closed -> terminal (never-activated subscription closed by PSP)
  * - canceled -> terminal
  * - expired -> terminal
