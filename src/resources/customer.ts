@@ -47,7 +47,9 @@ export class CustomerSession {
    *
    * @example
    * const { orderId, status } = await customer.cancelSubscription({ orderId: "ORD_xxx" });
-   * // status: "canceled" (was pending) or "canceling" (was active)
+   * // status: "canceled" (was pending)
+   * //      or "canceling" (was active — stops at the end of the current period)
+   * //      or "canceling" (was past_due — stops immediately)
    */
   async cancelSubscription(params: CancelSubscriptionParams): Promise<CancelSubscriptionResult & { warnings?: Notice[] }> {
     validateShortId("orderId", params.orderId, "ORD");
@@ -70,6 +72,12 @@ export class CustomerSession {
 
   /**
    * Reactivate a subscription that is in `canceling` status.
+   *
+   * A subscription that had an unpaid charge at the moment cancellation was
+   * requested is refused with 400 (`Subscription with an unpaid balance cannot
+   * be reactivated`), which is worded differently from the 400 returned when
+   * the order is not in `canceling` status. Cancelling a `past_due`
+   * subscription always falls into the former category.
    *
    * @param params - Order to reactivate
    * @returns Order ID and resulting status
