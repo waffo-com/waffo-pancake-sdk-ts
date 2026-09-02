@@ -4,6 +4,26 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2026-09-02
+
+Subscription period and status now travel on the subscription events only; `subscription.payment_succeeded` is a pure payment event.
+
+### Removed
+
+- **`WebhookEventType.SubscriptionUpdated` (`subscription.updated`)** — the platform has no publisher for it. Plan changes are published as `subscription.plan_changed`.
+- **`subscription.payment_succeeded` no longer carries `billingPeriod`, `currentPeriodStart`, `currentPeriodEnd`, `canceledAt` or `orderStatus`.** Those five fields described the subscription, not the charge, and were populated from whichever channel notification happened to land first — 10.3% of first payments arrived without a period. They now travel on the subscription domain events, which write and publish inside the same request. `docs/webhook-guide.md` has the field-by-event table and a per-use-case migration path; the payment fields on this event are unchanged.
+
+### Added
+
+- **`WebhookEventType.SubscriptionRenewed` (`subscription.renewed`)** — emitted when the current billing period actually rolls forward. Carries the new period. The first period is not a renewal and does not emit it; a redelivered channel notification does not emit a second one.
+- **`WebhookEventType.SubscriptionRecovered` (`subscription.recovered`)** — emitted when a retried charge brings a past-due subscription back to active, closing the loop with `subscription.past_due`. Ordinary renewals and first payments do not emit it.
+- **`WebhookEventType.SubscriptionPlanChanged` / `SubscriptionPlanChangeScheduled` / `SubscriptionPlanChangeFailed`** — the three plan-change events, subscribable from the dashboard.
+- **`NotificationSettings.emailSubscriptionPlanChanged`** — the platform-managed toggle shared by the three plan-change customer emails. Read-only from this SDK, like the other `email*` keys.
+
+### Changed
+
+- **`NotificationSettings.notifySubscriptionUpdated` renamed to `notifySubscriptionPlanChanged`** — the old key was never accepted by `update-store`, so a settings object built from the previous type was rejected by server-side validation. `MerchantWritableNotificationSettings` picks the new key.
+
 ## [0.19.0] - 2026-08-18
 
 Subscription products can now charge for the trial period.

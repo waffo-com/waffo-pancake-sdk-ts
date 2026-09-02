@@ -404,6 +404,8 @@ export interface NotificationSettings {
   emailTrialStarted: boolean;
   emailTrialEnding: boolean;
   emailUpcomingCharge: boolean;
+  /** One toggle for all three plan-change customer emails (scheduled / failed / applied) */
+  emailSubscriptionPlanChanged: boolean;
   notifyNewOrders: boolean;
   notifyNewSubscriptions: boolean;
   notifySubscriptionCanceled: boolean;
@@ -411,7 +413,7 @@ export interface NotificationSettings {
   notifySubscriptionPastDue: boolean;
   notifySubscriptionRenewed: boolean;
   notifySubscriptionUncanceled: boolean;
-  notifySubscriptionUpdated: boolean;
+  notifySubscriptionPlanChanged: boolean;
   notifyChargeback: boolean;
 }
 
@@ -432,7 +434,7 @@ export type MerchantWritableNotificationSettings = Pick<
   | "notifySubscriptionPastDue"
   | "notifySubscriptionRenewed"
   | "notifySubscriptionUncanceled"
-  | "notifySubscriptionUpdated"
+  | "notifySubscriptionPlanChanged"
   | "notifyChargeback"
 >;
 
@@ -1210,14 +1212,22 @@ export enum WebhookEventType {
   OrderCompleted = "order.completed",
   /** Subscription first payment succeeded (newly activated) */
   SubscriptionActivated = "subscription.activated",
-  /** Subscription renewal payment succeeded */
+  /** Subscription payment succeeded — a pure payment event, carries no subscription period or status */
   SubscriptionPaymentSucceeded = "subscription.payment_succeeded",
+  /** Current billing period rolled forward (renewal) */
+  SubscriptionRenewed = "subscription.renewed",
+  /** Subscription recovered from past due (a retried charge succeeded) */
+  SubscriptionRecovered = "subscription.recovered",
+  /** Plan change took effect (upgrade/downgrade) */
+  SubscriptionPlanChanged = "subscription.plan_changed",
+  /** Plan change confirmed, takes effect next billing period */
+  SubscriptionPlanChangeScheduled = "subscription.plan_change_scheduled",
+  /** Plan change did not complete, the current plan stays in effect */
+  SubscriptionPlanChangeFailed = "subscription.plan_change_failed",
   /** Customer initiated cancellation (expires at end of current period) */
   SubscriptionCanceling = "subscription.canceling",
   /** Customer withdrew cancellation (subscription restored) */
   SubscriptionUncanceled = "subscription.uncanceled",
-  /** Subscription product changed (upgrade/downgrade) */
-  SubscriptionUpdated = "subscription.updated",
   /** Subscription fully terminated */
   SubscriptionCanceled = "subscription.canceled",
   /** Renewal payment failed (past due) */
@@ -1235,7 +1245,12 @@ export enum WebhookEventType {
 export interface WebhookEventData {
   // Order
   orderId: string;
-  /** Order status (e.g., "completed", "active", "canceling") */
+  /**
+   * Order status (e.g., "completed", "active", "canceling").
+   *
+   * Absent on `subscription.payment_succeeded` — that event describes one charge only.
+   * Read the subscription's status from the subscription events instead.
+   */
   orderStatus?: string;
   buyerEmail: string;
   /** Merchant-provided customer identity from checkout session */
@@ -1272,6 +1287,8 @@ export interface WebhookEventData {
   productMetadata?: Record<string, string>;
 
   // Payment (present for payment events: order.completed, subscription.payment_succeeded)
+  // `subscription.payment_succeeded` carries the payment fields and nothing about the
+  // subscription itself — see the subscription block below.
   /** Payment ID */
   paymentId?: string;
   /** Payment status (e.g., "succeeded", "failed") */
@@ -1285,7 +1302,11 @@ export interface WebhookEventData {
   /** Payment date (ISO 8601 date, e.g., "2026-04-18") */
   paymentDate?: string;
 
-  // Subscription (present for subscription events)
+  // Subscription — present on the subscription domain events
+  // (`subscription.activated` / `renewed` / `recovered` / `plan_changed` /
+  // `plan_change_scheduled` / `plan_change_failed` / `canceling` / `uncanceled` /
+  // `canceled` / `past_due`). **Not** present on `subscription.payment_succeeded`,
+  // which is a pure payment event.
   /** Billing period: "weekly", "monthly", "quarterly", "yearly" */
   billingPeriod?: string;
   /** Current billing period start date (ISO 8601, e.g., "2026-04-01") */
