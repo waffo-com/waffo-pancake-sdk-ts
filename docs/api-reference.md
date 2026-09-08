@@ -123,7 +123,7 @@ const { store } = await client.stores.update({
 | `supportEmail`         | `string \| null`               | No       | Support email address                                                      |
 | `website`              | `string \| null`               | No       | Store website URL                                                          |
 | `webhookSettings`      | `WebhookSettings \| null`      | No       | Webhook endpoint configuration (test/prod URLs and subscribed event types) |
-| `notificationSettings` | `NotificationSettings \| null` | No       | Email notification preferences                                             |
+| `notificationSettings` | `NotificationSettings \| null` | No       | Merchant `notify*` toggles (10); `email*` keys are dropped                 |
 | `checkoutSettings`     | `CheckoutSettings \| null`     | No       | Checkout page theme (light/dark)                                           |
 
 **Returns `{ store: Store }`**
@@ -861,7 +861,7 @@ All exported type interfaces:
 | `UpdateStoreParams`                     | Update store request                                      |
 | `DeleteStoreParams`                     | Delete store request                                      |
 | `WebhookSettings`                       | Webhook endpoint configuration (test/prod)                |
-| `NotificationSettings`                  | Email notification preferences                            |
+| `NotificationSettings`                  | 21 notification toggles (10 `notify*` + 11 `email*`)      |
 | `CheckoutSettings`                      | Checkout page theme (light/dark)                          |
 | `CheckoutThemeSettings`                 | Single-theme checkout styling                             |
 | **Store Merchant**                      |                                                           |
