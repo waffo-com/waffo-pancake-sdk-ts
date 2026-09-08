@@ -82,14 +82,11 @@ const { store } = await client.stores.update({
     prodEvents: [],
   },
   notificationSettings: {
-    emailOrderConfirmation: true,
-    emailSubscriptionConfirmation: true,
-    emailSubscriptionCycled: true,
-    emailSubscriptionCanceled: true,
-    emailSubscriptionRevoked: true,
-    emailSubscriptionPastDue: true,
     notifyNewOrders: true,
     notifyNewSubscriptions: true,
+    // The one consumer email a merchant may switch off. The other `email*`
+    // toggles are platform-managed and dropped with a warning if passed.
+    emailUpcomingCharge: false,
   },
   checkoutSettings: {
     light: {
@@ -114,17 +111,17 @@ const { store } = await client.stores.update({
 
 **Parameters `UpdateStoreParams`**:
 
-| Field                  | Type                           | Required | Description                                                                |
-| ---------------------- | ------------------------------ | -------- | -------------------------------------------------------------------------- |
-| `id`                   | `string`                       | Yes      | Store ID                                                                   |
-| `name`                 | `string`                       | No       | Store name (1–100 characters)                                              |
-| `status`               | `EntityStatus`                 | No       | Store status                                                               |
-| `logo`                 | `string \| null`               | No       | Logo (Base64 encoded image)                                                |
-| `supportEmail`         | `string \| null`               | No       | Support email address                                                      |
-| `website`              | `string \| null`               | No       | Store website URL                                                          |
-| `webhookSettings`      | `WebhookSettings \| null`      | No       | Webhook endpoint configuration (test/prod URLs and subscribed event types) |
-| `notificationSettings` | `NotificationSettings \| null` | No       | Email notification preferences                                             |
-| `checkoutSettings`     | `CheckoutSettings \| null`     | No       | Checkout page theme (light/dark)                                           |
+| Field                  | Type                                                    | Required | Description                                                                                                                                                      |
+| ---------------------- | ------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                   | `string`                                                | Yes      | Store ID                                                                                                                                                         |
+| `name`                 | `string`                                                | No       | Store name (1–100 characters)                                                                                                                                    |
+| `status`               | `EntityStatus`                                          | No       | Store status                                                                                                                                                     |
+| `logo`                 | `string \| null`                                        | No       | Logo (Base64 encoded image)                                                                                                                                      |
+| `supportEmail`         | `string \| null`                                        | No       | Support email address                                                                                                                                            |
+| `website`              | `string \| null`                                        | No       | Store website URL                                                                                                                                                |
+| `webhookSettings`      | `WebhookSettings \| null`                               | No       | Webhook endpoint configuration (test/prod URLs and subscribed event types)                                                                                       |
+| `notificationSettings` | `Partial<MerchantWritableNotificationSettings> \| null` | No       | Notification preferences: every `notify*` toggle plus `emailUpcomingCharge`. The other `email*` toggles are platform-managed and dropped with a `warnings` entry |
+| `checkoutSettings`     | `CheckoutSettings \| null`                              | No       | Checkout page theme (light/dark)                                                                                                                                 |
 
 **Returns `{ store: Store }`**
 
