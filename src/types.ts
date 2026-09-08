@@ -420,10 +420,20 @@ export interface NotificationSettings {
 /**
  * Merchant-writable subset of {@link NotificationSettings}.
  *
- * Consumer-email toggles (`email*`) are managed by the PANCAKE platform and **not**
- * writable from this SDK; they would be silently dropped by the `update-store`
- * endpoint if included. Payout result notifications are platform-managed and always
+ * The nine merchant-notification toggles (`notify*`) plus `emailTrialEnding`, the one
+ * consumer email a merchant may switch off. Every other consumer-email toggle (`email*`)
+ * is managed by the PANCAKE platform and **not** writable from this SDK; it would be
+ * silently dropped by the `update-store` endpoint if included, and named in the
+ * response's `warnings`. Payout result notifications are platform-managed and always
  * delivered — they have no toggle key. Use this type for any merchant-side update.
+ *
+ * Writability comes from the server-side whitelist, not from the field-name prefix:
+ * `emailTrialEnding` is a buyer-facing email yet writable, so do not infer either way
+ * from `email*` / `notify*`.
+ *
+ * Note that `notificationSettings: null` clears the fields the caller may write, which
+ * now includes `emailTrialEnding` — clearing turns the trial reminder back on (it reads
+ * back as the default `true`).
  */
 export type MerchantWritableNotificationSettings = Pick<
   NotificationSettings,
@@ -436,6 +446,7 @@ export type MerchantWritableNotificationSettings = Pick<
   | "notifySubscriptionUncanceled"
   | "notifySubscriptionPlanChanged"
   | "notifyChargeback"
+  | "emailTrialEnding"
 >;
 
 /**

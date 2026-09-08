@@ -4,6 +4,17 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+<!-- At release: rename this heading to `## [0.x.y] - YYYY-MM-DD` and bump package.json (see handbook sdks/pancake-ts.md, release workflow). -->
+
+The trial-ending reminder is now a merchant switch.
+
+### Changed
+
+- **`MerchantWritableNotificationSettings` now includes `emailTrialEnding`.** It is the one consumer-email toggle `update-store` accepts from a merchant, so passing it no longer fails type-checking and no longer gets dropped server-side. Every other `email*` key stays platform-managed and read-only from this SDK. Writability follows the server-side whitelist, not the field-name prefix — do not infer it from `email*` / `notify*`.
+- **`notificationSettings: null` now also clears `emailTrialEnding`.** The endpoint's "clear" means "clear the fields the caller may write", so a clear turns the trial reminder back on (it reads back as the default `true`). Send a partial update instead of `null` to keep it switched off.
+
 ## [0.20.0] - 2026-09-02
 
 Subscription period and status now travel on the subscription events only; `subscription.payment_succeeded` is a pure payment event.

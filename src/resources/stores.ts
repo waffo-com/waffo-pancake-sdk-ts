@@ -44,10 +44,19 @@ export class StoresResource {
    * });
    *
    * @example
-   * // Toggle a notification preference
+   * // Toggle a merchant notification
    * const { store } = await client.stores.update({
    *   id: "STO_xxx",
-   *   notificationSettings: { emailOrderConfirmation: false },
+   *   notificationSettings: { notifyNewOrders: false },
+   * });
+   *
+   * @example
+   * // Switch off the trial-ending reminder sent to buyers (the one
+   * // consumer email a merchant may change; the rest are platform-managed
+   * // and would be dropped with a `warnings` entry)
+   * const { store } = await client.stores.update({
+   *   id: "STO_xxx",
+   *   notificationSettings: { emailTrialEnding: false },
    * });
    */
   async update(params: UpdateStoreParams): Promise<{ store: Store; warnings?: Notice[] }> {
