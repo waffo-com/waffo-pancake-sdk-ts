@@ -373,10 +373,11 @@ const { store } = await client.stores.create({ name: "My Store" });
 
 // Update settings (notification, checkout theme).
 // NOTE: webhook configuration moved to client.webhooks (see Webhooks section below).
-// NOTE: only merchant-facing `notify*` toggles (notifyNewOrders / notifyNewSubscriptions /
-//       notifySubscription* / notifyChargeback / notifyPayout*) are writable here;
-//       consumer email toggles (emailOrderConfirmation, emailSubscription*, emailTrial*) are
-//       managed by the PANCAKE platform and silently dropped if passed.
+// NOTE: only the 10 merchant-facing `notify*` toggles (notifyNewOrders / notifyNewSubscriptions /
+//       notifySubscription* / notifyChargeback / notifyRefundSucceeded) are writable here;
+//       the 11 consumer email toggles (emailOrderConfirmation, emailSubscription*, emailTrial*,
+//       emailUpcomingCharge, emailRefundSucceeded) are managed by the PANCAKE platform and
+//       silently dropped if passed. Payout result emails are always delivered and have no toggle.
 // NOTE: supportEmail and website are not writable here — they are set by
 //       ownership verification (email code / domain) or KYB approval.
 const { store: updated } = await client.stores.update({

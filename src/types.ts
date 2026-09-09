@@ -406,6 +406,8 @@ export interface NotificationSettings {
   emailUpcomingCharge: boolean;
   /** One toggle for all three plan-change customer emails (scheduled / failed / applied) */
   emailSubscriptionPlanChanged: boolean;
+  /** Customer email sent when a refund on their payment completes */
+  emailRefundSucceeded: boolean;
   notifyNewOrders: boolean;
   notifyNewSubscriptions: boolean;
   notifySubscriptionCanceled: boolean;
@@ -415,6 +417,8 @@ export interface NotificationSettings {
   notifySubscriptionUncanceled: boolean;
   notifySubscriptionPlanChanged: boolean;
   notifyChargeback: boolean;
+  /** Merchant notification sent when a refund on a payment completes */
+  notifyRefundSucceeded: boolean;
 }
 
 /**
@@ -436,6 +440,7 @@ export type MerchantWritableNotificationSettings = Pick<
   | "notifySubscriptionUncanceled"
   | "notifySubscriptionPlanChanged"
   | "notifyChargeback"
+  | "notifyRefundSucceeded"
 >;
 
 /**
