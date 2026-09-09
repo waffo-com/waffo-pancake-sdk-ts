@@ -424,7 +424,7 @@ export interface NotificationSettings {
  * one consumer email a merchant may switch off, and switching it off silences it
  * for every billing period in that store, yearly plans included.
  *
- * The other nine consumer-email toggles (`email*`) are managed by the PANCAKE
+ * Every other consumer-email toggle (`email*`) is managed by the PANCAKE
  * platform and **not** writable from this SDK; the `update-store` endpoint silently
  * drops them and names them in the response's `warnings`. Payout result
  * notifications are platform-managed and always delivered — they have no toggle
