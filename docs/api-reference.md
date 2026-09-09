@@ -858,7 +858,7 @@ All exported type interfaces:
 | `UpdateStoreParams`                     | Update store request                                      |
 | `DeleteStoreParams`                     | Delete store request                                      |
 | `WebhookSettings`                       | Webhook endpoint configuration (test/prod)                |
-| `NotificationSettings`                  | Email notification preferences                            |
+| `NotificationSettings`                  | 21 notification toggles (10 `notify*` + 11 `email*`)      |
 | `CheckoutSettings`                      | Checkout page theme (light/dark)                          |
 | `CheckoutThemeSettings`                 | Single-theme checkout styling                             |
 | **Store Merchant**                      |                                                           |
