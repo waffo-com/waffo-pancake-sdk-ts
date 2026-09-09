@@ -1321,6 +1321,27 @@ export interface WebhookEventData {
   /** Subscription cancellation timestamp (ISO 8601, present when canceled) */
   canceledAt?: string;
 
+  // Billing period sequence — present on `subscription.activated` / `payment_succeeded` /
+  // `renewed` / `recovered` / `past_due` / `canceling` / `uncanceled` / `canceled`.
+  // Unlike the subscription block above, it IS present on `subscription.payment_succeeded`:
+  // that is what lets you tie a charge to the period it paid for.
+  /**
+   * Billing-period sequence number, starting at 1 (integer, >= 1).
+   *
+   * Match a payment to a period with `orderId` + `periodNumber` instead of comparing dates.
+   * Numbering per event: `activated` is always 1; `payment_succeeded` carries the period the
+   * charge belongs to; `renewed` carries the new period; `recovered` and `past_due` carry the
+   * period that failed to charge (a retry does not advance it); `canceling` / `uncanceled` /
+   * `canceled` carry the current period. A trial counts as period 1, so the first real charge
+   * after it is 2. A plan change starts a new order, whose numbering restarts at 1.
+   *
+   * **The key is absent, not null, for subscriptions created before period numbers existed** —
+   * those were deliberately left untouched and never get a number, not even on later renewals.
+   * Branch on presence (`"periodNumber" in event.data`), never on `=== 0` or `=== null`, and keep
+   * the `paymentDate` within `[currentPeriodStart, currentPeriodEnd)` fallback for those orders.
+   */
+  periodNumber?: number;
+
   // Refund (present for refund events: refund.succeeded, refund.failed)
   /** Refund status (e.g., "succeeded", "failed") */
   refundStatus?: string;

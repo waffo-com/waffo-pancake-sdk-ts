@@ -4,6 +4,22 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2026-09-09
+
+Subscription events carry a billing-period sequence number, so a payment can be tied to a period by equality instead of by date arithmetic.
+
+### Added
+
+- **`WebhookEventData.periodNumber`** — the billing-period sequence number (integer, >= 1). Present on `subscription.activated`, `subscription.payment_succeeded`, `subscription.renewed`, `subscription.recovered`, `subscription.past_due`, `subscription.canceling`, `subscription.uncanceled` and `subscription.canceled`. It is the one subscription-level field that **is** present on `subscription.payment_succeeded`, which is what lets you match a charge to the period it paid for: key off `orderId` + `periodNumber` on both sides rather than checking whether `paymentDate` falls inside a period.
+
+  Numbering: `activated` is always 1; `renewed` carries the new period; `recovered` and `past_due` carry the period that failed to charge, and a successful retry does **not** advance it; `canceling` / `uncanceled` / `canceled` carry the current period. A trial is period 1, so the first real charge after it is 2. A plan change creates a new order whose numbering restarts at 1 — the sequence never continues across order IDs.
+
+  **The key is absent — not `null` — for subscriptions that predate period numbers.** Those orders were deliberately left untouched and never receive a number, not even on renewals that happen from now on. Branch on whether the key exists (`"periodNumber" in event.data`), never on `=== 0` or `=== null`, and keep the `paymentDate` within `[currentPeriodStart, currentPeriodEnd)` fallback for them. `Payment.periodNumber` in GraphQL follows the same rule and returns `null` for payments made before the field existed.
+
+### Changed
+
+- **`subscription.renewed` delivery deduplication now keys off the period number when the subscription has one.** Previously the dedup key always ended in the period end date, and degraded to the literal `unknown` when that date was missing — so two such deliveries on one order collapsed into a single record and the second was dropped. Subscriptions without a period number keep the date-based form, and the two forms cannot collide. This affects `eventId` on `subscription.renewed` only; treat `eventId` as an opaque string for idempotency, as before.
+
 ## [0.20.0] - 2026-09-02
 
 Subscription period and status now travel on the subscription events only; `subscription.payment_succeeded` is a pure payment event.

@@ -441,6 +441,81 @@ Which events carry that block:
 | `subscription.payment_succeeded`                                                                                                                                                                                                                                                        | No                 | No            |
 | `order.completed`, `refund.succeeded`, `refund.failed`                                                                                                                                                                                                                                  | No                 | Yes           |
 
+**Billing-period sequence** — the one subscription-level field that is also present on
+`subscription.payment_succeeded`:
+
+| Field          | Type     | Description                                                            |
+| -------------- | -------- | ---------------------------------------------------------------------- |
+| `periodNumber` | `number` | Billing-period sequence number, starting at 1. Absent when unavailable |
+
+Which events carry it, and what the number means on each:
+
+| Event                                                                                                                                | `periodNumber`                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `subscription.activated`                                                                                                             | Always `1`                                                                                                         |
+| `subscription.payment_succeeded`                                                                                                     | The period this charge paid for                                                                                    |
+| `subscription.renewed`                                                                                                               | The new period                                                                                                     |
+| `subscription.recovered`, `subscription.past_due`                                                                                    | The period that failed to charge (a retry does not advance it)                                                     |
+| `subscription.canceling`, `subscription.uncanceled`, `subscription.canceled`                                                         | The current period                                                                                                 |
+| `subscription.plan_changed`, `subscription.plan_change_scheduled`, `subscription.plan_change_failed`, `subscription.upcoming_charge` | Not carried — those describe a move between orders or the next charge, neither of which has a single owning period |
+| `order.completed`, `refund.succeeded`, `refund.failed`                                                                               | Not carried                                                                                                        |
+
+Scenario semantics:
+
+- **Trial** — the trial is period 1, whether it is a $0 card check or a discounted first charge.
+  Its `subscription.payment_succeeded` carries `1`; the first real charge after the trial carries `2`.
+- **Plan change** — a plan change creates a new order. Its events restart at `1`; the sequence
+  never continues across order IDs. Use `orderId` together with `periodNumber` for this reason.
+- **Past due and recovery** — a failed renewal does not advance the number. `subscription.past_due`,
+  the following `subscription.recovered`, and the retried `subscription.payment_succeeded` all
+  carry the same number, because they concern the same period.
+- **Cancel then uncancel** — the number is unchanged across both events.
+- **Retries and replays** — the number is read from storage, not recomputed, so a redelivered or
+  manually resent event carries the same number as its first delivery.
+
+#### Matching a payment to a period
+
+```typescript
+import { verifyWebhook, WebhookEventType } from "@waffo/pancake-ts";
+
+const event = verifyWebhook(rawBody, signatureHeader);
+
+// Branch on whether the key exists — not on its value
+const hasPeriodNumber = "periodNumber" in event.data;
+
+switch (event.eventType) {
+  case WebhookEventType.SubscriptionRenewed:
+    if (hasPeriodNumber) {
+      // Equality match: this is period N of this order
+      await upsertPeriod({ orderId: event.data.orderId, periodNumber: event.data.periodNumber });
+    } else {
+      // Subscription predates period numbers — fall back to the date range
+      await upsertPeriodByDates(event.data);
+    }
+    break;
+
+  case WebhookEventType.SubscriptionPaymentSucceeded:
+    if (hasPeriodNumber) {
+      await attachPaymentToPeriod({
+        orderId: event.data.orderId,
+        periodNumber: event.data.periodNumber,
+        paymentId: event.data.paymentId,
+      });
+    } else {
+      // paymentDate ∈ [currentPeriodStart, currentPeriodEnd) taken from the subscription events
+      await attachPaymentByDateRange(event.data);
+    }
+    break;
+}
+```
+
+**Branch on whether the key exists, not on its value.** Subscriptions created before period
+numbers existed were deliberately left untouched: they never receive a number, not even on
+renewals that happen from now on, and the key is simply absent rather than `null` or `0`.
+Testing `event.data.periodNumber === 0` or `=== null` will never be true and will silently skip
+the fallback path. `Payment.periodNumber` in GraphQL follows the same rule and returns `null`
+for payments made before the field existed.
+
 ### Migrating off the subscription fields on `subscription.payment_succeeded`
 
 `subscription.payment_succeeded` is a pure payment event: it describes one charge and carries
@@ -456,6 +531,7 @@ If your handler reads any of those five fields off `subscription.payment_succeed
 | Detecting the first paid period     | `subscription.activated` — now always carries the full period                                          |
 | Knowing the subscription is healthy | `subscription.recovered` — emitted when a retried charge brings a past-due subscription back to active |
 | Reading the subscription status     | any subscription domain event (`orderStatus`), or query the order via GraphQL                          |
+| Tying a charge to a billing period  | `periodNumber` on both events — match `orderId` + `periodNumber` by equality (see above)               |
 
 The renewal receipt itself is unchanged: `subscription.payment_succeeded` still carries the
 payment fields (`paymentId`, `paymentStatus`, `amount`, `taxAmount`, …) and `orderId`, so a
