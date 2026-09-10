@@ -1323,9 +1323,12 @@ export interface WebhookEventData {
    *
    * Present on every subscription event driven by a channel notification, including
    * `subscription.payment_succeeded`: it sits outside the subscription block above and is
-   * not gated by it. Absent on `subscription.canceling`, `subscription.uncanceled` and
-   * `subscription.plan_change_failed` — no channel notification carries a period number for
-   * those — and on one-time order and refund events. Treat it as optional.
+   * not gated by it. On `refund.succeeded` / `refund.failed` it is the period of the
+   * **charge being refunded**, not the period the refund happens in — refunding the first
+   * period of a subscription already in its second reports `1`. Absent on
+   * `subscription.canceling`, `subscription.uncanceled` and `subscription.plan_change_failed`
+   * — no channel notification carries a period number for those — and on one-time orders
+   * and their refunds. Treat it as optional.
    *
    * Not a deduplication key: several events can report the same period (a status and a period
    * notification for the same roll-forward, overdue retries). Deduplicate on
