@@ -188,6 +188,7 @@ app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
       case WebhookEventType.SubscriptionActivated:
         console.log(`Subscription activated for ${event.data.buyerEmail}`);
         console.log(`Period: ${event.data.billingPeriod}, ends ${event.data.currentPeriodEnd}`);
+        console.log(`Billing period #${event.data.periodNumber}`); // 1 on the first period, N on the Nth renewal
         break;
       case WebhookEventType.RefundSucceeded:
         console.log(`Refund succeeded: ${event.data.refundReason}`);

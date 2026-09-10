@@ -1313,6 +1313,26 @@ export interface WebhookEventData {
   /** Payment date (ISO 8601 date, e.g., "2026-04-18") */
   paymentDate?: string;
 
+  /**
+   * Which billing period this event belongs to, as reported by the payment channel.
+   *
+   * The first period is `1` and the Nth renewal is `N`. A failed charge still consumes a
+   * period, so the number keeps counting up — it is the billing period, **not** a count of
+   * successful charges. `0` means the channel has authorized the subscription but has not
+   * charged it yet (seen on a plan change scheduled for the next period).
+   *
+   * Present on every subscription event driven by a channel notification, including
+   * `subscription.payment_succeeded`: it sits outside the subscription block above and is
+   * not gated by it. Absent on `subscription.canceling`, `subscription.uncanceled` and
+   * `subscription.plan_change_failed` — no channel notification carries a period number for
+   * those — and on one-time order and refund events. Treat it as optional.
+   *
+   * Not a deduplication key: several events can report the same period (a status and a period
+   * notification for the same roll-forward, overdue retries). Deduplicate on
+   * `eventType` + `eventId` as documented in the webhook guide.
+   */
+  periodNumber?: number;
+
   // Subscription — present on the subscription domain events
   // (`subscription.activated` / `renewed` / `recovered` / `plan_changed` /
   // `plan_change_scheduled` / `plan_change_failed` / `canceling` / `uncanceled` /
