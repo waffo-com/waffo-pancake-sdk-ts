@@ -424,10 +424,15 @@ export interface NotificationSettings {
 /**
  * Merchant-writable subset of {@link NotificationSettings}.
  *
- * Consumer-email toggles (`email*`) are managed by the PANCAKE platform and **not**
- * writable from this SDK; they would be silently dropped by the `update-store`
- * endpoint if included. Payout result notifications are platform-managed and always
- * delivered — they have no toggle key. Use this type for any merchant-side update.
+ * Every `notify*` toggle, plus `emailUpcomingCharge` — the renewal reminder is the
+ * one consumer email a merchant may switch off, and switching it off silences it
+ * for every billing period in that store, yearly plans included.
+ *
+ * Every other consumer-email toggle (`email*`) is managed by the PANCAKE
+ * platform and **not** writable from this SDK; the `update-store` endpoint silently
+ * drops them and names them in the response's `warnings`. Payout result
+ * notifications are platform-managed and always delivered — they have no toggle
+ * key. Use this type for any merchant-side update.
  */
 export type MerchantWritableNotificationSettings = Pick<
   NotificationSettings,
@@ -441,6 +446,7 @@ export type MerchantWritableNotificationSettings = Pick<
   | "notifySubscriptionPlanChanged"
   | "notifyChargeback"
   | "notifyRefundSucceeded"
+  | "emailUpcomingCharge"
 >;
 
 /**
