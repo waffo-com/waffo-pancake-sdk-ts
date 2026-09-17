@@ -1334,6 +1334,13 @@ export interface WebhookEventData {
    *   `eventId` to deduplicate.
    * - Absent on one-time orders and their refunds, and on subscriptions and payments that
    *   predate this field.
+   *
+   * The same concept is exposed on GraphQL under two names, one per anchor: `Payment.periodNumber`
+   * (frozen to that charge) and `SubscriptionOrder.currentPeriodNumber` (moves as the subscription
+   * renews). They are not different numbers.
+   *
+   * Test webhooks sent from the Dashboard always report `1` on subscription events and omit the
+   * field on refund events; real subscription refunds in production do carry it.
    */
   periodNumber?: number;
 
