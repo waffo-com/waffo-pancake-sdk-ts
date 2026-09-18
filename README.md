@@ -375,11 +375,14 @@ const { store } = await client.stores.create({ name: "My Store" });
 // NOTE: webhook configuration moved to client.webhooks (see Webhooks section below).
 // NOTE: writable here are all the merchant-facing `notify*` toggles (notifyNewOrders /
 //       notifyNewSubscriptions / notifySubscription* / notifyChargeback /
-//       notifyRefundSucceeded) plus emailUpcomingCharge, the buyer-facing renewal
-//       reminder. Every other consumer email toggle (emailOrderConfirmation,
-//       emailSubscription*, emailTrial*, emailRefundSucceeded) is managed by the
-//       PANCAKE platform and silently dropped if passed. Payout result emails are
+//       notifyRefundSucceeded) plus the two buyer-facing reminders
+//       emailUpcomingCharge (renewal) and emailTrialEnding (trial ending). Every
+//       other consumer email toggle (emailOrderConfirmation, emailSubscription*,
+//       emailTrialStarted, emailRefundSucceeded) is managed by the PANCAKE
+//       platform and silently dropped if passed. Payout result emails are
 //       always delivered and have no toggle.
+// NOTE: both reminders are decided per store — every buyer of the store is covered
+//       by the same switch, and passing notificationSettings: null puts them back on.
 // NOTE: supportEmail and website are not writable here — they are set by
 //       ownership verification (email code / domain) or KYB approval.
 const { store: updated } = await client.stores.update({
@@ -389,6 +392,8 @@ const { store: updated } = await client.stores.update({
     notifyNewSubscriptions: false,
     // Stop reminding this store's buyers before a renewal is charged.
     emailUpcomingCharge: false,
+    // Stop reminding this store's buyers that their paid trial is about to end.
+    emailTrialEnding: false,
   },
 });
 
