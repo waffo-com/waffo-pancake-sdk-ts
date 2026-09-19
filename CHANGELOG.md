@@ -4,6 +4,15 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.0] - 2026-09-17
+
+Merchants can switch off the trial-ending reminder their buyers receive.
+
+### Changed
+
+- **`MerchantWritableNotificationSettings` picks `emailTrialEnding`** — the customer email sent before a paid trial ends is now a merchant decision, writable through `client.stores.update({ notificationSettings: { emailTrialEnding: false } })` and readable back from `Store.notificationSettings`. It defaults to on, is decided per store (there is no per-recipient form of it), and joins `emailUpcomingCharge` as the second `email*` key this type accepts. Every other `email*` toggle stays platform-managed: `update-store` drops it and names it in the response's `warnings`.
+- **`notificationSettings: null` clears `emailTrialEnding` too.** The documented clearing semantics apply to every merchant-writable key, so a store that switched the reminder off gets it back on. Send a partial update carrying only the keys you want to change to keep it off.
+
 ## [0.20.0] - 2026-09-02
 
 Subscription period and status now travel on the subscription events only; `subscription.payment_succeeded` is a pure payment event.

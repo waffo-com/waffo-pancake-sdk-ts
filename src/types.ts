@@ -402,7 +402,9 @@ export interface NotificationSettings {
   emailSubscriptionRevoked: boolean;
   emailSubscriptionPastDue: boolean;
   emailTrialStarted: boolean;
+  /** Customer email sent before a paid trial ends — merchant-writable, per store */
   emailTrialEnding: boolean;
+  /** Customer email sent before a renewal is charged — merchant-writable, per store */
   emailUpcomingCharge: boolean;
   /** One toggle for all three plan-change customer emails (scheduled / failed / applied) */
   emailSubscriptionPlanChanged: boolean;
@@ -424,15 +426,21 @@ export interface NotificationSettings {
 /**
  * Merchant-writable subset of {@link NotificationSettings}.
  *
- * Every `notify*` toggle, plus `emailUpcomingCharge` — the renewal reminder is the
- * one consumer email a merchant may switch off, and switching it off silences it
- * for every billing period in that store, yearly plans included.
+ * Every `notify*` toggle, plus the two customer reminders a merchant may switch off:
+ * `emailUpcomingCharge` (renewal) and `emailTrialEnding` (trial ending). Switching
+ * either off silences it for every buyer of that store — `emailUpcomingCharge` for
+ * every billing period, yearly plans included, and `emailTrialEnding` for every paid
+ * trial. Both are decided per store; there is no per-recipient form of them.
  *
  * Every other consumer-email toggle (`email*`) is managed by the PANCAKE
  * platform and **not** writable from this SDK; the `update-store` endpoint silently
  * drops them and names them in the response's `warnings`. Payout result
  * notifications are platform-managed and always delivered — they have no toggle
  * key. Use this type for any merchant-side update.
+ *
+ * Passing `notificationSettings: null` to `update-store` clears every key in this
+ * type back to its default (on), both reminders included. Send a partial update
+ * carrying only the keys you want to change to keep a reminder switched off.
  */
 export type MerchantWritableNotificationSettings = Pick<
   NotificationSettings,
@@ -447,6 +455,7 @@ export type MerchantWritableNotificationSettings = Pick<
   | "notifyChargeback"
   | "notifyRefundSucceeded"
   | "emailUpcomingCharge"
+  | "emailTrialEnding"
 >;
 
 /**
@@ -523,7 +532,10 @@ export interface UpdateStoreParams {
   status?: EntityStatus;
   /** Store logo URL (set to `null` to remove) */
   logo?: string | null;
-  /** Notification preferences (partial update — omitted fields keep existing values, set to `null` to clear all) */
+  /**
+   * Notification preferences (partial update — omitted fields keep existing values,
+   * set to `null` to clear all merchant-writable keys back to their default of on)
+   */
   notificationSettings?: Partial<MerchantWritableNotificationSettings> | null;
   /** Checkout page theme configuration (partial update — omitted fields keep existing values, set to `null` to clear all) */
   checkoutSettings?: Partial<CheckoutSettings> | null;

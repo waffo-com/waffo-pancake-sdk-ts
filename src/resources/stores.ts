@@ -29,6 +29,12 @@ export class StoresResource {
    * partial updates: omitted sub-fields keep existing values, `null` clears a
    * field. Pass the entire settings object as `null` to clear all fields.
    *
+   * `notificationSettings` accepts the merchant-writable keys only — every
+   * `notify*` toggle plus the two customer reminders `emailUpcomingCharge` and
+   * `emailTrialEnding`. Other `email*` keys are dropped and named in `warnings`.
+   * Passing `notificationSettings: null` clears the writable keys back to their
+   * default of on, so send a partial update to keep a reminder switched off.
+   *
    * **BREAKING (2026-05)**: the legacy `webhookSettings` parameter is removed.
    * Use `client.webhooks.add / update / remove` to manage webhook endpoints,
    * and query the configured webhook list via GraphQL `Store.storeWebhooks`.
@@ -47,7 +53,14 @@ export class StoresResource {
    * // Toggle a notification preference
    * const { store } = await client.stores.update({
    *   id: "STO_xxx",
-   *   notificationSettings: { emailOrderConfirmation: false },
+   *   notificationSettings: { notifyNewOrders: false },
+   * });
+   *
+   * @example
+   * // Stop reminding this store's buyers that their trial is about to end
+   * const { store } = await client.stores.update({
+   *   id: "STO_xxx",
+   *   notificationSettings: { emailTrialEnding: false },
    * });
    */
   async update(params: UpdateStoreParams): Promise<{ store: Store; warnings?: Notice[] }> {
