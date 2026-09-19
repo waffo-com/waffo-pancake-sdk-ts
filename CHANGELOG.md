@@ -6,7 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [0.22.0] - 2026-09-17
 
-Merchants can switch off the trial-ending reminder their buyers receive.
+Subscription webhooks carry the payment channel's billing period number, and merchants can switch off the trial-ending reminder their buyers receive.
+
+### Added
+
+- **`WebhookEventData.periodNumber` (optional `number`)** — which billing period the event refers to, exactly as reported by the payment channel: `1` on the first charge, `N` on the Nth renewal. A failed charge still consumes a period, so it is not a count of successful charges; `0` means the channel authorized the subscription but has not charged it yet. On payment events it is the period of that charge, on refund events the period of the **refunded** charge. Present on the subscription domain events and on `subscription.payment_succeeded`; **absent on one-time orders and their refunds**. Several events in one period share the number, so it is not a deduplication key — use `id` or `eventId`.
 
 ### Changed
 

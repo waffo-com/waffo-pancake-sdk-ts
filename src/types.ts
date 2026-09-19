@@ -1325,6 +1325,9 @@ export interface WebhookEventData {
   /** Payment date (ISO 8601 date, e.g., "2026-04-18") */
   paymentDate?: string;
 
+  /** Billing period this event refers to, as reported by the payment channel; see the webhook docs for the full semantics. */
+  periodNumber?: number;
+
   // Subscription — present on the subscription domain events
   // (`subscription.activated` / `renewed` / `recovered` / `plan_changed` /
   // `plan_change_scheduled` / `plan_change_failed` / `canceling` / `uncanceled` /
