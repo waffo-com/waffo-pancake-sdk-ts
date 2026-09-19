@@ -10,6 +10,7 @@ export { verifyWebhook } from "./webhooks.js";
 // Enums (runtime values)
 export {
   BillingPeriod,
+  ChangeTiming,
   EntityStatus,
   Environment,
   ErrorLayer,
@@ -98,6 +99,7 @@ export type {
   CreateSubscriptionProductGroupParams,
   DeleteSubscriptionProductGroupParams,
   GroupRules,
+  GroupRulesInput,
   PublishSubscriptionProductGroupParams,
   SubscriptionProductGroup,
   UpdateSubscriptionProductGroupParams,
@@ -117,6 +119,7 @@ export type {
   AnonymousCheckoutParams,
   AuthenticatedCheckoutParams,
   AuthenticatedCheckoutResult,
+  AuthenticatedPlanChangeParams,
 
   // Order
   BillingDetail,
@@ -124,6 +127,7 @@ export type {
   CancelSubscriptionResult,
   CheckoutSessionResult,
   CreateCheckoutSessionParams,
+  CreatePlanChangeSessionParams,
 
   // GraphQL
   GraphQLParams,

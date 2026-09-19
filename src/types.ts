@@ -162,6 +162,19 @@ export enum BillingPeriod {
 }
 
 /**
+ * When a subscription plan change takes effect.
+ *
+ * Omit it and the platform derives the tier from the change direction: an upgrade
+ * defaults to `Immediate`, a downgrade or same-price switch to `NextPeriod`. The
+ * derived tier is not echoed back, so pass it explicitly when you need certainty.
+ * @see docs/api-reference/endpoints/orders/create-checkout-session.mdx
+ */
+export enum ChangeTiming {
+  Immediate = "immediate",
+  NextPeriod = "next_period",
+}
+
+/**
  * Product version status.
  * @see docs/api-reference/endpoints/onetime-products/overview.mdx
  */
@@ -794,12 +807,33 @@ export interface UpdateSubscriptionStatusParams {
 // ---------------------------------------------------------------------------
 
 /**
- * Group rules for subscription product groups.
+ * Group rules as returned on a group entity. Every switch is always present —
+ * the platform reports an unset switch as `false` rather than omitting it.
  * @see docs/api-reference/endpoints/subscription-products/overview.mdx
  */
 export interface GroupRules {
   /** Whether trial period is shared across products in the group */
   sharedTrial: boolean;
+  /**
+   * Whether customers may switch plans within this group on their own from the
+   * customer portal. A customer-credential plan-change link is rejected with 403
+   * while this is off; merchant-issued links are unaffected.
+   */
+  selfServicePlanChange: boolean;
+}
+
+/**
+ * Group rules as accepted on create / update. Every switch is optional and the
+ * platform merges field by field: sending one switch leaves the other at its
+ * stored value (unlike `productIds`, which is a full replacement). Switches left
+ * out on create default to off.
+ * @see docs/api-reference/endpoints/subscription-products/update-group.mdx
+ */
+export interface GroupRulesInput {
+  /** Whether trial period is shared across products in the group */
+  sharedTrial?: boolean;
+  /** Whether customers may switch plans within this group on their own from the customer portal */
+  selfServicePlanChange?: boolean;
 }
 
 /**
@@ -826,19 +860,20 @@ export interface CreateSubscriptionProductGroupParams {
   storeId: string;
   name: string;
   description?: string;
-  rules?: GroupRules;
+  rules?: GroupRulesInput;
   productIds?: string[];
 }
 
 /**
- * Parameters for updating a subscription product group (`productIds` is a full replacement).
+ * Parameters for updating a subscription product group (`productIds` is a full
+ * replacement, `rules` is merged field by field).
  * @see docs/api-reference/endpoints/subscription-products/update-group.mdx
  */
 export interface UpdateSubscriptionProductGroupParams {
   id: string;
   name?: string;
   description?: string;
-  rules?: GroupRules;
+  rules?: GroupRulesInput;
   productIds?: string[];
 }
 
@@ -1008,6 +1043,90 @@ export interface CheckoutSessionResult {
   expiresAt: string;
 }
 
+/**
+ * Parameters for creating a plan-change checkout session.
+ *
+ * Plan change is the same `create-session` endpoint in a different mode, and
+ * `originOrderId` is what switches it — which is why this type carries it as a
+ * required field instead of an optional one on {@link CreateCheckoutSessionParams}.
+ * The returned `checkoutUrl` points at the change confirmation page
+ * (`…/store/{slug}/change/{sessionId}`), where the customer confirms the change.
+ *
+ * `buyerEmail` and `billingDetail` are deliberately absent: in plan change mode
+ * the customer email, billing details, and tax all come from the origin
+ * subscription, and anything sent here would be ignored.
+ * @see docs/api-reference/endpoints/orders/create-checkout-session.mdx
+ */
+export interface CreatePlanChangeSessionParams {
+  /**
+   * Order ID of the subscription being changed (Short ID, `ORD_xxx`). Required —
+   * its presence is what puts the request into plan change mode.
+   */
+  originOrderId: string;
+  /** Target plan's product ID — must be a subscription product other than the current one */
+  productId: string;
+  /** Currency code (ISO 4217) */
+  currency: string;
+  /**
+   * When the new plan takes effect ({@link ChangeTiming}). Omit to let the platform
+   * derive it from the change direction; the derived tier is not echoed back.
+   */
+  changeTiming?: ChangeTiming;
+  /**
+   * What to actually charge for this change, as a display string, tax inclusive
+   * (e.g. `"12.00"`) — the "charge this much" form.
+   *
+   * Mutually exclusive with {@link CreatePlanChangeSessionParams.changeCreditAmount}:
+   * the same number means the opposite thing under each, so sending both is rejected
+   * with a 400 rather than one being picked. Merchant credentials only — sent with
+   * any other credential it is silently dropped by the platform, the same way
+   * `priceSnapshot` is on a new purchase.
+   */
+  changeAmount?: string;
+  /**
+   * How much to credit against this change, as a display string, tax inclusive
+   * (e.g. `"8.00"`) — the "discount this much" form, same unit and tax basis as
+   * {@link CreatePlanChangeSessionParams.changeAmount}.
+   *
+   * Mutually exclusive with `changeAmount` (sending both is a 400) and merchant
+   * credentials only — silently dropped with any other credential.
+   */
+  changeCreditAmount?: string;
+  /**
+   * Trial toggle override for the target plan. Three-state and identical to a new
+   * purchase: `true` grants one, `false` withholds one, omitting it follows the
+   * product group's rule. Merchant credentials only — silently dropped otherwise.
+   */
+  withTrial?: boolean;
+  /** Price override for the target plan (reads from the locked product version if omitted) */
+  priceSnapshot?: PriceSnapshot;
+  /** Redirect URL after the change is confirmed and paid */
+  successUrl?: string;
+  /** Session expiration in seconds (default: 45 minutes) */
+  expiresInSeconds?: number;
+  /** Dark mode override (true=dark, false=light, omit=use store default) */
+  darkMode?: boolean;
+  /** Custom metadata */
+  metadata?: Record<string, string>;
+  /** Order-side business identifier (max 128 chars); inherited by orders, payments, refunds */
+  orderMerchantExternalId?: string;
+  /**
+   * Default language of the confirmation page ({@link CashierLanguage}, IETF BCP 47).
+   * The customer can switch language on the page.
+   */
+  language?: CashierLanguage;
+  /**
+   * Whitelist — offer only these payment methods ({@link PaymentMethod}).
+   * Mutually exclusive with {@link CreatePlanChangeSessionParams.excludePaymentMethods}.
+   */
+  includePaymentMethods?: PaymentMethod[];
+  /**
+   * Blacklist — offer every method the currency supports except these ({@link PaymentMethod}).
+   * Mutually exclusive with {@link CreatePlanChangeSessionParams.includePaymentMethods}.
+   */
+  excludePaymentMethods?: PaymentMethod[];
+}
+
 // ---------------------------------------------------------------------------
 // Customer self-service
 // ---------------------------------------------------------------------------
@@ -1170,6 +1289,31 @@ export interface AuthenticatedCheckoutParams extends CreateCheckoutSessionParams
    * payload for merchant-side customer identification. Accepts an email or any
    * merchant-provided identifier string. Use `buyerEmail` to pre-fill the
    * checkout page's email input.
+   */
+  buyerIdentity: string;
+}
+
+/**
+ * Parameters for an authenticated plan-change link.
+ *
+ * Same split as {@link AuthenticatedCheckoutParams}: `buyerIdentity` goes to
+ * `issue-session-token`, every other field goes to `create-session`. The issued
+ * token is appended to the confirmation page URL so the customer arrives signed in.
+ *
+ * @example
+ * const result = await client.checkout.authenticated.createPlanChange({
+ *   originOrderId: "ORD_xxx",
+ *   productId: "PROD_target",
+ *   currency: "USD",
+ *   buyerIdentity: "user-123",
+ * });
+ * // Redirect to result.checkoutUrl (includes #token=...)
+ */
+export interface AuthenticatedPlanChangeParams extends CreatePlanChangeSessionParams {
+  /**
+   * Customer identity — sent to `issue-session-token` and encoded into the JWT
+   * payload for merchant-side customer identification. Accepts an email or any
+   * merchant-provided identifier string.
    */
   buyerIdentity: string;
 }

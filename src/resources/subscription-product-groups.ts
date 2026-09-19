@@ -18,6 +18,10 @@ export class SubscriptionProductGroupsResource {
   /**
    * Create a subscription product group for shared-trial or plan switching.
    *
+   * Both `rules` switches are optional; one left out is created off.
+   * `selfServicePlanChange` is what lets customers switch plans within the group
+   * from the customer portal — without it their plan-change links are rejected.
+   *
    * @param params - Group creation parameters
    * @returns Created group entity
    *
@@ -25,7 +29,7 @@ export class SubscriptionProductGroupsResource {
    * const { group } = await client.subscriptionProductGroups.create({
    *   storeId: "STO_xxx",
    *   name: "Pro Plans",
-   *   rules: { sharedTrial: true },
+   *   rules: { sharedTrial: true, selfServicePlanChange: true },
    *   productIds: ["PROD_aaa", "PROD_bbb"],
    * });
    */
@@ -38,7 +42,9 @@ export class SubscriptionProductGroupsResource {
   }
 
   /**
-   * Update a subscription product group. `productIds` is a full replacement.
+   * Update a subscription product group. `productIds` is a full replacement;
+   * `rules` is merged switch by switch, so sending one switch leaves the other
+   * at its stored value. The returned entity always carries both switches.
    *
    * @param params - Group update parameters
    * @returns Updated group entity
@@ -47,6 +53,13 @@ export class SubscriptionProductGroupsResource {
    * const { group } = await client.subscriptionProductGroups.update({
    *   id: "GRP_xxx",
    *   productIds: ["PROD_aaa", "PROD_bbb", "PROD_ccc"],
+   * });
+   *
+   * @example
+   * // Open self-service plan change; sharedTrial keeps whatever it was
+   * const { group } = await client.subscriptionProductGroups.update({
+   *   id: "GRP_xxx",
+   *   rules: { selfServicePlanChange: true },
    * });
    */
   async update(params: UpdateSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {

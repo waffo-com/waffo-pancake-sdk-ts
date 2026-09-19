@@ -4,6 +4,22 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.23.0] - 2026-09-19
+
+Plan changes can now be started from the SDK, and product groups expose the switch that lets customers start one themselves.
+
+### Added
+
+- **`client.checkout.createPlanChangeSession(params)`** — issues a link that changes an existing subscription to another plan. It hits the same `create-session` endpoint as a new purchase, in the mode selected by `originOrderId`, and returns a `checkoutUrl` pointing at the change confirmation page (`…/store/{slug}/change/{sessionId}`). `changeAmount` (charge this much) and `changeCreditAmount` (credit this much) are two ways to price the same change, mutually exclusive and rejected together with a 400; they and `withTrial` are merchant-credential only. Nothing about the mode rules is enforced client-side — the SDK forwards what you pass.
+- **`client.checkout.authenticated.createPlanChange(params)`** — the authenticated form: same `buyerIdentity` split as `authenticated.create()`, with the issued token appended to the confirmation URL as `#token=...`.
+- **`CreatePlanChangeSessionParams` / `AuthenticatedPlanChangeParams`** — plan change params with **`originOrderId` required**. `CreateCheckoutSessionParams` and `AnonymousCheckoutParams` carry no plan change field, and `checkout.anonymous` has no plan change method: a Store Slug session is anonymous and the platform answers 403 for it, so the shape makes the invalid combinations unrepresentable rather than deferring them to a 400.
+- **`ChangeTiming` enum** (`Immediate` / `NextPeriod`) — when the new plan takes effect. Omit it and the platform derives the tier from the change direction; the derived tier is not echoed back, so pass it when you need certainty.
+- **`GroupRules.selfServicePlanChange`** — the group-level master switch for customers changing plans within the group from the customer portal. While it is off, a customer-credential plan change link is rejected with a 403; merchant-issued links are unaffected. Writable through `subscriptionProductGroups.create()` / `update()`, readable back on the group entity.
+
+### Changed
+
+- **`GroupRules` split into an entity type and an input type.** `GroupRules` (entity, returned on a group) now has both switches **required** — the platform always reports a complete set, an unset switch as `false`. The new `GroupRulesInput` (accepted on create / update) has both **optional**, matching the platform's field-by-field merge: sending only `selfServicePlanChange` leaves `sharedTrial` at its stored value. Code that reads `group.rules` is unaffected; code that builds a `rules` payload keeps compiling, and `sharedTrial` is no longer mandatory there.
+
 ## [0.22.0] - 2026-09-17
 
 Subscription webhooks carry the payment channel's billing period number, and merchants can switch off the trial-ending reminder their buyers receive.

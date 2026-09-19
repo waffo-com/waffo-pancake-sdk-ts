@@ -63,6 +63,8 @@ Waffo supports two checkout modes based on whether the merchant knows the custom
 | **Authenticated** | `checkout.authenticated.create()` | Merchant provides | Pre-filled | Merchant sites with user accounts        |
 | **Anonymous**     | `checkout.anonymous.create()`     | Not provided      | Empty      | Template stores, one-time purchase links |
 
+Changing the plan of an existing subscription is a separate pair of methods — see [Plan Change Links](#plan-change-links).
+
 > **We recommend authenticated checkout whenever possible.** The most important reason: authenticated checkout binds the order to the `buyerIdentity` you provide, which is a **merchant-controlled stable identifier**. Even if the customer changes the email on the checkout form, the order is still tied to the identity you specified. In anonymous mode, the customer self-reports their email on the form — if they enter a different address, the system treats them as a new user, which means **previous orders become unlinked** and **subscription trial periods can be exploited** (a new email = a new user = a fresh trial).
 >
 > |                   | Authenticated                                                           | Anonymous                                          |
@@ -140,6 +142,40 @@ const result = await client.checkout.anonymous.create({
 
 window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
 ```
+
+### Plan Change Links
+
+Switching an existing subscription to another plan uses the same endpoint in a different mode, so the SDK gives it its own methods with `originOrderId` required — the platform rejects the plan change fields whenever they appear without it, and a required field makes that unrepresentable.
+
+```typescript
+import { ChangeTiming } from "@waffo/pancake-ts";
+
+// API Key entry point — you send the customer to the returned URL yourself
+const session = await client.checkout.createPlanChangeSession({
+  originOrderId: "ORD_xxx", // the subscription being changed (required)
+  productId: "PROD_target_plan", // the plan to switch to
+  currency: "USD",
+  changeTiming: ChangeTiming.Immediate, // omit to let the platform derive it
+  changeCreditAmount: "8.00", // "credit this much" — or changeAmount, never both
+});
+// session.checkoutUrl = "https://pancake.waffo.ai/store/{slug}/change/{sessionId}"
+
+// Authenticated entry point — same split as authenticated checkout, the token is
+// appended so the customer lands on the confirmation page already signed in
+const result = await client.checkout.authenticated.createPlanChange({
+  originOrderId: "ORD_xxx",
+  productId: "PROD_target_plan",
+  currency: "USD",
+  buyerIdentity: "userIdInYourSystem",
+  changeTiming: ChangeTiming.NextPeriod,
+});
+// result.checkoutUrl = "https://pancake.waffo.ai/store/{slug}/change/{sessionId}#token={JWT}"
+```
+
+- **`changeAmount` vs `changeCreditAmount`** — two ways to price the same change: `changeAmount` sets what you charge for this period, `changeCreditAmount` sets how much you credit against it. Same unit and tax basis, opposite meaning, so they are mutually exclusive and sending both is rejected with a 400.
+- **Merchant credentials only** — `changeAmount`, `changeCreditAmount` and `withTrial` are honored because these calls are signed with your API Key. A customer-session credential calling the endpoint directly has them silently dropped.
+- **Anonymous has no plan change** — a Store Slug session has no subscription to attribute the change to (the platform answers 403), so `checkout.anonymous` carries no plan change method at all.
+- **Customer self-service** — to let customers start a change themselves from the customer portal, switch on `selfServicePlanChange` on the product group (see [Subscription Product Groups](#subscription-product-groups)).
 
 ### Opening the Checkout Page
 
@@ -492,12 +528,14 @@ await client.subscriptionProducts.publish({ id: sub.id });
 
 ### Subscription Product Groups
 
+Both group switches are optional on create and update. `sharedTrial` shares the trial period across the group's products; `selfServicePlanChange` is the master switch for customers changing plans within the group from the customer portal — while it is off, a customer-credential plan change link is rejected with a 403 (merchant-issued links are unaffected).
+
 ```typescript
 // Create a group linking related subscription tiers
 const { group } = await client.subscriptionProductGroups.create({
   storeId: "STO_xxx",
   name: "Pro Plans",
-  rules: { sharedTrial: true },
+  rules: { sharedTrial: true, selfServicePlanChange: true },
   productIds: ["PROD_aaa", "PROD_bbb"],
 });
 
@@ -506,6 +544,13 @@ await client.subscriptionProductGroups.update({
   id: group.id,
   productIds: ["PROD_aaa", "PROD_bbb", "PROD_ccc"],
 });
+
+// Rules are merged switch by switch — sharedTrial keeps its stored value here
+const { group: updated } = await client.subscriptionProductGroups.update({
+  id: group.id,
+  rules: { selfServicePlanChange: true },
+});
+// updated.rules is always complete: { sharedTrial, selfServicePlanChange }
 
 // Publish / delete
 await client.subscriptionProductGroups.publish({ id: group.id });
@@ -595,6 +640,7 @@ try {
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Environment`                | `Test`, `Prod`                                                                                                                                                                                                                                                                                                                                               |
 | `TaxCategory`                | `DigitalGoods`, `SaaS`, `Software`, `Ebook`, `OnlineCourse`, `Consulting`, `ProfessionalService`                                                                                                                                                                                                                                                             |
+| `ChangeTiming`               | `Immediate`, `NextPeriod`                                                                                                                                                                                                                                                                                                                                    |
 | `BillingPeriod`              | `Weekly`, `Monthly`, `Quarterly`, `Yearly`                                                                                                                                                                                                                                                                                                                   |
 | `ProductVersionStatus`       | `Active`, `Inactive`                                                                                                                                                                                                                                                                                                                                         |
 | `EntityStatus`               | `Active`, `Inactive`, `Suspended`                                                                                                                                                                                                                                                                                                                            |
@@ -611,7 +657,7 @@ try {
 
 ### Types
 
-Key types: `WaffoPancakeConfig`, `AuthenticatedCheckoutParams`, `AuthenticatedCheckoutResult`, `AnonymousCheckoutParams`, `CheckoutSessionResult`, `CashierLanguage`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `WebhookEvent<T>`, `WebhookEventData`, `GraphQLResponse<T>`, and 30+ more. `WebhookEventData` includes rich fields organized by section: order info, amounts, product, payment, subscription, and refund (conditional by event type). See [API Reference](docs/api-reference.md#types) for the full list.
+Key types: `WaffoPancakeConfig`, `AuthenticatedCheckoutParams`, `AuthenticatedCheckoutResult`, `AnonymousCheckoutParams`, `CreatePlanChangeSessionParams`, `AuthenticatedPlanChangeParams`, `CheckoutSessionResult`, `CashierLanguage`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `WebhookEvent<T>`, `WebhookEventData`, `GraphQLResponse<T>`, and 30+ more. `WebhookEventData` includes rich fields organized by section: order info, amounts, product, payment, subscription, and refund (conditional by event type). See [API Reference](docs/api-reference.md#types) for the full list.
 
 ## Development
 
