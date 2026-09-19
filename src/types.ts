@@ -1325,35 +1325,7 @@ export interface WebhookEventData {
   /** Payment date (ISO 8601 date, e.g., "2026-04-18") */
   paymentDate?: string;
 
-  // Billing period number — present on every subscription-domain event *and* on
-  // `subscription.payment_succeeded` and subscription refunds. It sits outside the
-  // subscription block below, so a pure payment event carries it without the block.
-  /**
-   * Which billing period the event refers to, exactly as reported by the payment channel.
-   *
-   * - `1` on the first charge, `N` on the Nth renewal.
-   * - A failed charge still consumes a period, so this is **not** a count of successful
-   *   charges; `subscription.payment_succeeded` for a retry keeps the same number as the
-   *   failed attempt it retries.
-   * - `0` means the channel has authorized the subscription but has not charged it yet
-   *   (seen on a scheduled plan change before its switch time).
-   * - On payment events it is the period of that charge; on refund events it is the period
-   *   of the **refunded** charge, not the period the refund happened in.
-   * - On `subscription.canceling` / `uncanceled` / `plan_change_failed` the channel sends no
-   *   notification of its own, so the value is the subscription's current period as last
-   *   reported by the channel.
-   * - **Not a deduplication key**: several events share one period number. Use `id` or
-   *   `eventId` to deduplicate.
-   * - Absent on one-time orders and their refunds, and on subscriptions and payments that
-   *   predate this field.
-   *
-   * The same concept is exposed on GraphQL under two names, one per anchor: `Payment.periodNumber`
-   * (frozen to that charge) and `SubscriptionOrder.currentPeriodNumber` (moves as the subscription
-   * renews). They are not different numbers.
-   *
-   * Test webhooks sent from the Dashboard always report `1` on subscription events and omit the
-   * field on refund events; real subscription refunds in production do carry it.
-   */
+  /** Billing period this event refers to, as reported by the payment channel; see the webhook docs for the full semantics. */
   periodNumber?: number;
 
   // Subscription — present on the subscription domain events
