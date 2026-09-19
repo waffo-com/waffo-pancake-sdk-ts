@@ -175,7 +175,7 @@ const result = await client.checkout.authenticated.createPlanChange({
 - **`changeAmount` vs `changeCreditAmount`** — two ways to price the same change: `changeAmount` sets what you charge for this period, `changeCreditAmount` sets how much you credit against it. Same unit and tax basis, opposite meaning, so they are mutually exclusive and sending both is rejected with a 400.
 - **Merchant credentials only** — `changeAmount`, `changeCreditAmount` and `withTrial` are honored because these calls are signed with your API Key. A customer-session credential calling the endpoint directly has them silently dropped.
 - **Anonymous has no plan change** — a Store Slug session has no subscription to attribute the change to (the platform answers 403), so `checkout.anonymous` carries no plan change method at all.
-- **Customer self-service** — to let customers start a change themselves from the customer portal, switch on `selfServicePlanChange` on the product group (see [Subscription Product Groups](#subscription-product-groups)).
+- **Customer self-service** — to let customers start a change themselves, switch on `selfServicePlanChange` on the product group (see [Subscription Product Groups](#subscription-product-groups)) and call `customer.createPlanChangeSession()` on their session (see [Customer Self-Service](#customer-self-service)). That path is the only one the switch gates; merchant-issued links ignore it.
 
 ### Opening the Checkout Page
 
@@ -308,6 +308,14 @@ await customer.resubmitRefundTicket({
   requestedAmount: { amount: "29.00", currency: "USD" },
 });
 
+// Let the customer switch their own subscription to another plan in the same group
+const session = await customer.createPlanChangeSession({
+  originOrderId: "ORD_xxx",
+  productId: "PROD_target_plan",
+  currency: "USD",
+});
+// Send them to session.checkoutUrl to confirm
+
 // Query the customer's own orders via GraphQL
 const result = await customer.graphql.query({
   query: `query { orders { id status createdAt } }`,
@@ -317,6 +325,10 @@ const result = await customer.graphql.query({
 The token is scoped to the specified store and customer identity — customers can only access their own data. Token TTL is 5 minutes and auto-refreshes on each API call.
 
 > **Note**: This uses the same `buyerIdentity` as `checkout.authenticated.create()`. Orders placed via authenticated checkout are automatically tied to this identity, so the customer can manage them later with a token issued here.
+
+> **Customer-initiated plan change has three preconditions**, all enforced by the platform with a 403: the subscription belongs to this customer, the target plan is in the **same product group** as the current one, and that group's **`selfServicePlanChange`** is on (see [Subscription Product Groups](#subscription-product-groups)). A merchant issuing the link with the API Key is subject to none of them. The merchant-only pricing fields (`changeAmount`, `changeCreditAmount`, `withTrial`, `priceSnapshot`, …) are not part of the customer params — the platform drops them on this path without reporting it.
+
+> **Customer session writes are not idempotent.** The API Key client sends a derived idempotency key on every write and the gateway deduplicates on it; this session sends none, so a write retried after a timeout can execute twice.
 
 ## Business-Side Identifiers
 
@@ -657,7 +669,7 @@ try {
 
 ### Types
 
-Key types: `WaffoPancakeConfig`, `AuthenticatedCheckoutParams`, `AuthenticatedCheckoutResult`, `AnonymousCheckoutParams`, `CreatePlanChangeSessionParams`, `AuthenticatedPlanChangeParams`, `CheckoutSessionResult`, `CashierLanguage`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `WebhookEvent<T>`, `WebhookEventData`, `GraphQLResponse<T>`, and 30+ more. `WebhookEventData` includes rich fields organized by section: order info, amounts, product, payment, subscription, and refund (conditional by event type). See [API Reference](docs/api-reference.md#types) for the full list.
+Key types: `WaffoPancakeConfig`, `AuthenticatedCheckoutParams`, `AuthenticatedCheckoutResult`, `AnonymousCheckoutParams`, `CreatePlanChangeSessionParams`, `AuthenticatedPlanChangeParams`, `CustomerPlanChangeParams`, `CheckoutSessionResult`, `CashierLanguage`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `WebhookEvent<T>`, `WebhookEventData`, `GraphQLResponse<T>`, and 30+ more. `WebhookEventData` includes rich fields organized by section: order info, amounts, product, payment, subscription, and refund (conditional by event type). See [API Reference](docs/api-reference.md#types) for the full list.
 
 ## Development
 

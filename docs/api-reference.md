@@ -630,6 +630,44 @@ rather than caching it.
 
 **Returns `{ ticket: RefundTicket }`**
 
+### `customer.createPlanChangeSession(params)`
+
+The self-service half of a plan change: the customer switches one of their own subscriptions to another plan in the same group. Same `create-session` endpoint as the merchant methods, reached with the customer session token.
+
+```typescript
+const session = await customer.createPlanChangeSession({
+  originOrderId: "ORD_xxx",
+  productId: "PROD_target_plan",
+  currency: "USD",
+  changeTiming: ChangeTiming.NextPeriod,
+});
+// Send the customer to session.checkoutUrl
+```
+
+**Parameters `CustomerPlanChangeParams`**:
+
+| Field           | Type           | Required | Description                                                         |
+| --------------- | -------------- | -------- | ------------------------------------------------------------------- |
+| `originOrderId` | `string`       | Yes      | The customer's own subscription being changed (`ORD_xxx`)           |
+| `productId`     | `string`       | Yes      | Target plan — must be in the same product group as the current plan |
+| `currency`      | `string`       | Yes      | Currency code (ISO 4217); must match the origin subscription        |
+| `changeTiming`  | `ChangeTiming` | No       | `Immediate` or `NextPeriod`; omit to let the platform derive it     |
+| `successUrl`    | `string`       | No       | Redirect URL after the change is confirmed and paid                 |
+| `darkMode`      | `boolean`      | No       | Dark mode override                                                  |
+| `language`      | `string`       | No       | Confirmation page language (IETF BCP 47)                            |
+
+The merchant-only fields (`changeAmount`, `changeCreditAmount`, `withTrial`, `priceSnapshot`, `expiresInSeconds`, `metadata`, `orderMerchantExternalId`, `includePaymentMethods`, `excludePaymentMethods`) are **not** on this type. A customer-session request carries no merchant id, so the platform drops all of them without reporting it — accepting them here would only look like they worked.
+
+Three platform checks apply to this path and not to merchant-issued links, each a 403:
+
+| Check                                      | Message when it fails                                              |
+| ------------------------------------------ | ------------------------------------------------------------------ |
+| The subscription belongs to this customer  | `Subscription order does not belong to this credential`            |
+| Target plan is in the same product group   | `Target plan is not in the same product group as the current plan` |
+| That group's `selfServicePlanChange` is on | `Self-service plan change is not enabled for this product group`   |
+
+**Returns `CheckoutSessionResult`**
+
 ### `customer.graphql.query<T>(params)`
 
 Same parameters as `client.graphql.query<T>()` but scoped to the customer's own data via session token.

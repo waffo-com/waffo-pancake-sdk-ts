@@ -108,6 +108,7 @@ export type {
   CancelOnetimeOrderParams,
   CancelOnetimeOrderResult,
   CreateRefundTicketParams,
+  CustomerPlanChangeParams,
   ReactivateSubscriptionParams,
   ReactivateSubscriptionResult,
   RefundTicket,

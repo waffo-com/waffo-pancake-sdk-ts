@@ -1294,6 +1294,44 @@ export interface AuthenticatedCheckoutParams extends CreateCheckoutSessionParams
 }
 
 /**
+ * Parameters for a customer-initiated plan change.
+ *
+ * Same endpoint as {@link CreatePlanChangeSessionParams}, reached with a customer
+ * session token instead of the merchant API Key. The credential is what narrows
+ * the field set: a customer-session request carries no merchant id, so the platform
+ * treats every API-Key-only field as absent and **silently drops** it — no error
+ * says so. Those fields are therefore left off this type rather than accepted and
+ * ignored: `changeAmount`, `changeCreditAmount`, `withTrial`, `priceSnapshot`,
+ * `expiresInSeconds`, `metadata`, `orderMerchantExternalId`, `includePaymentMethods`
+ * and `excludePaymentMethods`. `buyerEmail` and `billingDetail` are absent for the
+ * same reason they are on the merchant type — plan change mode takes both from the
+ * origin subscription.
+ *
+ * The platform also applies three checks it does not apply to merchant-issued links
+ * (see `customer.createPlanChangeSession()` for what each rejection looks like).
+ * @see docs/api-reference/endpoints/orders/create-checkout-session.mdx
+ */
+export interface CustomerPlanChangeParams {
+  /** Order ID of the customer's own subscription being changed (`ORD_xxx`) */
+  originOrderId: string;
+  /** Target plan's product ID — must sit in the same product group as the current plan */
+  productId: string;
+  /** Currency code (ISO 4217); must match the origin subscription */
+  currency: string;
+  /**
+   * When the new plan takes effect ({@link ChangeTiming}). Omit to let the platform
+   * derive it from the change direction.
+   */
+  changeTiming?: ChangeTiming;
+  /** Redirect URL after the change is confirmed and paid */
+  successUrl?: string;
+  /** Dark mode override (true=dark, false=light, omit=use store default) */
+  darkMode?: boolean;
+  /** Default language of the confirmation page ({@link CashierLanguage}, IETF BCP 47) */
+  language?: CashierLanguage;
+}
+
+/**
  * Parameters for an authenticated plan-change link.
  *
  * Same split as {@link AuthenticatedCheckoutParams}: `buyerIdentity` goes to

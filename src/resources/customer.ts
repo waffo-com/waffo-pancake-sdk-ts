@@ -7,7 +7,9 @@ import type {
   CancelOnetimeOrderResult,
   CancelSubscriptionParams,
   CancelSubscriptionResult,
+  CheckoutSessionResult,
   CreateRefundTicketParams,
+  CustomerPlanChangeParams,
   GraphQLParams,
   GraphQLResponse,
   Notice,
@@ -22,6 +24,11 @@ import type {
  *
  * Created via `client.customer(token)` using a session token issued by
  * `client.auth.issueSessionToken()`. All requests use Bearer token authentication.
+ *
+ * **These requests carry no idempotency key.** The API Key client derives one per
+ * write and the gateway deduplicates on it; customer session actions are outside
+ * that cache by design, so a write retried after a timeout can execute twice.
+ * Guard retries on your side where a duplicate would matter.
  *
  * @example
  * const { token } = await client.auth.issueSessionToken({
@@ -135,6 +142,49 @@ export class CustomerSession {
     validateAmountString("requestedAmount.amount", params.requestedAmount.amount);
     validateCurrencyCode("requestedAmount.currency", params.requestedAmount.currency);
     return unwrapAction(await this.http.post<{ ticket: RefundTicket }>("/v1/actions/refund-ticket/resubmit-ticket", params));
+  }
+
+  /**
+   * Create a plan-change session for one of the customer's own subscriptions —
+   * the self-service half of a plan change. Returns a URL to send them to, where
+   * they confirm the change.
+   *
+   * The platform applies three checks to a customer-issued link that it does not
+   * apply to a merchant-issued one, each with its own 403:
+   * - **Ownership** — the subscription must belong to this session's customer
+   *   (its `buyerIdentity` and store must match the token), else
+   *   `Subscription order does not belong to this credential`
+   * - **Same group** — the target plan must sit in the same product group as the
+   *   current plan, else `Target plan is not in the same product group as the current plan`
+   * - **Switch on** — that group's `selfServicePlanChange` rule must be on, else
+   *   `Self-service plan change is not enabled for this product group`.
+   *   Open it with `client.subscriptionProductGroups.update()`
+   *
+   * A merchant issuing the link with the API Key
+   * (`client.checkout.createPlanChangeSession()`) is subject to none of the three
+   * and may switch a subscription to any plan, group or not.
+   *
+   * The API-Key-only fields are absent from the params by construction — the
+   * platform would drop them here without saying so. Like every call on this
+   * session it carries no idempotency key, so a retry after a timeout can issue a
+   * second session rather than returning the first.
+   *
+   * @param params - Plan change parameters; `originOrderId` identifies the subscription
+   * @returns Session ID, confirmation page URL, and expiration
+   *
+   * @example
+   * const session = await customer.createPlanChangeSession({
+   *   originOrderId: "ORD_xxx",
+   *   productId: "PROD_target_plan",
+   *   currency: "USD",
+   * });
+   * // Send the customer to session.checkoutUrl
+   */
+  async createPlanChangeSession(params: CustomerPlanChangeParams): Promise<CheckoutSessionResult & { warnings?: Notice[] }> {
+    validateShortId("originOrderId", params.originOrderId, "ORD");
+    validateShortId("productId", params.productId, "PROD");
+    validateCurrencyCode("currency", params.currency);
+    return unwrapAction(await this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params));
   }
 }
 

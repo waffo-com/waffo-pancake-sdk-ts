@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { WaffoPancake } from "../client.js";
 import { WaffoPancakeError } from "../errors.js";
-import { ChangeTiming } from "../types.js";
+import { ChangeTiming, TaxCategory } from "../types.js";
 
 const { privateKey: TEST_PRIVATE_KEY } = generateKeyPairSync("rsa", {
   modulusLength: 2048,
@@ -254,5 +254,106 @@ describe("plan change surface (compile-time)", () => {
     // @ts-expect-error — originOrderId is required; omitting it never compiles
     await expect(client.checkout.createPlanChangeSession(paramsWithoutOrigin)).rejects.toThrow(WaffoPancakeError);
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("customer.createPlanChangeSession", () => {
+  function createCustomer(mockFetch: ReturnType<typeof vi.fn>) {
+    return new WaffoPancake({
+      merchantId: "MER_0000000000000000000000",
+      privateKey: TEST_PRIVATE_KEY,
+      baseUrl: "https://api.test.com",
+      environment: "test",
+      fetch: mockFetch as unknown as typeof fetch,
+    }).customer("customer.session.jwt");
+  }
+
+  it("should post to create-session with the customer bearer token and return a change URL", async () => {
+    const mockFetch = changeSessionFetch("cs_self_service");
+    const customer = createCustomer(mockFetch);
+
+    const result = await customer.createPlanChangeSession({
+      originOrderId: ORIGIN_ORDER_ID,
+      productId: TARGET_PRODUCT_ID,
+      currency: "USD",
+      changeTiming: ChangeTiming.NextPeriod,
+    });
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toBe("https://api.test.com/v1/actions/checkout/create-session");
+
+    const headers = options.headers as Record<string, string>;
+    expect(headers.Authorization).toBe("Bearer customer.session.jwt");
+    expect(headers["X-Environment"]).toBe("test");
+    // Customer session requests carry no idempotency key — this path is not
+    // covered by gateway idempotency (see customer-http-client.ts).
+    expect(headers["X-Idempotency-Key"]).toBeUndefined();
+    // ...and no merchant signature, so the platform treats it as a customer issuer
+    expect(headers["X-Signature"]).toBeUndefined();
+
+    const body = bodyOf(mockFetch, "create-session");
+    expect(body.originOrderId).toBe(ORIGIN_ORDER_ID);
+    expect(body.changeTiming).toBe("next_period");
+    expect(new URL(result.checkoutUrl).pathname.split("/")[3]).toBe("change");
+  });
+
+  it("should validate ids and currency before sending the request", async () => {
+    const mockFetch = vi.fn();
+    const customer = createCustomer(mockFetch);
+
+    await expect(
+      customer.createPlanChangeSession({
+        originOrderId: "not-an-order-id",
+        productId: TARGET_PRODUCT_ID,
+        currency: "USD",
+      }),
+    ).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should not accept the merchant-only fields the platform would silently drop", async () => {
+    const mockFetch = changeSessionFetch("cs_probe");
+    const customer = createCustomer(mockFetch);
+
+    await customer.createPlanChangeSession({
+      originOrderId: ORIGIN_ORDER_ID,
+      productId: TARGET_PRODUCT_ID,
+      currency: "USD",
+      // @ts-expect-error — changeAmount is merchant-credential only
+      changeAmount: "12.00",
+    });
+
+    await customer.createPlanChangeSession({
+      originOrderId: ORIGIN_ORDER_ID,
+      productId: TARGET_PRODUCT_ID,
+      currency: "USD",
+      // @ts-expect-error — changeCreditAmount is merchant-credential only
+      changeCreditAmount: "8.00",
+    });
+
+    await customer.createPlanChangeSession({
+      originOrderId: ORIGIN_ORDER_ID,
+      productId: TARGET_PRODUCT_ID,
+      currency: "USD",
+      // @ts-expect-error — withTrial is merchant-credential only
+      withTrial: true,
+    });
+
+    await customer.createPlanChangeSession({
+      originOrderId: ORIGIN_ORDER_ID,
+      productId: TARGET_PRODUCT_ID,
+      currency: "USD",
+      // @ts-expect-error — priceSnapshot is merchant-credential only
+      priceSnapshot: { amount: "9.99", taxCategory: TaxCategory.SaaS },
+    });
+
+    await customer.createPlanChangeSession({
+      originOrderId: ORIGIN_ORDER_ID,
+      productId: TARGET_PRODUCT_ID,
+      currency: "USD",
+      // @ts-expect-error — orderMerchantExternalId is merchant-credential only
+      orderMerchantExternalId: "CHANGE-2026-00891",
+    });
   });
 });

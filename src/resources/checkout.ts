@@ -13,8 +13,13 @@ import type { CheckoutSessionResult, CreateCheckoutSessionParams, CreatePlanChan
  * - `anonymous` — no customer identity, empty form
  * - `authenticated` — merchant provides customer identity, pre-filled form + token
  *
- * The low-level `createSession()` method is still available for full control, and
- * `createPlanChangeSession()` issues a link for changing an existing subscription's plan.
+ * `createPlanChangeSession()` issues a link for changing an existing subscription's
+ * plan, and the low-level `createSession()` is still available for full control.
+ *
+ * `createSession()` is the one method here that runs no client-side validation —
+ * that is what "full control" buys, and it is the deliberate exception. Every other
+ * method on this resource validates its input first, as resource methods do
+ * throughout the SDK.
  *
  * @example
  * // Anonymous checkout (no identity)
@@ -80,6 +85,10 @@ export class CheckoutResource {
    *   only; the platform silently drops them for any other credential
    * - `changeAmount` and `changeCreditAmount` are mutually exclusive, and the
    *   platform rejects both-at-once with a 400 — the SDK forwards what you pass
+   * - Issued with your API Key, so the platform checks only that the subscription is
+   *   yours: any target plan is allowed, in the group or not. For the customer-driven
+   *   half (same group + `selfServicePlanChange` on), see
+   *   `client.customer(token).createPlanChangeSession()`
    *
    * @param params - Plan change parameters; `originOrderId` identifies the subscription
    * @returns Session ID, confirmation page URL, and expiration
