@@ -1454,6 +1454,27 @@ export enum WebhookEventType {
  * Common data fields in a webhook event payload.
  * @see docs/api-reference/webhooks.mdx
  */
+/**
+ * Amount breakdown of the object a webhook event refers to: the list price behind a charge, the
+ * original payment behind a refund, or the plan price behind a subscription status change.
+ *
+ * Money fields are display strings, already converted from minor units (e.g. "29.00" for USD,
+ * "4500" for JPY). The block never uses the name `amount` — that name is reserved for the
+ * event's own figure at the top level.
+ */
+export interface WebhookAmountBreakdown {
+  /** Total after tax */
+  total: string;
+  /** Subtotal before tax; absent when the snapshot carries no subtotal */
+  subtotal?: string;
+  /** Tax amount */
+  taxAmount: string;
+  /** Tax rate as a percentage number (e.g., 10 for 10%) */
+  taxRate?: number;
+  /** Tax name (e.g., "Consumption Tax") */
+  taxName?: string;
+}
+
 export interface WebhookEventData {
   // Order
   orderId: string;
@@ -1477,19 +1498,93 @@ export interface WebhookEventData {
   /** Order-level metadata from checkout session (flat key-value pairs) */
   orderMetadata?: Record<string, string>;
 
-  // Amount
-  /** Amount as display string (e.g., "9.99" for USD, "1000" for JPY) */
+  // Amount — this event's own figure
+  /**
+   * Amount actually charged by the payment channel, as display string.
+   *
+   * Only on payment events (`order.completed`, `subscription.payment_succeeded`), and only when
+   * the channel reported an amount — the key is absent otherwise, never zero-filled. Differs from
+   * {@link WebhookEventData.listPrice} when a prorated credit or a zero-amount card check applies.
+   */
+  chargedAmount?: string;
+  /**
+   * Amount actually refunded by the payment channel, as display string.
+   *
+   * Only on refund events (`refund.succeeded`, `refund.failed`), and only when the channel
+   * reported an amount — the key is absent otherwise, never zero-filled.
+   */
+  refundedAmount?: string;
+  /**
+   * Amount for this event, tax included (display string, e.g., "9.99" for USD, "1000" for JPY).
+   *
+   * @deprecated The same name carries a different subject per event family. Use
+   * `chargedAmount` on payment events, `refundedAmount` on refund events, and `planPrice.total`
+   * on subscription status events. Removal is no earlier than 12 months away and ships with the
+   * next major version. See the webhook API reference for the effective date on which payment
+   * events started reporting the amount actually charged here.
+   */
   amount: string;
-  /** Tax amount as display string (e.g., "0.91" for USD) */
+  /**
+   * Tax amount as display string (e.g., "0.91" for USD).
+   *
+   * @deprecated Use `listPrice.taxAmount` on payment events, `originalPayment.taxAmount` on
+   * refund events, and `planPrice.taxAmount` on subscription status events. Removal is no earlier
+   * than 12 months away and ships with the next major version.
+   */
   taxAmount: string;
-  /** Tax rate as decimal (e.g., 0.1 for 10%) */
+  /**
+   * Tax rate as decimal (e.g., 0.1 for 10%).
+   *
+   * @deprecated Use `listPrice.taxRate` on payment events, `originalPayment.taxRate` on refund
+   * events, and `planPrice.taxRate` on subscription status events. Removal is no earlier than
+   * 12 months away and ships with the next major version.
+   */
   taxRate?: number;
-  /** Tax name (e.g., "Consumption Tax") */
+  /**
+   * Tax name (e.g., "Consumption Tax").
+   *
+   * @deprecated Use `listPrice.taxName` on payment events, `originalPayment.taxName` on refund
+   * events, and `planPrice.taxName` on subscription status events. Removal is no earlier than
+   * 12 months away and ships with the next major version.
+   */
   taxName?: string;
-  /** Subtotal as display string (before tax) */
+  /**
+   * Subtotal as display string (before tax).
+   *
+   * @deprecated Use `listPrice.subtotal` on payment events, `originalPayment.subtotal` on refund
+   * events, and `planPrice.subtotal` on subscription status events. Removal is no earlier than
+   * 12 months away and ships with the next major version.
+   */
   subtotal?: string;
-  /** Total as display string (after tax) */
+  /**
+   * Total as display string (after tax).
+   *
+   * @deprecated Use `listPrice.total` on payment events, `originalPayment.total` on refund
+   * events, and `planPrice.total` on subscription status events. Removal is no earlier than
+   * 12 months away and ships with the next major version.
+   */
   total?: string;
+
+  // Amount — the object this event's figure refers to
+  /**
+   * List price snapshot taken when the order was placed.
+   *
+   * Only on payment events. Absent when the order carries no amount snapshot.
+   */
+  listPrice?: WebhookAmountBreakdown;
+  /**
+   * The payment being refunded, as it was originally charged.
+   *
+   * Only on refund events. Absent when that payment carries no amount snapshot.
+   */
+  originalPayment?: WebhookAmountBreakdown;
+  /**
+   * The subscription's list price for the current phase.
+   *
+   * Only on subscription status events (every `subscription.*` event except
+   * `subscription.payment_succeeded`). Absent when the subscription carries no price snapshot.
+   */
+  planPrice?: WebhookAmountBreakdown;
 
   // Product
   productName: string;
