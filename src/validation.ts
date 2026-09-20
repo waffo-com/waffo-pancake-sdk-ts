@@ -166,3 +166,31 @@ export function validateCheckoutCommon(params: {
   }
   validateMaxLength("orderMerchantExternalId", params.orderMerchantExternalId, 128);
 }
+
+/**
+ * Validate plan-change session fields.
+ *
+ * Covers the same ground as `validateCheckoutCommon` plus the plan-change-only
+ * fields (plan change params carry no `billingDetail` — it comes from the origin
+ * subscription). The mode rules themselves (which field may accompany which) are
+ * the platform's to enforce — this only catches malformed input.
+ */
+export function validatePlanChangeCommon(params: {
+  originOrderId: string;
+  productId: string;
+  currency: string;
+  priceSnapshot?: { amount: string; taxCategory: string };
+  expiresInSeconds?: number;
+  orderMerchantExternalId?: string;
+  changeAmount?: string;
+  changeCreditAmount?: string;
+}): void {
+  validateCheckoutCommon(params);
+  validateShortId("originOrderId", params.originOrderId, "ORD");
+  if (params.changeAmount !== undefined) {
+    validateAmountString("changeAmount", params.changeAmount);
+  }
+  if (params.changeCreditAmount !== undefined) {
+    validateAmountString("changeCreditAmount", params.changeCreditAmount);
+  }
+}

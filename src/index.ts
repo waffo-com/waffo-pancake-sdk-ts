@@ -10,6 +10,7 @@ export { verifyWebhook } from "./webhooks.js";
 // Enums (runtime values)
 export {
   BillingPeriod,
+  ChangeTiming,
   EntityStatus,
   Environment,
   ErrorLayer,
@@ -40,6 +41,7 @@ export type {
   Notice,
   Envelope,
   PostResult,
+  RequestOptions,
   /** @deprecated Use {@link Notice}. */
   ApiError,
 
@@ -98,6 +100,7 @@ export type {
   CreateSubscriptionProductGroupParams,
   DeleteSubscriptionProductGroupParams,
   GroupRules,
+  GroupRulesInput,
   PublishSubscriptionProductGroupParams,
   SubscriptionProductGroup,
   UpdateSubscriptionProductGroupParams,
@@ -106,6 +109,7 @@ export type {
   CancelOnetimeOrderParams,
   CancelOnetimeOrderResult,
   CreateRefundTicketParams,
+  CustomerPlanChangeParams,
   ReactivateSubscriptionParams,
   ReactivateSubscriptionResult,
   RefundTicket,
@@ -117,6 +121,7 @@ export type {
   AnonymousCheckoutParams,
   AuthenticatedCheckoutParams,
   AuthenticatedCheckoutResult,
+  AuthenticatedPlanChangeParams,
 
   // Order
   BillingDetail,
@@ -124,6 +129,7 @@ export type {
   CancelSubscriptionResult,
   CheckoutSessionResult,
   CreateCheckoutSessionParams,
+  CreatePlanChangeSessionParams,
 
   // GraphQL
   GraphQLParams,

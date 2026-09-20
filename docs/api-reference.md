@@ -8,6 +8,7 @@ Complete reference for all `@waffo/pancake-ts` resources, parameters, and return
 > - All timestamps are **ISO 8601 UTC** strings
 > - Product updates follow **immutable versioning** — only provided fields are updated (omitted fields are preserved), each update creates a new version, skipped if content is unchanged
 > - The **publish** flow promotes a test version to production
+> - Every write method takes an optional `RequestOptions` as its **last argument**; its only field today is `idempotencyKey`. No key is sent unless you pass one — see [Idempotency](#idempotency)
 
 ---
 
@@ -455,35 +456,42 @@ const { group } = await client.subscriptionProductGroups.create({
   storeId: "STO_xxx",
   name: "Pro Plans",
   description: "All Pro tier plans",
-  rules: { sharedTrial: true },
+  rules: { sharedTrial: true, selfServicePlanChange: true },
   productIds: ["PROD_aaa", "PROD_bbb"],
 });
 ```
 
 **Parameters `CreateSubscriptionProductGroupParams`**:
 
-| Field         | Type         | Required | Description                                |
-| ------------- | ------------ | -------- | ------------------------------------------ |
-| `storeId`     | `string`     | Yes      | Store ID                                   |
-| `name`        | `string`     | Yes      | Group name                                 |
-| `description` | `string`     | No       | Group description                          |
-| `rules`       | `GroupRules` | No       | Group rules (e.g. `{ sharedTrial: true }`) |
-| `productIds`  | `string[]`   | No       | Subscription product IDs to include        |
+| Field         | Type              | Required | Description                                                                                                                                                                                                    |
+| ------------- | ----------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storeId`     | `string`          | Yes      | Store ID                                                                                                                                                                                                       |
+| `name`        | `string`          | Yes      | Group name                                                                                                                                                                                                     |
+| `description` | `string`          | No       | Group description                                                                                                                                                                                              |
+| `rules`       | `GroupRulesInput` | No       | Group switches, each optional: `sharedTrial` shares the trial across the group, `selfServicePlanChange` lets customers change plan within the group from the customer portal. A switch left out is created off |
+| `productIds`  | `string[]`        | No       | Subscription product IDs to include                                                                                                                                                                            |
 
 **Returns `{ group: SubscriptionProductGroup }`**
 
 ### `client.subscriptionProductGroups.update(params)`
 
-Update a group. `productIds` is a **full replacement** (not a merge).
+Update a group. `productIds` is a **full replacement** (not a merge); `rules` is the opposite — it is merged switch by switch, so a switch you leave out keeps its stored value.
 
 ```typescript
 const { group } = await client.subscriptionProductGroups.update({
   id: "spg_xxx",
   productIds: ["PROD_aaa", "PROD_bbb", "PROD_ccc"],
 });
+
+// Open self-service plan change without touching sharedTrial
+const { group: opened } = await client.subscriptionProductGroups.update({
+  id: "spg_xxx",
+  rules: { selfServicePlanChange: true },
+});
+// opened.rules => { sharedTrial: <stored value>, selfServicePlanChange: true }
 ```
 
-**Returns `{ group: SubscriptionProductGroup }`**
+**Returns `{ group: SubscriptionProductGroup }`** — `group.rules` always carries both switches, so reading one never needs a fallback.
 
 ### `client.subscriptionProductGroups.delete(params)`
 
@@ -623,6 +631,44 @@ rather than caching it.
 
 **Returns `{ ticket: RefundTicket }`**
 
+### `customer.createPlanChangeSession(params)`
+
+The self-service half of a plan change: the customer switches one of their own subscriptions to another plan in the same group. Same `create-session` endpoint as the merchant methods, reached with the customer session token.
+
+```typescript
+const session = await customer.createPlanChangeSession({
+  originOrderId: "ORD_xxx",
+  productId: "PROD_target_plan",
+  currency: "USD",
+  changeTiming: ChangeTiming.NextPeriod,
+});
+// Send the customer to session.checkoutUrl
+```
+
+**Parameters `CustomerPlanChangeParams`**:
+
+| Field           | Type           | Required | Description                                                         |
+| --------------- | -------------- | -------- | ------------------------------------------------------------------- |
+| `originOrderId` | `string`       | Yes      | The customer's own subscription being changed (`ORD_xxx`)           |
+| `productId`     | `string`       | Yes      | Target plan — must be in the same product group as the current plan |
+| `currency`      | `string`       | Yes      | Currency code (ISO 4217); must match the origin subscription        |
+| `changeTiming`  | `ChangeTiming` | No       | `Immediate` or `NextPeriod`; omit to let the platform derive it     |
+| `successUrl`    | `string`       | No       | Redirect URL after the change is confirmed and paid                 |
+| `darkMode`      | `boolean`      | No       | Dark mode override                                                  |
+| `language`      | `string`       | No       | Confirmation page language (IETF BCP 47)                            |
+
+The merchant-only fields (`changeAmount`, `changeCreditAmount`, `withTrial`, `priceSnapshot`, `expiresInSeconds`, `metadata`, `orderMerchantExternalId`, `includePaymentMethods`, `excludePaymentMethods`) are **not** on this type. A customer-session request carries no merchant id, so the platform drops all of them without reporting it — accepting them here would only look like they worked.
+
+Three platform checks apply to this path and not to merchant-issued links, each a 403:
+
+| Check                                      | Message when it fails                                              |
+| ------------------------------------------ | ------------------------------------------------------------------ |
+| The subscription belongs to this customer  | `Subscription order does not belong to this credential`            |
+| Target plan is in the same product group   | `Target plan is not in the same product group as the current plan` |
+| That group's `selfServicePlanChange` is on | `Self-service plan change is not enabled for this product group`   |
+
+**Returns `CheckoutSessionResult`**
+
 ### `customer.graphql.query<T>(params)`
 
 Same parameters as `client.graphql.query<T>()` but scoped to the customer's own data via session token.
@@ -644,6 +690,8 @@ Waffo supports two checkout modes based on whether the merchant knows the custom
 - **Anonymous** — the customer arrives via a template store or shared link with no prior context. They fill in billing details manually on the checkout page.
 
 > **Authenticated checkout is recommended.** The key advantage: the order is bound to the `buyerIdentity` you provide — a **merchant-controlled stable identifier**. Even if the customer changes the email on the checkout form, the order stays tied to your identifier. In anonymous mode, the customer self-reports their email, and a different address means a different user — **previous orders become unlinked** and **subscription trial periods can be exploited** (new email = new user = fresh trial). Additionally, anonymous checkout only supports creating orders — customers cannot cancel orders, manage subscriptions, or submit refund tickets afterward.
+
+Changing the plan of an existing subscription is a third flow with its own pair of methods — `checkout.createPlanChangeSession()` and `checkout.authenticated.createPlanChange()`.
 
 For advanced use cases, the low-level `createSession()` is also available.
 
@@ -748,6 +796,73 @@ const snapshotResult = await client.checkout.anonymous.create({
 | `checkoutUrl` | `string` | Hosted checkout page URL |
 | `expiresAt`   | `string` | Session expiration time  |
 
+### `client.checkout.createPlanChangeSession(params)`
+
+Issue a link that changes an existing subscription to another plan. Same `create-session` endpoint as a new purchase — `originOrderId` is what puts it into plan change mode, which is why it is a required field here instead of an optional one on the new-purchase params.
+
+The returned `checkoutUrl` points at the change confirmation page (`…/store/{slug}/change/{sessionId}`), where the customer confirms the change.
+
+```typescript
+import { ChangeTiming } from "@waffo/pancake-ts";
+
+const session = await client.checkout.createPlanChangeSession({
+  originOrderId: "ORD_xxx",
+  productId: "PROD_target_plan",
+  currency: "USD",
+  changeTiming: ChangeTiming.Immediate,
+  changeCreditAmount: "8.00",
+});
+```
+
+**Parameters `CreatePlanChangeSessionParams`**:
+
+| Field                                             | Type                     | Required | Description                                                                                                                                                             |
+| ------------------------------------------------- | ------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `originOrderId`                                   | `string`                 | Yes      | Order ID of the subscription being changed (`ORD_xxx`). Its presence is what selects plan change mode                                                                   |
+| `productId`                                       | `string`                 | Yes      | Target plan's product ID — a subscription product other than the current one                                                                                            |
+| `currency`                                        | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                |
+| `changeTiming`                                    | `ChangeTiming`           | No       | `Immediate` or `NextPeriod`. Omit to let the platform derive it from the change direction; the derived tier is not echoed back                                          |
+| `changeAmount`                                    | `string`                 | No       | What to charge for this change (display string, tax inclusive). Mutually exclusive with `changeCreditAmount`; merchant credentials only                                 |
+| `changeCreditAmount`                              | `string`                 | No       | How much to credit against this change (display string, tax inclusive, same basis as `changeAmount`). Mutually exclusive with `changeAmount`; merchant credentials only |
+| `withTrial`                                       | `boolean`                | No       | Trial toggle for the target plan, three-state as on a new purchase. Merchant credentials only                                                                           |
+| `priceSnapshot`                                   | `PriceSnapshot`          | No       | Price override for the target plan                                                                                                                                      |
+| `successUrl`                                      | `string`                 | No       | Redirect URL after the change is confirmed and paid                                                                                                                     |
+| `expiresInSeconds`                                | `number`                 | No       | Session expiry in seconds (default: 45 minutes)                                                                                                                         |
+| `darkMode`                                        | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)                                                                                                         |
+| `metadata`                                        | `Record<string, string>` | No       | Custom metadata                                                                                                                                                         |
+| `orderMerchantExternalId`                         | `string`                 | No       | Your business-side order identifier (max 128 chars)                                                                                                                     |
+| `language`                                        | `string`                 | No       | Confirmation page language (IETF BCP 47)                                                                                                                                |
+| `includePaymentMethods` / `excludePaymentMethods` | `PaymentMethod[]`        | No       | Whitelist / blacklist, mutually exclusive                                                                                                                               |
+
+There is no `buyerEmail` or `billingDetail`: in plan change mode the customer email, billing details, and tax all come from the origin subscription.
+
+Two amount fields, two ways to price the same change: `changeAmount` says what to charge for this period, `changeCreditAmount` says how much to credit against it. Same unit and tax basis, opposite meaning — sending both is rejected with a 400, and the SDK forwards what you pass rather than picking one.
+
+**Returns `CheckoutSessionResult`** — same three fields as a new-purchase session.
+
+### `client.checkout.authenticated.createPlanChange(params)`
+
+The authenticated form of the above: issues a customer session token in parallel and appends it to the confirmation URL (`#token=...`), so the customer lands on the page already signed in. Internally calls `POST /v1/actions/auth/issue-session-token` and `POST /v1/actions/checkout/create-session`.
+
+```typescript
+const result = await client.checkout.authenticated.createPlanChange({
+  originOrderId: "ORD_xxx",
+  productId: "PROD_target_plan",
+  currency: "USD",
+  buyerIdentity: "userIdInYourSystem",
+  changeTiming: ChangeTiming.NextPeriod,
+});
+// => redirect the customer to result.checkoutUrl (includes #token=...)
+```
+
+**Parameters `AuthenticatedPlanChangeParams`**: every field of `CreatePlanChangeSessionParams`, plus `buyerIdentity` (`string`, required) — routed to `issue-session-token` only, never into the session body.
+
+**Returns `AuthenticatedCheckoutResult`** — same five fields as authenticated checkout.
+
+<a id="no-anonymous-plan-change"></a>
+
+> **There is no anonymous plan change.** A Store Slug session is an anonymous credential with no subscription to attribute the change to, and the platform answers 403 — so `client.checkout.anonymous` carries no plan change method.
+
 ### `client.checkout.createSession(params)` (low-level)
 
 Create a checkout session directly. For most use cases, prefer `checkout.authenticated.create()` or `checkout.anonymous.create()`.
@@ -838,84 +953,106 @@ See [GraphQL Guide](graphql-guide.md) for introspection, filters, pagination, an
 
 ---
 
+## Idempotency
+
+`RequestOptions` is the last argument of every write method:
+
+```typescript
+await client.stores.create({ name: "My Store" }, { idempotencyKey: "MER_store-create-9f2c" });
+```
+
+| Field            | Type     | Required | Description                                                                               |
+| ---------------- | -------- | -------- | ----------------------------------------------------------------------------------------- |
+| `idempotencyKey` | `string` | No       | Sent as `X-Idempotency-Key`. Omitted → the header is not sent and nothing is deduplicated |
+
+Platform behavior when a key is sent: the first request executes and its 2xx response is cached for **24 hours**; the same key returns that cached response; the same key while the original is in flight returns **409**; a non-2xx original leaves the key free to retry. Keys are at most 256 characters of letters, numbers, hyphens and underscores, and a malformed one is rejected by the gateway with a 400.
+
+The SDK never derives a key — **uniqueness is the caller's to guarantee**, and reusing one key across two different calls makes the second replay the first one's response. For that reason a key passed to `checkout.authenticated.create()` / `.createPlanChange()` is applied to the `create-session` call only, not to the token call. GraphQL queries accept no key.
+
+---
+
 ## Types
 
 All exported type interfaces:
 
-| Export                                  | Description                                               |
-| --------------------------------------- | --------------------------------------------------------- |
-| **Config**                              |                                                           |
-| `WaffoPancakeConfig`                    | Client configuration                                      |
-| **Response Envelope**                   |                                                           |
-| `ApiError`                              | Error object (`{ message, layer }`)                       |
-| `ApiErrorResponse`                      | Error response (`{ data: null, errors }`)                 |
-| `ApiResponse<T>`                        | Union of success and error responses                      |
-| `ApiSuccessResponse<T>`                 | Success response (`{ data: T }`)                          |
-| **Auth**                                |                                                           |
-| `IssueSessionTokenParams`               | Issue token request                                       |
-| `SessionToken`                          | Token response                                            |
-| **Store**                               |                                                           |
-| `Store`                                 | Store entity                                              |
-| `CreateStoreParams`                     | Create store request                                      |
-| `UpdateStoreParams`                     | Update store request                                      |
-| `DeleteStoreParams`                     | Delete store request                                      |
-| `WebhookSettings`                       | Webhook endpoint configuration (test/prod)                |
-| `NotificationSettings`                  | 21 notification toggles (10 `notify*` + 11 `email*`)      |
-| `CheckoutSettings`                      | Checkout page theme (light/dark)                          |
-| `CheckoutThemeSettings`                 | Single-theme checkout styling                             |
-| **Store Merchant**                      |                                                           |
-| `AddMerchantParams`                     | Add merchant request                                      |
-| `AddMerchantResult`                     | Add merchant response                                     |
-| `RemoveMerchantParams`                  | Remove merchant request                                   |
-| `RemoveMerchantResult`                  | Remove merchant response                                  |
-| `UpdateRoleParams`                      | Update role request                                       |
-| `UpdateRoleResult`                      | Update role response                                      |
-| **Product (shared)**                    |                                                           |
-| `PriceInfo`                             | Single-currency price (amount in smallest unit)           |
-| `Prices`                                | Multi-currency prices (`Record<currencyCode, PriceInfo>`) |
-| `MediaItem`                             | Media asset (image or video)                              |
-| **Onetime Product**                     |                                                           |
-| `OnetimeProductDetail`                  | One-time product entity                                   |
-| `CreateOnetimeProductParams`            | Create request                                            |
-| `UpdateOnetimeProductParams`            | Update request (creates new version)                      |
-| `PublishOnetimeProductParams`           | Publish test → prod                                       |
-| `UpdateOnetimeStatusParams`             | Activate / deactivate                                     |
-| **Subscription Product**                |                                                           |
-| `SubscriptionProductDetail`             | Subscription product entity                               |
-| `CreateSubscriptionProductParams`       | Create request                                            |
-| `UpdateSubscriptionProductParams`       | Update request (creates new version)                      |
-| `PublishSubscriptionProductParams`      | Publish test → prod                                       |
-| `UpdateSubscriptionStatusParams`        | Activate / deactivate                                     |
-| **Subscription Product Group**          |                                                           |
-| `SubscriptionProductGroup`              | Product group entity                                      |
-| `GroupRules`                            | Group rules (shared trial, etc.)                          |
-| `CreateSubscriptionProductGroupParams`  | Create request                                            |
-| `UpdateSubscriptionProductGroupParams`  | Update request (`productIds` = full replacement)          |
-| `DeleteSubscriptionProductGroupParams`  | Delete request                                            |
-| `PublishSubscriptionProductGroupParams` | Publish test → prod                                       |
-| **Order**                               |                                                           |
-| `CancelSubscriptionParams`              | Cancel subscription request                               |
-| `CancelSubscriptionResult`              | Cancel subscription response                              |
-| `BillingDetail`                         | Customer billing details (country, tax ID, etc.)          |
-| **Customer Self-Service**               |                                                           |
-| `CancelOnetimeOrderParams`              | Cancel one-time order request                             |
-| `CancelOnetimeOrderResult`              | Cancel one-time order response                            |
-| `ReactivateSubscriptionParams`          | Reactivate subscription request                           |
-| `ReactivateSubscriptionResult`          | Reactivate subscription response                          |
-| `CreateRefundTicketParams`              | Create refund ticket request                              |
-| `ResubmitRefundTicketParams`            | Resubmit refund ticket request                            |
-| `RefundTicket`                          | Refund ticket entity                                      |
-| `RequestedAmount`                       | Refund amount (`{ amount, currency }`)                    |
-| **Checkout**                            |                                                           |
-| `AuthenticatedCheckoutParams`           | Authenticated checkout request (with customer identity)   |
-| `AuthenticatedCheckoutResult`           | Authenticated checkout response (URL with token + expiry) |
-| `AnonymousCheckoutParams`               | Anonymous checkout request (no identity)                  |
-| `CreateCheckoutSessionParams`           | Low-level checkout session request                        |
-| `CheckoutSessionResult`                 | Checkout session response (URL + expiry)                  |
-| **GraphQL**                             |                                                           |
-| `GraphQLParams`                         | GraphQL query parameters                                  |
-| `GraphQLResponse<T>`                    | GraphQL response envelope                                 |
-| **Webhook**                             |                                                           |
-| `WebhookEvent<T>`                       | Webhook event payload                                     |
-| `WebhookEventData`                      | Common event data fields                                  |
-| `VerifyWebhookOptions`                  | Verification options (environment, tolerance)             |
+| Export                                  | Description                                                           |
+| --------------------------------------- | --------------------------------------------------------------------- |
+| **Config**                              |                                                                       |
+| `WaffoPancakeConfig`                    | Client configuration                                                  |
+| **Response Envelope**                   |                                                                       |
+| `ApiError`                              | Error object (`{ message, layer }`)                                   |
+| `ApiErrorResponse`                      | Error response (`{ data: null, errors }`)                             |
+| `ApiResponse<T>`                        | Union of success and error responses                                  |
+| `ApiSuccessResponse<T>`                 | Success response (`{ data: T }`)                                      |
+| **Auth**                                |                                                                       |
+| `IssueSessionTokenParams`               | Issue token request                                                   |
+| `SessionToken`                          | Token response                                                        |
+| **Store**                               |                                                                       |
+| `Store`                                 | Store entity                                                          |
+| `CreateStoreParams`                     | Create store request                                                  |
+| `UpdateStoreParams`                     | Update store request                                                  |
+| `DeleteStoreParams`                     | Delete store request                                                  |
+| `WebhookSettings`                       | Webhook endpoint configuration (test/prod)                            |
+| `NotificationSettings`                  | 21 notification toggles (10 `notify*` + 11 `email*`)                  |
+| `CheckoutSettings`                      | Checkout page theme (light/dark)                                      |
+| `CheckoutThemeSettings`                 | Single-theme checkout styling                                         |
+| **Store Merchant**                      |                                                                       |
+| `AddMerchantParams`                     | Add merchant request                                                  |
+| `AddMerchantResult`                     | Add merchant response                                                 |
+| `RemoveMerchantParams`                  | Remove merchant request                                               |
+| `RemoveMerchantResult`                  | Remove merchant response                                              |
+| `UpdateRoleParams`                      | Update role request                                                   |
+| `UpdateRoleResult`                      | Update role response                                                  |
+| **Product (shared)**                    |                                                                       |
+| `PriceInfo`                             | Single-currency price (amount in smallest unit)                       |
+| `Prices`                                | Multi-currency prices (`Record<currencyCode, PriceInfo>`)             |
+| `MediaItem`                             | Media asset (image or video)                                          |
+| **Onetime Product**                     |                                                                       |
+| `OnetimeProductDetail`                  | One-time product entity                                               |
+| `CreateOnetimeProductParams`            | Create request                                                        |
+| `UpdateOnetimeProductParams`            | Update request (creates new version)                                  |
+| `PublishOnetimeProductParams`           | Publish test → prod                                                   |
+| `UpdateOnetimeStatusParams`             | Activate / deactivate                                                 |
+| **Subscription Product**                |                                                                       |
+| `SubscriptionProductDetail`             | Subscription product entity                                           |
+| `CreateSubscriptionProductParams`       | Create request                                                        |
+| `UpdateSubscriptionProductParams`       | Update request (creates new version)                                  |
+| `PublishSubscriptionProductParams`      | Publish test → prod                                                   |
+| `UpdateSubscriptionStatusParams`        | Activate / deactivate                                                 |
+| **Subscription Product Group**          |                                                                       |
+| `SubscriptionProductGroup`              | Product group entity                                                  |
+| `GroupRules`                            | Group switches as returned on an entity (both required)               |
+| `GroupRulesInput`                       | Group switches as accepted on create / update (both optional, merged) |
+| `CreateSubscriptionProductGroupParams`  | Create request                                                        |
+| `UpdateSubscriptionProductGroupParams`  | Update request (`productIds` = full replacement)                      |
+| `DeleteSubscriptionProductGroupParams`  | Delete request                                                        |
+| `PublishSubscriptionProductGroupParams` | Publish test → prod                                                   |
+| **Order**                               |                                                                       |
+| `CancelSubscriptionParams`              | Cancel subscription request                                           |
+| `CancelSubscriptionResult`              | Cancel subscription response                                          |
+| `BillingDetail`                         | Customer billing details (country, tax ID, etc.)                      |
+| `CreatePlanChangeSessionParams`         | Plan change session request (`originOrderId` required)                |
+| `AuthenticatedPlanChangeParams`         | Plan change request with customer identity                            |
+| `ChangeTiming`                          | When a plan change takes effect (`Immediate` / `NextPeriod`)          |
+| **Customer Self-Service**               |                                                                       |
+| `CancelOnetimeOrderParams`              | Cancel one-time order request                                         |
+| `CancelOnetimeOrderResult`              | Cancel one-time order response                                        |
+| `ReactivateSubscriptionParams`          | Reactivate subscription request                                       |
+| `ReactivateSubscriptionResult`          | Reactivate subscription response                                      |
+| `CreateRefundTicketParams`              | Create refund ticket request                                          |
+| `ResubmitRefundTicketParams`            | Resubmit refund ticket request                                        |
+| `RefundTicket`                          | Refund ticket entity                                                  |
+| `RequestedAmount`                       | Refund amount (`{ amount, currency }`)                                |
+| **Checkout**                            |                                                                       |
+| `AuthenticatedCheckoutParams`           | Authenticated checkout request (with customer identity)               |
+| `AuthenticatedCheckoutResult`           | Authenticated checkout response (URL with token + expiry)             |
+| `AnonymousCheckoutParams`               | Anonymous checkout request (no identity)                              |
+| `CreateCheckoutSessionParams`           | Low-level checkout session request                                    |
+| `CheckoutSessionResult`                 | Checkout session response (URL + expiry)                              |
+| **GraphQL**                             |                                                                       |
+| `GraphQLParams`                         | GraphQL query parameters                                              |
+| `GraphQLResponse<T>`                    | GraphQL response envelope                                             |
+| **Webhook**                             |                                                                       |
+| `WebhookEvent<T>`                       | Webhook event payload                                                 |
+| `WebhookEventData`                      | Common event data fields                                              |
+| `VerifyWebhookOptions`                  | Verification options (environment, tolerance)                         |

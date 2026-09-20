@@ -1,9 +1,16 @@
 import { CheckoutAnonymousResource } from "./checkout-anonymous.js";
 import { CheckoutAuthenticatedResource } from "./checkout-authenticated.js";
 import { unwrapAction } from "./internal.js";
+import { validatePlanChangeCommon } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
-import type { CheckoutSessionResult, CreateCheckoutSessionParams, Notice } from "../types.js";
+import type {
+  CheckoutSessionResult,
+  CreateCheckoutSessionParams,
+  CreatePlanChangeSessionParams,
+  Notice,
+  RequestOptions,
+} from "../types.js";
 
 /**
  * Checkout resource — create checkout sessions for payments.
@@ -12,7 +19,13 @@ import type { CheckoutSessionResult, CreateCheckoutSessionParams, Notice } from 
  * - `anonymous` — no customer identity, empty form
  * - `authenticated` — merchant provides customer identity, pre-filled form + token
  *
- * The low-level `createSession()` method is still available for full control.
+ * `createPlanChangeSession()` issues a link for changing an existing subscription's
+ * plan, and the low-level `createSession()` is still available for full control.
+ *
+ * `createSession()` is the one method here that runs no client-side validation —
+ * that is what "full control" buys, and it is the deliberate exception. Every other
+ * method on this resource validates its input first, as resource methods do
+ * throughout the SDK.
  *
  * @example
  * // Anonymous checkout (no identity)
@@ -59,9 +72,51 @@ export class CheckoutResource {
    * });
    * // Redirect to session.checkoutUrl
    */
-  async createSession(params: CreateCheckoutSessionParams): Promise<CheckoutSessionResult & { warnings?: Notice[] }> {
-    return unwrapAction(
-      await this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, { idempotencyWindow: 60 }),
-    );
+  async createSession(
+    params: CreateCheckoutSessionParams,
+    options?: RequestOptions,
+  ): Promise<CheckoutSessionResult & { warnings?: Notice[] }> {
+    return unwrapAction(await this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, options));
+  }
+
+  /**
+   * Create a plan-change session for an existing subscription. Returns a URL to
+   * send the customer to, where they confirm the change.
+   *
+   * Behavior:
+   * - Hits the same `create-session` endpoint as `createSession()`; `originOrderId`
+   *   is what puts the request into plan change mode
+   * - Pass `{ idempotencyKey }` to have a retry return the first session instead of
+   *   issuing a second one; without a key nothing is deduplicated
+   * - The returned `checkoutUrl` points at the change confirmation page
+   *   (`…/store/{slug}/change/{sessionId}`), not the new-purchase cashier
+   * - `changeAmount`, `changeCreditAmount` and `withTrial` are merchant-credential
+   *   only; the platform silently drops them for any other credential
+   * - `changeAmount` and `changeCreditAmount` are mutually exclusive, and the
+   *   platform rejects both-at-once with a 400 — the SDK forwards what you pass
+   * - Issued with your API Key, so the platform checks only that the subscription is
+   *   yours: any target plan is allowed, in the group or not. For the customer-driven
+   *   half (same group + `selfServicePlanChange` on), see
+   *   `client.customer(token).createPlanChangeSession()`
+   *
+   * @param params - Plan change parameters; `originOrderId` identifies the subscription
+   * @returns Session ID, confirmation page URL, and expiration
+   *
+   * @example
+   * const session = await client.checkout.createPlanChangeSession({
+   *   originOrderId: "ORD_xxx",
+   *   productId: "PROD_target_plan",
+   *   currency: "USD",
+   *   changeTiming: ChangeTiming.Immediate,
+   *   changeCreditAmount: "8.00", // or changeAmount — never both
+   * });
+   * // Send the customer to session.checkoutUrl
+   */
+  async createPlanChangeSession(
+    params: CreatePlanChangeSessionParams,
+    options?: RequestOptions,
+  ): Promise<CheckoutSessionResult & { warnings?: Notice[] }> {
+    validatePlanChangeCommon(params);
+    return unwrapAction(await this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, options));
   }
 }

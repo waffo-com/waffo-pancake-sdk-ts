@@ -7,6 +7,7 @@ import type {
   DeleteSubscriptionProductGroupParams,
   Notice,
   PublishSubscriptionProductGroupParams,
+  RequestOptions,
   SubscriptionProductGroup,
   UpdateSubscriptionProductGroupParams,
 } from "../types.js";
@@ -18,6 +19,10 @@ export class SubscriptionProductGroupsResource {
   /**
    * Create a subscription product group for shared-trial or plan switching.
    *
+   * Both `rules` switches are optional; one left out is created off.
+   * `selfServicePlanChange` is what lets customers switch plans within the group
+   * from the customer portal — without it their plan-change links are rejected.
+   *
    * @param params - Group creation parameters
    * @returns Created group entity
    *
@@ -25,20 +30,25 @@ export class SubscriptionProductGroupsResource {
    * const { group } = await client.subscriptionProductGroups.create({
    *   storeId: "STO_xxx",
    *   name: "Pro Plans",
-   *   rules: { sharedTrial: true },
+   *   rules: { sharedTrial: true, selfServicePlanChange: true },
    *   productIds: ["PROD_aaa", "PROD_bbb"],
    * });
    */
-  async create(params: CreateSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
+  async create(
+    params: CreateSubscriptionProductGroupParams,
+    options?: RequestOptions,
+  ): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
     validateShortId("storeId", params.storeId, "STO");
     validateRequired("name", params.name);
     return unwrapAction(
-      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/create-group", params),
+      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/create-group", params, options),
     );
   }
 
   /**
-   * Update a subscription product group. `productIds` is a full replacement.
+   * Update a subscription product group. `productIds` is a full replacement;
+   * `rules` is merged switch by switch, so sending one switch leaves the other
+   * at its stored value. The returned entity always carries both switches.
    *
    * @param params - Group update parameters
    * @returns Updated group entity
@@ -48,11 +58,21 @@ export class SubscriptionProductGroupsResource {
    *   id: "GRP_xxx",
    *   productIds: ["PROD_aaa", "PROD_bbb", "PROD_ccc"],
    * });
+   *
+   * @example
+   * // Open self-service plan change; sharedTrial keeps whatever it was
+   * const { group } = await client.subscriptionProductGroups.update({
+   *   id: "GRP_xxx",
+   *   rules: { selfServicePlanChange: true },
+   * });
    */
-  async update(params: UpdateSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
+  async update(
+    params: UpdateSubscriptionProductGroupParams,
+    options?: RequestOptions,
+  ): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
     validateRequired("id", params.id);
     return unwrapAction(
-      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/update-group", params),
+      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/update-group", params, options),
     );
   }
 
@@ -65,10 +85,13 @@ export class SubscriptionProductGroupsResource {
    * @example
    * const { group } = await client.subscriptionProductGroups.delete({ id: "GRP_xxx" });
    */
-  async delete(params: DeleteSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
+  async delete(
+    params: DeleteSubscriptionProductGroupParams,
+    options?: RequestOptions,
+  ): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
     validateRequired("id", params.id);
     return unwrapAction(
-      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/delete-group", params),
+      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/delete-group", params, options),
     );
   }
 
@@ -81,10 +104,13 @@ export class SubscriptionProductGroupsResource {
    * @example
    * const { group } = await client.subscriptionProductGroups.publish({ id: "GRP_xxx" });
    */
-  async publish(params: PublishSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
+  async publish(
+    params: PublishSubscriptionProductGroupParams,
+    options?: RequestOptions,
+  ): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
     validateRequired("id", params.id);
     return unwrapAction(
-      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/publish-group", params),
+      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/publish-group", params, options),
     );
   }
 }

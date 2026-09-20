@@ -3,7 +3,7 @@
 TypeScript SDK for the Waffo Pancake Merchant of Record (MoR) payment platform.
 
 - Zero runtime dependencies, ESM + CJS, Node >= 20
-- Automatic RSA-SHA256 request signing with deterministic idempotency keys
+- Automatic RSA-SHA256 request signing; opt-in idempotency keys per call
 - Full TypeScript type definitions (15 enums, 40+ interfaces)
 - Webhook verification with embedded public keys (test/prod)
 
@@ -62,6 +62,8 @@ Waffo supports two checkout modes based on whether the merchant knows the custom
 | ----------------- | --------------------------------- | ----------------- | ---------- | ---------------------------------------- |
 | **Authenticated** | `checkout.authenticated.create()` | Merchant provides | Pre-filled | Merchant sites with user accounts        |
 | **Anonymous**     | `checkout.anonymous.create()`     | Not provided      | Empty      | Template stores, one-time purchase links |
+
+Changing the plan of an existing subscription is a separate pair of methods — see [Plan Change Links](#plan-change-links).
 
 > **We recommend authenticated checkout whenever possible.** The most important reason: authenticated checkout binds the order to the `buyerIdentity` you provide, which is a **merchant-controlled stable identifier**. Even if the customer changes the email on the checkout form, the order is still tied to the identity you specified. In anonymous mode, the customer self-reports their email on the form — if they enter a different address, the system treats them as a new user, which means **previous orders become unlinked** and **subscription trial periods can be exploited** (a new email = a new user = a fresh trial).
 >
@@ -140,6 +142,40 @@ const result = await client.checkout.anonymous.create({
 
 window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
 ```
+
+### Plan Change Links
+
+Switching an existing subscription to another plan uses the same endpoint in a different mode, so the SDK gives it its own methods with `originOrderId` required — the platform rejects the plan change fields whenever they appear without it, and a required field makes that unrepresentable.
+
+```typescript
+import { ChangeTiming } from "@waffo/pancake-ts";
+
+// API Key entry point — you send the customer to the returned URL yourself
+const session = await client.checkout.createPlanChangeSession({
+  originOrderId: "ORD_xxx", // the subscription being changed (required)
+  productId: "PROD_target_plan", // the plan to switch to
+  currency: "USD",
+  changeTiming: ChangeTiming.Immediate, // omit to let the platform derive it
+  changeCreditAmount: "8.00", // "credit this much" — or changeAmount, never both
+});
+// session.checkoutUrl = "https://pancake.waffo.ai/store/{slug}/change/{sessionId}"
+
+// Authenticated entry point — same split as authenticated checkout, the token is
+// appended so the customer lands on the confirmation page already signed in
+const result = await client.checkout.authenticated.createPlanChange({
+  originOrderId: "ORD_xxx",
+  productId: "PROD_target_plan",
+  currency: "USD",
+  buyerIdentity: "userIdInYourSystem",
+  changeTiming: ChangeTiming.NextPeriod,
+});
+// result.checkoutUrl = "https://pancake.waffo.ai/store/{slug}/change/{sessionId}#token={JWT}"
+```
+
+- **`changeAmount` vs `changeCreditAmount`** — two ways to price the same change: `changeAmount` sets what you charge for this period, `changeCreditAmount` sets how much you credit against it. Same unit and tax basis, opposite meaning, so they are mutually exclusive and sending both is rejected with a 400.
+- **Merchant credentials only** — `changeAmount`, `changeCreditAmount` and `withTrial` are honored because these calls are signed with your API Key. A customer-session credential calling the endpoint directly has them silently dropped.
+- **Anonymous has no plan change** — a Store Slug session has no subscription to attribute the change to (the platform answers 403), so `checkout.anonymous` carries no plan change method at all.
+- **Customer self-service** — to let customers start a change themselves, switch on `selfServicePlanChange` on the product group (see [Subscription Product Groups](#subscription-product-groups)) and call `customer.createPlanChangeSession()` on their session (see [Customer Self-Service](#customer-self-service)). That path is the only one the switch gates; merchant-issued links ignore it.
 
 ### Opening the Checkout Page
 
@@ -272,6 +308,14 @@ await customer.resubmitRefundTicket({
   requestedAmount: { amount: "29.00", currency: "USD" },
 });
 
+// Let the customer switch their own subscription to another plan in the same group
+const session = await customer.createPlanChangeSession({
+  originOrderId: "ORD_xxx",
+  productId: "PROD_target_plan",
+  currency: "USD",
+});
+// Send them to session.checkoutUrl to confirm
+
 // Query the customer's own orders via GraphQL
 const result = await customer.graphql.query({
   query: `query { orders { id status createdAt } }`,
@@ -281,6 +325,10 @@ const result = await customer.graphql.query({
 The token is scoped to the specified store and customer identity — customers can only access their own data. Token TTL is 5 minutes and auto-refreshes on each API call.
 
 > **Note**: This uses the same `buyerIdentity` as `checkout.authenticated.create()`. Orders placed via authenticated checkout are automatically tied to this identity, so the customer can manage them later with a token issued here.
+
+> **Customer-initiated plan change has three preconditions**, all enforced by the platform with a 403: the subscription belongs to this customer, the target plan is in the **same product group** as the current one, and that group's **`selfServicePlanChange`** is on (see [Subscription Product Groups](#subscription-product-groups)). A merchant issuing the link with the API Key is subject to none of them. The merchant-only pricing fields (`changeAmount`, `changeCreditAmount`, `withTrial`, `priceSnapshot`, …) are not part of the customer params — the platform drops them on this path without reporting it.
+
+> **Customer session writes follow the same idempotency rule as every other method**: no key is sent unless you pass one, so a write retried after a timeout executes twice. See [Idempotency](#idempotency).
 
 ## Business-Side Identifiers
 
@@ -492,12 +540,14 @@ await client.subscriptionProducts.publish({ id: sub.id });
 
 ### Subscription Product Groups
 
+Both group switches are optional on create and update. `sharedTrial` shares the trial period across the group's products; `selfServicePlanChange` is the master switch for customers changing plans within the group from the customer portal — while it is off, a customer-credential plan change link is rejected with a 403 (merchant-issued links are unaffected).
+
 ```typescript
 // Create a group linking related subscription tiers
 const { group } = await client.subscriptionProductGroups.create({
   storeId: "STO_xxx",
   name: "Pro Plans",
-  rules: { sharedTrial: true },
+  rules: { sharedTrial: true, selfServicePlanChange: true },
   productIds: ["PROD_aaa", "PROD_bbb"],
 });
 
@@ -506,6 +556,13 @@ await client.subscriptionProductGroups.update({
   id: group.id,
   productIds: ["PROD_aaa", "PROD_bbb", "PROD_ccc"],
 });
+
+// Rules are merged switch by switch — sharedTrial keeps its stored value here
+const { group: updated } = await client.subscriptionProductGroups.update({
+  id: group.id,
+  rules: { selfServicePlanChange: true },
+});
+// updated.rules is always complete: { sharedTrial, selfServicePlanChange }
 
 // Publish / delete
 await client.subscriptionProductGroups.publish({ id: group.id });
@@ -531,6 +588,32 @@ if (verdict.action !== "allow") {
   // do not generate — verdict.action is "review" or "block"
 }
 ```
+
+## Idempotency
+
+**No idempotency key is sent unless you pass one.** The SDK does not derive keys — a write that times out and gets retried executes a second time unless you supplied a key the first time.
+
+Pass one as the last argument of any write method:
+
+```typescript
+const { store } = await client.stores.create({ name: "My Store" }, { idempotencyKey: `MER_store-create-${requestId}` });
+```
+
+What the platform does with it:
+
+| Situation                                | Result                                                |
+| ---------------------------------------- | ----------------------------------------------------- |
+| First request with this key              | Executes; the 2xx response is cached for **24 hours** |
+| Same key again, original finished        | The cached response is returned, nothing re-executes  |
+| Same key again, original still in flight | **409 Conflict**                                      |
+| Original finished non-2xx                | The key is free; the same key can be retried          |
+| No key at all                            | Nothing is deduplicated                               |
+
+**Uniqueness is yours to guarantee.** At most 256 characters of letters, numbers, hyphens and underscores; a malformed key is rejected by the gateway with a 400. Use one key per logical operation — your own request/order id plus a prefix is the usual shape. Reusing a key across two different calls makes the second one replay the first one's response.
+
+A key you pass to `checkout.authenticated.create()` or `.createPlanChange()` applies to the `create-session` call only — one key cannot address two endpoints, and re-issuing a session token is harmless.
+
+GraphQL queries take no key: they are reads, and the cache would serve stale data.
 
 ## Error Handling
 
@@ -595,6 +678,7 @@ try {
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Environment`                | `Test`, `Prod`                                                                                                                                                                                                                                                                                                                                               |
 | `TaxCategory`                | `DigitalGoods`, `SaaS`, `Software`, `Ebook`, `OnlineCourse`, `Consulting`, `ProfessionalService`                                                                                                                                                                                                                                                             |
+| `ChangeTiming`               | `Immediate`, `NextPeriod`                                                                                                                                                                                                                                                                                                                                    |
 | `BillingPeriod`              | `Weekly`, `Monthly`, `Quarterly`, `Yearly`                                                                                                                                                                                                                                                                                                                   |
 | `ProductVersionStatus`       | `Active`, `Inactive`                                                                                                                                                                                                                                                                                                                                         |
 | `EntityStatus`               | `Active`, `Inactive`, `Suspended`                                                                                                                                                                                                                                                                                                                            |
@@ -611,7 +695,7 @@ try {
 
 ### Types
 
-Key types: `WaffoPancakeConfig`, `AuthenticatedCheckoutParams`, `AuthenticatedCheckoutResult`, `AnonymousCheckoutParams`, `CheckoutSessionResult`, `CashierLanguage`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `WebhookEvent<T>`, `WebhookEventData`, `GraphQLResponse<T>`, and 30+ more. `WebhookEventData` includes rich fields organized by section: order info, amounts, product, payment, subscription, and refund (conditional by event type). See [API Reference](docs/api-reference.md#types) for the full list.
+Key types: `WaffoPancakeConfig`, `AuthenticatedCheckoutParams`, `AuthenticatedCheckoutResult`, `AnonymousCheckoutParams`, `CreatePlanChangeSessionParams`, `AuthenticatedPlanChangeParams`, `CustomerPlanChangeParams`, `CheckoutSessionResult`, `CashierLanguage`, `Store`, `OnetimeProductDetail`, `SubscriptionProductDetail`, `WebhookEvent<T>`, `WebhookEventData`, `GraphQLResponse<T>`, and 30+ more. `WebhookEventData` includes rich fields organized by section: order info, amounts, product, payment, subscription, and refund (conditional by event type). See [API Reference](docs/api-reference.md#types) for the full list.
 
 ## Development
 
@@ -629,7 +713,7 @@ npm run build           # tsup → ESM + CJS + DTS
 src/
 ├── index.ts               # Unified export entry
 ├── client.ts              # WaffoPancake main class
-├── http-client.ts         # HTTP client (API Key, auto-signing + idempotency)
+├── http-client.ts         # HTTP client (API Key, auto-signing)
 ├── customer-http-client.ts   # HTTP client (Bearer token, customer self-service)
 ├── signing.ts             # RSA-SHA256 request signing
 ├── errors.ts              # WaffoPancakeError

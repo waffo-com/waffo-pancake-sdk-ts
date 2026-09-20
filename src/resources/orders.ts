@@ -2,7 +2,7 @@ import { unwrapAction } from "./internal.js";
 import { validateShortId } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
-import type { CancelSubscriptionParams, CancelSubscriptionResult, Notice } from "../types.js";
+import type { CancelSubscriptionParams, CancelSubscriptionResult, Notice, RequestOptions } from "../types.js";
 
 /** Order management resource. */
 export class OrdersResource {
@@ -29,8 +29,11 @@ export class OrdersResource {
    * });
    * // status: "canceled" or "canceling"
    */
-  async cancelSubscription(params: CancelSubscriptionParams): Promise<CancelSubscriptionResult & { warnings?: Notice[] }> {
+  async cancelSubscription(
+    params: CancelSubscriptionParams,
+    options?: RequestOptions,
+  ): Promise<CancelSubscriptionResult & { warnings?: Notice[] }> {
     validateShortId("orderId", params.orderId, "ORD");
-    return unwrapAction(await this.http.post<CancelSubscriptionResult>("/v1/actions/subscription-order/cancel-order", params));
+    return unwrapAction(await this.http.post<CancelSubscriptionResult>("/v1/actions/subscription-order/cancel-order", params, options));
   }
 }

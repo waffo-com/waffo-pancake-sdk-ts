@@ -49,6 +49,43 @@ describe("subscriptionProductGroups.create", () => {
     expect(body.rules).toEqual({ sharedTrial: true });
   });
 
+  it("should send both rules switches when both are given", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: { group: { id: "grp-uuid", name: "Pro Plans", rules: { sharedTrial: true, selfServicePlanChange: true } } },
+    }));
+    const client = createClient(mockFetch);
+
+    const result = await client.subscriptionProductGroups.create({
+      storeId: "STO_0000000000000000000000",
+      name: "Pro Plans",
+      rules: { sharedTrial: true, selfServicePlanChange: true },
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.rules).toEqual({ sharedTrial: true, selfServicePlanChange: true });
+    // The entity always carries both switches, so reading one never needs a fallback
+    expect(result.group.rules.sharedTrial).toBe(true);
+    expect(result.group.rules.selfServicePlanChange).toBe(true);
+  });
+
+  it("should allow creating a group with only selfServicePlanChange", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: { group: { id: "grp-uuid", name: "Pro Plans", rules: { sharedTrial: false, selfServicePlanChange: true } } },
+    }));
+    const client = createClient(mockFetch);
+
+    const result = await client.subscriptionProductGroups.create({
+      storeId: "STO_0000000000000000000000",
+      name: "Pro Plans",
+      rules: { selfServicePlanChange: true },
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.rules).toEqual({ selfServicePlanChange: true });
+    // A switch left out on create is created off
+    expect(result.group.rules.sharedTrial).toBe(false);
+  });
+
   it("should reject empty name", async () => {
     const client = createClient(createMockFetch(() => ({})));
 
@@ -64,6 +101,26 @@ describe("subscriptionProductGroups.create", () => {
 });
 
 describe("subscriptionProductGroups.update", () => {
+  it("should keep the other switch at its stored value when only one is sent", async () => {
+    // update-group merges rules field by field, so the response carries the stored
+    // sharedTrial (true) even though the request only flipped selfServicePlanChange.
+    const mockFetch = createMockFetch(() => ({
+      data: { group: { id: "grp-uuid", name: "Pro Plans", rules: { sharedTrial: true, selfServicePlanChange: true } } },
+    }));
+    const client = createClient(mockFetch);
+
+    const result = await client.subscriptionProductGroups.update({
+      id: "grp-uuid",
+      rules: { selfServicePlanChange: true },
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.rules).toEqual({ selfServicePlanChange: true });
+    expect(body.rules.sharedTrial).toBeUndefined();
+    expect(result.group.rules.sharedTrial).toBe(true);
+    expect(result.group.rules.selfServicePlanChange).toBe(true);
+  });
+
   it("should update a group with correct path", async () => {
     const mockFetch = createMockFetch(() => ({
       data: { group: { id: "grp-uuid", name: "Updated Plans" } },

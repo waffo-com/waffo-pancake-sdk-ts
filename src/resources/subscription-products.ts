@@ -6,6 +6,7 @@ import type {
   CreateSubscriptionProductParams,
   Notice,
   PublishSubscriptionProductParams,
+  RequestOptions,
   SubscriptionProductDetail,
   UpdateSubscriptionProductParams,
   UpdateSubscriptionStatusParams,
@@ -29,13 +30,16 @@ export class SubscriptionProductsResource {
    *   prices: { USD: { amount: "9.99", taxCategory: "saas" } },
    * });
    */
-  async create(params: CreateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail; warnings?: Notice[] }> {
+  async create(
+    params: CreateSubscriptionProductParams,
+    options?: RequestOptions,
+  ): Promise<{ product: SubscriptionProductDetail; warnings?: Notice[] }> {
     validateShortId("storeId", params.storeId, "STO");
     validateRequired("name", params.name);
     validateEnum("billingPeriod", params.billingPeriod, ["weekly", "monthly", "quarterly", "yearly"]);
     validatePrices("prices", params.prices);
     return unwrapAction(
-      await this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/create-product", params),
+      await this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/create-product", params, options),
     );
   }
 
@@ -60,14 +64,17 @@ export class SubscriptionProductsResource {
    *   prices: { USD: { amount: "99.00", taxCategory: "saas" } },
    * });
    */
-  async update(params: UpdateSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail; warnings?: Notice[] }> {
+  async update(
+    params: UpdateSubscriptionProductParams,
+    options?: RequestOptions,
+  ): Promise<{ product: SubscriptionProductDetail; warnings?: Notice[] }> {
     validateShortId("id", params.id, "PROD");
     if (params.name !== undefined) validateRequired("name", params.name);
     if (params.billingPeriod !== undefined)
       validateEnum("billingPeriod", params.billingPeriod, ["weekly", "monthly", "quarterly", "yearly"]);
     if (params.prices) validatePrices("prices", params.prices);
     return unwrapAction(
-      await this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-product", params),
+      await this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-product", params, options),
     );
   }
 
@@ -80,10 +87,13 @@ export class SubscriptionProductsResource {
    * @example
    * const { product } = await client.subscriptionProducts.publish({ id: "PROD_xxx" });
    */
-  async publish(params: PublishSubscriptionProductParams): Promise<{ product: SubscriptionProductDetail; warnings?: Notice[] }> {
+  async publish(
+    params: PublishSubscriptionProductParams,
+    options?: RequestOptions,
+  ): Promise<{ product: SubscriptionProductDetail; warnings?: Notice[] }> {
     validateShortId("id", params.id, "PROD");
     return unwrapAction(
-      await this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/publish-product", params),
+      await this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/publish-product", params, options),
     );
   }
 
@@ -99,11 +109,14 @@ export class SubscriptionProductsResource {
    *   status: ProductVersionStatus.Active,
    * });
    */
-  async updateStatus(params: UpdateSubscriptionStatusParams): Promise<{ product: SubscriptionProductDetail; warnings?: Notice[] }> {
+  async updateStatus(
+    params: UpdateSubscriptionStatusParams,
+    options?: RequestOptions,
+  ): Promise<{ product: SubscriptionProductDetail; warnings?: Notice[] }> {
     validateShortId("id", params.id, "PROD");
     validateEnum("status", params.status, ["active", "inactive"]);
     return unwrapAction(
-      await this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-status", params),
+      await this.http.post<{ product: SubscriptionProductDetail }>("/v1/actions/subscription-product/update-status", params, options),
     );
   }
 }
