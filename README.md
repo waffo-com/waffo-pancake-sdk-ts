@@ -3,7 +3,7 @@
 TypeScript SDK for the Waffo Pancake Merchant of Record (MoR) payment platform.
 
 - Zero runtime dependencies, ESM + CJS, Node >= 20
-- Automatic RSA-SHA256 request signing with deterministic idempotency keys
+- Automatic RSA-SHA256 request signing; opt-in idempotency keys per call
 - Full TypeScript type definitions (15 enums, 40+ interfaces)
 - Webhook verification with embedded public keys (test/prod)
 
@@ -328,7 +328,7 @@ The token is scoped to the specified store and customer identity — customers c
 
 > **Customer-initiated plan change has three preconditions**, all enforced by the platform with a 403: the subscription belongs to this customer, the target plan is in the **same product group** as the current one, and that group's **`selfServicePlanChange`** is on (see [Subscription Product Groups](#subscription-product-groups)). A merchant issuing the link with the API Key is subject to none of them. The merchant-only pricing fields (`changeAmount`, `changeCreditAmount`, `withTrial`, `priceSnapshot`, …) are not part of the customer params — the platform drops them on this path without reporting it.
 
-> **Customer session writes are not idempotent.** The API Key client sends a derived idempotency key on every write and the gateway deduplicates on it; this session sends none, so a write retried after a timeout can execute twice.
+> **Customer session writes follow the same idempotency rule as every other method**: no key is sent unless you pass one, so a write retried after a timeout executes twice. See [Idempotency](#idempotency).
 
 ## Business-Side Identifiers
 
@@ -589,6 +589,32 @@ if (verdict.action !== "allow") {
 }
 ```
 
+## Idempotency
+
+**No idempotency key is sent unless you pass one.** The SDK does not derive keys — a write that times out and gets retried executes a second time unless you supplied a key the first time.
+
+Pass one as the last argument of any write method:
+
+```typescript
+const { store } = await client.stores.create({ name: "My Store" }, { idempotencyKey: `MER_store-create-${requestId}` });
+```
+
+What the platform does with it:
+
+| Situation                                | Result                                                |
+| ---------------------------------------- | ----------------------------------------------------- |
+| First request with this key              | Executes; the 2xx response is cached for **24 hours** |
+| Same key again, original finished        | The cached response is returned, nothing re-executes  |
+| Same key again, original still in flight | **409 Conflict**                                      |
+| Original finished non-2xx                | The key is free; the same key can be retried          |
+| No key at all                            | Nothing is deduplicated                               |
+
+**Uniqueness is yours to guarantee.** At most 256 characters of letters, numbers, hyphens and underscores; a malformed key is rejected by the gateway with a 400. Use one key per logical operation — your own request/order id plus a prefix is the usual shape. Reusing a key across two different calls makes the second one replay the first one's response.
+
+A key you pass to `checkout.authenticated.create()` or `.createPlanChange()` applies to the `create-session` call only — one key cannot address two endpoints, and re-issuing a session token is harmless.
+
+GraphQL queries take no key: they are reads, and the cache would serve stale data.
+
 ## Error Handling
 
 API errors throw `WaffoPancakeError` with the HTTP status code and a call-stack-ordered errors array.
@@ -687,7 +713,7 @@ npm run build           # tsup → ESM + CJS + DTS
 src/
 ├── index.ts               # Unified export entry
 ├── client.ts              # WaffoPancake main class
-├── http-client.ts         # HTTP client (API Key, auto-signing + idempotency)
+├── http-client.ts         # HTTP client (API Key, auto-signing)
 ├── customer-http-client.ts   # HTTP client (Bearer token, customer self-service)
 ├── signing.ts             # RSA-SHA256 request signing
 ├── errors.ts              # WaffoPancakeError

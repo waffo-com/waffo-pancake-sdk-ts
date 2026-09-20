@@ -8,6 +8,7 @@ import type {
   AuthenticatedPlanChangeParams,
   CheckoutSessionResult,
   Notice,
+  RequestOptions,
   SessionToken,
 } from "../types.js";
 
@@ -31,6 +32,9 @@ export class CheckoutAuthenticatedResource {
    * - Issues a session token via `issue-session-token` (receives `buyerIdentity` + `productId` only)
    * - Creates a checkout session via `create-session` (receives every other field unchanged)
    * - Appends the token to the checkout URL as a URL fragment (`#token=...`)
+   * - An `idempotencyKey` you pass applies to the `create-session` call only. One key
+   *   cannot address two endpoints, and re-issuing a token is harmless, so the token
+   *   call is always sent without one
    *
    * `buyerIdentity` and `buyerEmail` are independent inputs: identity is for the JWT,
    * email is for pre-filling the checkout page. The SDK forwards each to its own endpoint.
@@ -48,21 +52,20 @@ export class CheckoutAuthenticatedResource {
    * });
    * // Redirect to result.checkoutUrl (includes #token=...)
    */
-  async create(params: AuthenticatedCheckoutParams): Promise<AuthenticatedCheckoutResult & { warnings?: Notice[] }> {
+  async create(
+    params: AuthenticatedCheckoutParams,
+    options?: RequestOptions,
+  ): Promise<AuthenticatedCheckoutResult & { warnings?: Notice[] }> {
     validateCheckoutCommon(params);
     validateRequired("buyerIdentity", params.buyerIdentity);
     const { buyerIdentity, ...sessionParams } = params;
 
     const [tokenResult, sessionResult] = await Promise.all([
-      this.http.post<SessionToken>(
-        "/v1/actions/auth/issue-session-token",
-        {
-          productId: params.productId,
-          buyerIdentity,
-        },
-        { idempotencyWindow: 60 },
-      ),
-      this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", sessionParams, { idempotencyWindow: 60 }),
+      this.http.post<SessionToken>("/v1/actions/auth/issue-session-token", {
+        productId: params.productId,
+        buyerIdentity,
+      }),
+      this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", sessionParams, options),
     ]);
 
     const token = unwrapAction(tokenResult);
@@ -93,6 +96,8 @@ export class CheckoutAuthenticatedResource {
    *   calling the endpoint directly would have them silently dropped
    * - `changeAmount` and `changeCreditAmount` are mutually exclusive — the platform
    *   rejects both-at-once with a 400
+   * - An `idempotencyKey` you pass applies to the `create-session` call only, for the
+   *   same reason as in `create()`
    *
    * @param params - Plan change parameters including customer identity
    * @returns Session details with token-appended confirmation URL
@@ -107,21 +112,20 @@ export class CheckoutAuthenticatedResource {
    * });
    * // Redirect to result.checkoutUrl (includes #token=...)
    */
-  async createPlanChange(params: AuthenticatedPlanChangeParams): Promise<AuthenticatedCheckoutResult & { warnings?: Notice[] }> {
+  async createPlanChange(
+    params: AuthenticatedPlanChangeParams,
+    options?: RequestOptions,
+  ): Promise<AuthenticatedCheckoutResult & { warnings?: Notice[] }> {
     validatePlanChangeCommon(params);
     validateRequired("buyerIdentity", params.buyerIdentity);
     const { buyerIdentity, ...sessionParams } = params;
 
     const [tokenResult, sessionResult] = await Promise.all([
-      this.http.post<SessionToken>(
-        "/v1/actions/auth/issue-session-token",
-        {
-          productId: params.productId,
-          buyerIdentity,
-        },
-        { idempotencyWindow: 60 },
-      ),
-      this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", sessionParams, { idempotencyWindow: 60 }),
+      this.http.post<SessionToken>("/v1/actions/auth/issue-session-token", {
+        productId: params.productId,
+        buyerIdentity,
+      }),
+      this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", sessionParams, options),
     ]);
 
     const token = unwrapAction(tokenResult);

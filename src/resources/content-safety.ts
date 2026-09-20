@@ -2,7 +2,7 @@ import { unwrapAction } from "./internal.js";
 import { validateRequired } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
-import type { ScanPromptParams, ScanResult } from "../types.js";
+import type { RequestOptions, ScanPromptParams, ScanResult } from "../types.js";
 
 /** Content safety resource — scan user prompts before AIGC generation. */
 export class ContentSafetyResource {
@@ -26,8 +26,8 @@ export class ContentSafetyResource {
    *   // do not generate
    * }
    */
-  async scanPrompt(params: ScanPromptParams): Promise<ScanResult> {
+  async scanPrompt(params: ScanPromptParams, options?: RequestOptions): Promise<ScanResult> {
     validateRequired("prompt", params.prompt);
-    return unwrapAction(await this.http.post<ScanResult>("/v1/actions/verification/scan-prompt", params));
+    return unwrapAction(await this.http.post<ScanResult>("/v1/actions/verification/scan-prompt", params, options));
   }
 }

@@ -41,6 +41,7 @@ export type {
   Notice,
   Envelope,
   PostResult,
+  RequestOptions,
   /** @deprecated Use {@link Notice}. */
   ApiError,
 

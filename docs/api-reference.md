@@ -8,6 +8,7 @@ Complete reference for all `@waffo/pancake-ts` resources, parameters, and return
 > - All timestamps are **ISO 8601 UTC** strings
 > - Product updates follow **immutable versioning** — only provided fields are updated (omitted fields are preserved), each update creates a new version, skipped if content is unchanged
 > - The **publish** flow promotes a test version to production
+> - Every write method takes an optional `RequestOptions` as its **last argument**; its only field today is `idempotencyKey`. No key is sent unless you pass one — see [Idempotency](#idempotency)
 
 ---
 
@@ -949,6 +950,24 @@ const productResult = await client.graphql.query({
 | `errors` | `Array<{ message, locations?, path? }>` | GraphQL errors (if any) |
 
 See [GraphQL Guide](graphql-guide.md) for introspection, filters, pagination, and practical examples.
+
+---
+
+## Idempotency
+
+`RequestOptions` is the last argument of every write method:
+
+```typescript
+await client.stores.create({ name: "My Store" }, { idempotencyKey: "MER_store-create-9f2c" });
+```
+
+| Field            | Type     | Required | Description                                                                               |
+| ---------------- | -------- | -------- | ----------------------------------------------------------------------------------------- |
+| `idempotencyKey` | `string` | No       | Sent as `X-Idempotency-Key`. Omitted → the header is not sent and nothing is deduplicated |
+
+Platform behavior when a key is sent: the first request executes and its 2xx response is cached for **24 hours**; the same key returns that cached response; the same key while the original is in flight returns **409**; a non-2xx original leaves the key free to retry. Keys are at most 256 characters of letters, numbers, hyphens and underscores, and a malformed one is rejected by the gateway with a 400.
+
+The SDK never derives a key — **uniqueness is the caller's to guarantee**, and reusing one key across two different calls makes the second replay the first one's response. For that reason a key passed to `checkout.authenticated.create()` / `.createPlanChange()` is applied to the `create-session` call only, not to the token call. GraphQL queries accept no key.
 
 ---
 

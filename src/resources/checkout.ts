@@ -4,7 +4,13 @@ import { unwrapAction } from "./internal.js";
 import { validatePlanChangeCommon } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
-import type { CheckoutSessionResult, CreateCheckoutSessionParams, CreatePlanChangeSessionParams, Notice } from "../types.js";
+import type {
+  CheckoutSessionResult,
+  CreateCheckoutSessionParams,
+  CreatePlanChangeSessionParams,
+  Notice,
+  RequestOptions,
+} from "../types.js";
 
 /**
  * Checkout resource — create checkout sessions for payments.
@@ -66,10 +72,11 @@ export class CheckoutResource {
    * });
    * // Redirect to session.checkoutUrl
    */
-  async createSession(params: CreateCheckoutSessionParams): Promise<CheckoutSessionResult & { warnings?: Notice[] }> {
-    return unwrapAction(
-      await this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, { idempotencyWindow: 60 }),
-    );
+  async createSession(
+    params: CreateCheckoutSessionParams,
+    options?: RequestOptions,
+  ): Promise<CheckoutSessionResult & { warnings?: Notice[] }> {
+    return unwrapAction(await this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, options));
   }
 
   /**
@@ -79,6 +86,8 @@ export class CheckoutResource {
    * Behavior:
    * - Hits the same `create-session` endpoint as `createSession()`; `originOrderId`
    *   is what puts the request into plan change mode
+   * - Pass `{ idempotencyKey }` to have a retry return the first session instead of
+   *   issuing a second one; without a key nothing is deduplicated
    * - The returned `checkoutUrl` points at the change confirmation page
    *   (`…/store/{slug}/change/{sessionId}`), not the new-purchase cashier
    * - `changeAmount`, `changeCreditAmount` and `withTrial` are merchant-credential
@@ -103,10 +112,11 @@ export class CheckoutResource {
    * });
    * // Send the customer to session.checkoutUrl
    */
-  async createPlanChangeSession(params: CreatePlanChangeSessionParams): Promise<CheckoutSessionResult & { warnings?: Notice[] }> {
+  async createPlanChangeSession(
+    params: CreatePlanChangeSessionParams,
+    options?: RequestOptions,
+  ): Promise<CheckoutSessionResult & { warnings?: Notice[] }> {
     validatePlanChangeCommon(params);
-    return unwrapAction(
-      await this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, { idempotencyWindow: 60 }),
-    );
+    return unwrapAction(await this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, options));
   }
 }

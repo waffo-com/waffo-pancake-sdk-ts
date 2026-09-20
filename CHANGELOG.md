@@ -4,9 +4,9 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.23.0] - 2026-09-19
+## [0.23.0] - 2026-09-20
 
-Plan changes can now be started from the SDK, and product groups expose the switch that lets customers start one themselves.
+Plan changes can now be started from the SDK, and product groups expose the switch that lets customers start one themselves. **The SDK also stops sending idempotency keys on its own** — see the BREAKING entries under Changed before upgrading.
 
 ### Added
 
@@ -20,7 +20,12 @@ Plan changes can now be started from the SDK, and product groups expose the swit
 
 ### Changed
 
-- **`CustomerSession` documents that its writes are not idempotent.** Behavior is unchanged — the customer client has never sent an idempotency key (`customer-http-client.ts`), the API Key client always has. It is now said out loud on the class, because a retried customer write can execute twice and nothing in the public docs said so.
+- **BREAKING: the SDK no longer sends `X-Idempotency-Key` on its own.** Until now every write carried a key derived as `sha256(merchantId + path + body)` (with a 60-second window on checkout-session calls), which made the gateway deduplicate writes for 24 hours whether you wanted it or not — and made identical calls replay an old response, the failure mode behind the stale-token warning in the API Reference. Now the header is sent **only** when you pass one.
+  - **What you lose by doing nothing**: writes are no longer deduplicated. A request that times out and is retried executes twice — two stores, two refund tickets, two checkout sessions.
+  - **What to do if you want idempotency**: pass a key as the last argument of the write, e.g. `client.stores.create(params, { idempotencyKey: "MER_store-create-9f2c" })`. Uniqueness is yours to guarantee (≤256 chars of letters, numbers, `-`, `_`; malformed keys are rejected with a 400). Same key within 24h returns the first response; same key while the original is in flight returns 409.
+  - **No compensating behavior was added** — no automatic retry, no local dedup, no fallback key.
+- **BREAKING: `PostOptions` is replaced by `RequestOptions`.** `idempotencyWindow` and `noIdempotency` are gone (the first has no meaning without a derived key; the second is now the default). The new type carries `idempotencyKey` only and is accepted as the optional last argument of every write method — including `CustomerSession`'s, whose requests now also send a key when you pass one. GraphQL query methods take no options: a key on a read would serve cached data.
+- **`CustomerSession` documents that its writes are not idempotent by default** — the same rule as every other method now that no client derives a key. A retried customer write executes twice unless you pass an `idempotencyKey`.
 - **The two plan change methods validate their input; `checkout.createSession()` still does not.** They sit in the same class, so the difference is now stated in the class JSDoc rather than left implicit. Reasoning: local validation is the SDK-wide default for resource methods, and `createSession()` is the single documented escape hatch ("full control"). The plan change methods are the *only* entry points to their flow, not escape hatches, and every other method that takes an `ORD_` id validates its format — leaving that out here would make a malformed id cost a network round trip to learn. What is validated stays purely formal (Short ID shape, currency, amount strings); no mode rule is enforced client-side.
 - **`GroupRules` split into an entity type and an input type.** `GroupRules` (entity, returned on a group) now has both switches **required** — the platform always reports a complete set, an unset switch as `false`. The new `GroupRulesInput` (accepted on create / update) has both **optional**, matching the platform's field-by-field merge: sending only `selfServicePlanChange` leaves `sharedTrial` at its stored value. Code that reads `group.rules` is unaffected; code that builds a `rules` payload keeps compiling, and `sharedTrial` is no longer mandatory there.
 

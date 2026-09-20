@@ -50,26 +50,33 @@ export interface CustomerSessionOptions {
 }
 
 // ---------------------------------------------------------------------------
-// Internal HTTP options
+// Per-call request options
 // ---------------------------------------------------------------------------
 
 /**
- * Options for {@link HttpClient.post}.
- * Not exported publicly — used by resource classes.
+ * Options accepted as the last argument of every write method.
+ *
+ * Public: pass one to make a single call idempotent. Nothing is sent when the
+ * object (or the field) is omitted.
  */
-export interface PostOptions {
+export interface RequestOptions {
   /**
-   * Time window in seconds for idempotency key rotation.
-   * When set, a floored timestamp is mixed into the key so identical params
-   * produce a new key after the window elapses (e.g. 60 = per-minute dedup).
+   * Idempotency key for this call, sent as `X-Idempotency-Key`. Omit it and the
+   * header is not sent at all — the SDK never derives a key for you.
+   *
+   * Platform semantics once a key is sent:
+   * - The first request executes and its 2xx response is cached for **24 hours**
+   * - A repeat of the same key returns that cached response without re-executing
+   * - A repeat while the original is still in flight returns **409**
+   * - A non-2xx original does not occupy the key; the same key can be retried
+   *
+   * The key is the whole cache identity of the request, so **uniqueness is yours
+   * to guarantee**: at most 256 characters of letters, numbers, hyphens and
+   * underscores, and distinct per logical operation (a merchant id plus a UUID is
+   * the usual shape). A malformed key is rejected by the gateway with a 400.
+   * @see docs/api-reference/errors.mdx (Idempotency for Safe Retries)
    */
-  idempotencyWindow?: number;
-  /**
-   * Skip the X-Idempotency-Key header entirely. Set for read-only queries
-   * (e.g. GraphQL) so the gateway's 24h idempotency cache does not serve
-   * stale data on identical repeat queries.
-   */
-  noIdempotency?: boolean;
+  idempotencyKey?: string;
 }
 
 // ---------------------------------------------------------------------------

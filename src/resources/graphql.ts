@@ -27,7 +27,7 @@ export class GraphQLResource {
    */
   async query<T = Record<string, unknown>>(params: GraphQLParams): Promise<GraphQLResponse<T>> {
     validateRequired("query", params.query);
-    const result = await this.http.post<T>("/v1/graphql", params, { noIdempotency: true });
+    const result = await this.http.post<T>("/v1/graphql", params);
     return { data: result.data, errors: result.errors, warnings: result.warnings };
   }
 }

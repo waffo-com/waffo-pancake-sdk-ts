@@ -7,6 +7,7 @@ import type {
   Notice,
   OnetimeProductDetail,
   PublishOnetimeProductParams,
+  RequestOptions,
   UpdateOnetimeProductParams,
   UpdateOnetimeStatusParams,
 } from "../types.js";
@@ -28,11 +29,16 @@ export class OnetimeProductsResource {
    *   prices: { USD: { amount: "29.00", taxCategory: "digital_goods" } },
    * });
    */
-  async create(params: CreateOnetimeProductParams): Promise<{ product: OnetimeProductDetail; warnings?: Notice[] }> {
+  async create(
+    params: CreateOnetimeProductParams,
+    options?: RequestOptions,
+  ): Promise<{ product: OnetimeProductDetail; warnings?: Notice[] }> {
     validateShortId("storeId", params.storeId, "STO");
     validateRequired("name", params.name);
     validatePrices("prices", params.prices);
-    return unwrapAction(await this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/create-product", params));
+    return unwrapAction(
+      await this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/create-product", params, options),
+    );
   }
 
   /**
@@ -55,11 +61,16 @@ export class OnetimeProductsResource {
    *   prices: { USD: { amount: "39.00", taxCategory: "digital_goods" } },
    * });
    */
-  async update(params: UpdateOnetimeProductParams): Promise<{ product: OnetimeProductDetail; warnings?: Notice[] }> {
+  async update(
+    params: UpdateOnetimeProductParams,
+    options?: RequestOptions,
+  ): Promise<{ product: OnetimeProductDetail; warnings?: Notice[] }> {
     validateShortId("id", params.id, "PROD");
     if (params.name !== undefined) validateRequired("name", params.name);
     if (params.prices) validatePrices("prices", params.prices);
-    return unwrapAction(await this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/update-product", params));
+    return unwrapAction(
+      await this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/update-product", params, options),
+    );
   }
 
   /**
@@ -71,9 +82,14 @@ export class OnetimeProductsResource {
    * @example
    * const { product } = await client.onetimeProducts.publish({ id: "PROD_xxx" });
    */
-  async publish(params: PublishOnetimeProductParams): Promise<{ product: OnetimeProductDetail; warnings?: Notice[] }> {
+  async publish(
+    params: PublishOnetimeProductParams,
+    options?: RequestOptions,
+  ): Promise<{ product: OnetimeProductDetail; warnings?: Notice[] }> {
     validateShortId("id", params.id, "PROD");
-    return unwrapAction(await this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/publish-product", params));
+    return unwrapAction(
+      await this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/publish-product", params, options),
+    );
   }
 
   /**
@@ -88,9 +104,14 @@ export class OnetimeProductsResource {
    *   status: ProductVersionStatus.Inactive,
    * });
    */
-  async updateStatus(params: UpdateOnetimeStatusParams): Promise<{ product: OnetimeProductDetail; warnings?: Notice[] }> {
+  async updateStatus(
+    params: UpdateOnetimeStatusParams,
+    options?: RequestOptions,
+  ): Promise<{ product: OnetimeProductDetail; warnings?: Notice[] }> {
     validateShortId("id", params.id, "PROD");
     validateEnum("status", params.status, ["active", "inactive"]);
-    return unwrapAction(await this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/update-status", params));
+    return unwrapAction(
+      await this.http.post<{ product: OnetimeProductDetail }>("/v1/actions/onetime-product/update-status", params, options),
+    );
   }
 }

@@ -1,9 +1,7 @@
-import { createHash } from "node:crypto";
-
 import { WaffoPancakeError } from "./errors.js";
 import { normalizePrivateKey, signRequest } from "./signing.js";
 
-import type { PostOptions, PostResult, WaffoPancakeConfig } from "./types.js";
+import type { PostResult, RequestOptions, WaffoPancakeConfig } from "./types.js";
 
 const DEFAULT_BASE_URL = "https://api.waffo.ai";
 
@@ -39,10 +37,9 @@ export class HttpClient {
    *
    * Behavior:
    * - Builds RSA-SHA256 signature (`X-Merchant-Id` / `X-Timestamp` / `X-Signature`)
-   * - Attaches `X-Idempotency-Key` (deterministic `sha256(merchantId + path + body)`)
-   *   unless `options.noIdempotency` is set
-   * - When `options.idempotencyWindow` is set, a floored timestamp is mixed into the
-   *   key so identical params produce a new key after the window elapses
+   * - Attaches `X-Idempotency-Key` **only** when the caller supplied
+   *   `options.idempotencyKey`. No key is derived here and none is sent otherwise,
+   *   so a request without one is not covered by the gateway's 24h dedup cache
    * - Does NOT throw on `errors[]` or non-2xx status — caller inspects the result
    * - Throws {@link WaffoPancakeError} only on transport failures (non-JSON body)
    *
@@ -52,10 +49,9 @@ export class HttpClient {
    * @returns Parsed envelope with HTTP status
    * @throws {WaffoPancakeError} When the response body is not valid JSON
    */
-  async post<T>(path: string, body: object, options?: PostOptions): Promise<PostResult<T>> {
+  async post<T>(path: string, body: object, options?: RequestOptions): Promise<PostResult<T>> {
     const bodyStr = JSON.stringify(body);
-    const timestampSec = Math.floor(Date.now() / 1000);
-    const timestamp = timestampSec.toString();
+    const timestamp = Math.floor(Date.now() / 1000).toString();
     const signature = signRequest("POST", path, timestamp, bodyStr, this.privateKey);
 
     const headers: Record<string, string> = {
@@ -64,8 +60,8 @@ export class HttpClient {
       "X-Timestamp": timestamp,
       "X-Signature": signature,
     };
-    if (!options?.noIdempotency) {
-      headers["X-Idempotency-Key"] = computeIdempotencyKey(this.merchantId, path, bodyStr, timestampSec, options);
+    if (options?.idempotencyKey) {
+      headers["X-Idempotency-Key"] = options.idempotencyKey;
     }
 
     const response = await this._fetch(`${this.baseUrl}${path}`, {
@@ -82,10 +78,4 @@ export class HttpClient {
     }
     return { status: response.status, ...envelope };
   }
-}
-
-function computeIdempotencyKey(merchantId: string, path: string, bodyStr: string, timestampSec: number, options?: PostOptions): string {
-  const base = `${merchantId}:${path}:${bodyStr}`;
-  const input = options?.idempotencyWindow ? `${base}:${Math.floor(timestampSec / options.idempotencyWindow)}` : base;
-  return createHash("sha256").update(input).digest("hex");
 }

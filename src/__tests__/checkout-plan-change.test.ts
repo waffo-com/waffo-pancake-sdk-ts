@@ -286,8 +286,7 @@ describe("customer.createPlanChangeSession", () => {
     const headers = options.headers as Record<string, string>;
     expect(headers.Authorization).toBe("Bearer customer.session.jwt");
     expect(headers["X-Environment"]).toBe("test");
-    // Customer session requests carry no idempotency key — this path is not
-    // covered by gateway idempotency (see customer-http-client.ts).
+    // No key unless the caller passes one — same rule as the API Key client
     expect(headers["X-Idempotency-Key"]).toBeUndefined();
     // ...and no merchant signature, so the platform treats it as a customer issuer
     expect(headers["X-Signature"]).toBeUndefined();
@@ -355,5 +354,62 @@ describe("customer.createPlanChangeSession", () => {
       // @ts-expect-error — orderMerchantExternalId is merchant-credential only
       orderMerchantExternalId: "CHANGE-2026-00891",
     });
+  });
+});
+
+describe("idempotency key on plan change calls", () => {
+  it("omits the header by default and sends the caller's key verbatim", async () => {
+    const mockFetch = changeSessionFetch("cs_idem");
+    const client = createClient(mockFetch);
+
+    await client.checkout.createPlanChangeSession({
+      originOrderId: ORIGIN_ORDER_ID,
+      productId: TARGET_PRODUCT_ID,
+      currency: "USD",
+    });
+    await client.checkout.createPlanChangeSession(
+      { originOrderId: ORIGIN_ORDER_ID, productId: TARGET_PRODUCT_ID, currency: "USD" },
+      { idempotencyKey: "MER_plan-change-2026-00891" },
+    );
+
+    const headersOf = (i: number) => mockFetch.mock.calls[i][1].headers as Record<string, string>;
+    expect(headersOf(0)["X-Idempotency-Key"]).toBeUndefined();
+    expect(headersOf(1)["X-Idempotency-Key"]).toBe("MER_plan-change-2026-00891");
+  });
+
+  it("applies the key to create-session only, never to the token call", async () => {
+    const mockFetch = changeSessionFetch("cs_idem_auth");
+    const client = createClient(mockFetch);
+
+    await client.checkout.authenticated.createPlanChange(
+      { originOrderId: ORIGIN_ORDER_ID, productId: TARGET_PRODUCT_ID, currency: "USD", buyerIdentity: "user-123" },
+      { idempotencyKey: "MER_plan-change-2026-00892" },
+    );
+
+    const callFor = (fragment: string) => mockFetch.mock.calls.find((args) => String(args[0]).includes(fragment))!;
+    const sessionHeaders = callFor("create-session")[1].headers as Record<string, string>;
+    const tokenHeaders = callFor("issue-session-token")[1].headers as Record<string, string>;
+    expect(sessionHeaders["X-Idempotency-Key"]).toBe("MER_plan-change-2026-00892");
+    // One key cannot address two endpoints — the token call must not reuse it
+    expect(tokenHeaders["X-Idempotency-Key"]).toBeUndefined();
+  });
+
+  it("sends the key on a customer session call when given one", async () => {
+    const mockFetch = changeSessionFetch("cs_idem_self");
+    const customer = new WaffoPancake({
+      merchantId: "MER_0000000000000000000000",
+      privateKey: TEST_PRIVATE_KEY,
+      baseUrl: "https://api.test.com",
+      environment: "test",
+      fetch: mockFetch as unknown as typeof fetch,
+    }).customer("customer.session.jwt");
+
+    await customer.createPlanChangeSession(
+      { originOrderId: ORIGIN_ORDER_ID, productId: TARGET_PRODUCT_ID, currency: "USD" },
+      { idempotencyKey: "MER_self-service-2026-00893" },
+    );
+
+    const headers = mockFetch.mock.calls[0][1].headers as Record<string, string>;
+    expect(headers["X-Idempotency-Key"]).toBe("MER_self-service-2026-00893");
   });
 });

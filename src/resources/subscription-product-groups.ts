@@ -7,6 +7,7 @@ import type {
   DeleteSubscriptionProductGroupParams,
   Notice,
   PublishSubscriptionProductGroupParams,
+  RequestOptions,
   SubscriptionProductGroup,
   UpdateSubscriptionProductGroupParams,
 } from "../types.js";
@@ -33,11 +34,14 @@ export class SubscriptionProductGroupsResource {
    *   productIds: ["PROD_aaa", "PROD_bbb"],
    * });
    */
-  async create(params: CreateSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
+  async create(
+    params: CreateSubscriptionProductGroupParams,
+    options?: RequestOptions,
+  ): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
     validateShortId("storeId", params.storeId, "STO");
     validateRequired("name", params.name);
     return unwrapAction(
-      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/create-group", params),
+      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/create-group", params, options),
     );
   }
 
@@ -62,10 +66,13 @@ export class SubscriptionProductGroupsResource {
    *   rules: { selfServicePlanChange: true },
    * });
    */
-  async update(params: UpdateSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
+  async update(
+    params: UpdateSubscriptionProductGroupParams,
+    options?: RequestOptions,
+  ): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
     validateRequired("id", params.id);
     return unwrapAction(
-      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/update-group", params),
+      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/update-group", params, options),
     );
   }
 
@@ -78,10 +85,13 @@ export class SubscriptionProductGroupsResource {
    * @example
    * const { group } = await client.subscriptionProductGroups.delete({ id: "GRP_xxx" });
    */
-  async delete(params: DeleteSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
+  async delete(
+    params: DeleteSubscriptionProductGroupParams,
+    options?: RequestOptions,
+  ): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
     validateRequired("id", params.id);
     return unwrapAction(
-      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/delete-group", params),
+      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/delete-group", params, options),
     );
   }
 
@@ -94,10 +104,13 @@ export class SubscriptionProductGroupsResource {
    * @example
    * const { group } = await client.subscriptionProductGroups.publish({ id: "GRP_xxx" });
    */
-  async publish(params: PublishSubscriptionProductGroupParams): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
+  async publish(
+    params: PublishSubscriptionProductGroupParams,
+    options?: RequestOptions,
+  ): Promise<{ group: SubscriptionProductGroup; warnings?: Notice[] }> {
     validateRequired("id", params.id);
     return unwrapAction(
-      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/publish-group", params),
+      await this.http.post<{ group: SubscriptionProductGroup }>("/v1/actions/subscription-product-group/publish-group", params, options),
     );
   }
 }
