@@ -394,16 +394,39 @@ All events include the **Order**, **Amount**, and **Product** sections. Addition
 | `billingDetail`                  | `object` | No       | Billing/shipping address (structured object)                                                                                                                                           |
 | `orderMetadata`                  | `object` | No       | Order-level metadata from checkout session (flat key-value pairs)                                                                                                                      |
 
-**Amount fields** (always present):
+**Amount fields** — this event's own figure:
 
-| Field       | Type     | Required | Description                                                                       |
-| ----------- | -------- | -------- | --------------------------------------------------------------------------------- |
-| `amount`    | `string` | Yes      | Amount in display format (e.g., `"29.00"` for $29.00 USD, `"4500"` for ¥4500 JPY) |
-| `taxAmount` | `string` | Yes      | Tax amount in display format (e.g., `"2.90"`)                                     |
-| `taxRate`   | `number` | No       | Tax rate as decimal (e.g., `0.1` for 10%)                                         |
-| `taxName`   | `string` | No       | Tax name (e.g., `"Consumption Tax"`)                                              |
-| `subtotal`  | `string` | No       | Subtotal as display string (before tax)                                           |
-| `total`     | `string` | No       | Total as display string (after tax)                                               |
+| Field            | Type     | Required | Description                                                                                            |
+| ---------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| `chargedAmount`  | `string` | No       | Amount actually charged, in display format. Payment events only; absent when the channel reported none |
+| `refundedAmount` | `string` | No       | Amount actually refunded, in display format. Refund events only; absent when the channel reported none |
+| `amount`         | `string` | Yes      | **Deprecated** — see the deprecation table below                                                       |
+| `taxAmount`      | `string` | Yes      | **Deprecated** — see the deprecation table below                                                       |
+| `taxRate`        | `number` | No       | **Deprecated** — see the deprecation table below                                                       |
+| `taxName`        | `string` | No       | **Deprecated** — see the deprecation table below                                                       |
+| `subtotal`       | `string` | No       | **Deprecated** — see the deprecation table below                                                       |
+| `total`          | `string` | No       | **Deprecated** — see the deprecation table below                                                       |
+
+**Amount fields** — the object this event's figure refers to. Each block is a `WebhookAmountBreakdown` (`total`, `subtotal?`, `taxAmount`, `taxRate?`, `taxName?`), and at most one of them appears on a given event:
+
+| Field             | Type                     | Present on                                                               |
+| ----------------- | ------------------------ | ------------------------------------------------------------------------ |
+| `listPrice`       | `WebhookAmountBreakdown` | Payment events — the list price snapshot taken when the order was placed |
+| `originalPayment` | `WebhookAmountBreakdown` | Refund events — the payment being refunded, as originally charged        |
+| `planPrice`       | `WebhookAmountBreakdown` | Subscription status events — the plan's list price for the current phase |
+
+**Deprecated amount fields.** These six keep being sent and their types do not change, but their meaning drifts across event families, so each has a subject-specific replacement. Removal is no earlier than 12 months away and ships with the next major version.
+
+| Deprecated  | Payment events        | Refund events               | Subscription status events |
+| ----------- | --------------------- | --------------------------- | -------------------------- |
+| `amount`    | `chargedAmount`       | `refundedAmount`            | `planPrice.total`          |
+| `total`     | `listPrice.total`     | `originalPayment.total`     | `planPrice.total`          |
+| `subtotal`  | `listPrice.subtotal`  | `originalPayment.subtotal`  | `planPrice.subtotal`       |
+| `taxAmount` | `listPrice.taxAmount` | `originalPayment.taxAmount` | `planPrice.taxAmount`      |
+| `taxRate`   | `listPrice.taxRate`   | `originalPayment.taxRate`   | `planPrice.taxRate`        |
+| `taxName`   | `listPrice.taxName`   | `originalPayment.taxName`   | `planPrice.taxName`        |
+
+On payment events `amount` is the amount actually charged, equal to `chargedAmount`; when the channel reported no amount it falls back to the list price total. On every other event its value is unchanged, as are all five other deprecated fields.
 
 **Product fields** (always present):
 

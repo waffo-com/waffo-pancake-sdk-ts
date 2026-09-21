@@ -137,6 +137,7 @@ export type {
 
   // Webhook
   VerifyWebhookOptions,
+  WebhookAmountBreakdown,
   WebhookEvent,
   WebhookEventData,
   WebhookPublicKeys,
