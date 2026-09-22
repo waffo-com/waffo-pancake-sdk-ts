@@ -1573,6 +1573,17 @@ export interface WebhookEventData {
    */
   listPrice?: WebhookAmountBreakdown;
   /**
+   * What the payment being refunded actually collected, as display string.
+   *
+   * Only on refund events, and only when the channel reported an amount for that payment — the
+   * key is absent otherwise, never zero-filled. This is the ceiling a refund can reach: it is
+   * what the buyer was really charged, whereas {@link WebhookEventData.originalPayment}`.total`
+   * is the list price snapshot taken when the order was placed. The two differ when a prorated
+   * credit or a zero-amount card check applied to that payment, and refunding up to the list
+   * price is then rejected by the channel.
+   */
+  originalChargedAmount?: string;
+  /**
    * The payment being refunded, as it was originally charged.
    *
    * Only on refund events. Absent when that payment carries no amount snapshot.
