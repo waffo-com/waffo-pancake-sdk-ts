@@ -48,6 +48,8 @@ export type {
   // Auth
   IssueSessionTokenParams,
   SessionToken,
+  CreateCustomerPortalLinkParams,
+  CustomerPortalLink,
 
   // Store
   CheckoutSettings,

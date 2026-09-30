@@ -330,6 +330,34 @@ The token is scoped to the specified store and customer identity — customers c
 
 > **Customer session writes follow the same idempotency rule as every other method**: no key is sent unless you pass one, so a write retried after a timeout executes twice. See [Idempotency](#idempotency).
 
+## Customer Portal (SSO)
+
+Send a customer who is signed in to **your** site straight into your store's Pancake customer portal — orders, subscriptions and payments — without the portal's email verification step.
+
+```typescript
+// Your backend route, behind your own login check
+export async function GET(request: Request) {
+  const user = await requireSignedInUser(request); // your session, not request parameters
+  if (!user) return Response.redirect("/login", 302);
+
+  const { portalUrl } = await client.auth.createCustomerPortalLink({
+    storeId: "STO_xxx",
+    buyerIdentity: user.id, // same value you pass to checkout.authenticated.create()
+  });
+
+  return new Response(null, {
+    status: 302,
+    headers: { Location: portalUrl, "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" },
+  });
+}
+```
+
+- `portalUrl` already carries the session token as a URL fragment (`#token=...`), like `checkoutUrl` from authenticated checkout. It is a bearer credential: create it per request, redirect right away, and never log or cache it.
+- **Take `buyerIdentity` and `storeId` from your own authenticated session**, never from query strings, form fields or headers the browser controls. Anyone who can choose `buyerIdentity` can open that customer's portal.
+- The portal environment follows the API Key: a test key opens the test portal, a prod key the prod portal. There is no environment parameter.
+- The link expires at `expiresAt`. When the portal session ends, the customer returns to your site and your backend creates a new link — there is no refresh from the portal side.
+- Using Next.js? `@waffo/pancake-nextjs/server` wraps this flow in a Route Handler factory.
+
 ## Business-Side Identifiers
 
 Attach your own internal references to a checkout or a refund ticket so cross-system reconciliation does not require Waffo IDs. Two flat keys, both optional (max 128 chars):
@@ -644,7 +672,7 @@ try {
 | `client.customer(token).graphql`   | `query<T>()`                                                                                                             | Customer-scoped GraphQL queries         |
 | `client.webhooks`                  | `verify<T>()` `add()` `update()` `remove()`                                                                              | Webhook config + signature verification |
 | `client.graphql`                   | `query<T>()`                                                                                                             | Merchant GraphQL queries                |
-| `client.auth`                      | `issueSessionToken()`                                                                                                    | Issue a customer session token (JWT)    |
+| `client.auth`                      | `issueSessionToken()` `createCustomerPortalLink()`                                                                       | Customer session token / portal link    |
 | `client.stores`                    | `create()` `update()` `delete()`                                                                                         | Store management                        |
 | `client.storeMerchants`            | `add()` `remove()` `updateRole()`                                                                                        | Store members (coming soon)             |
 | `client.onetimeProducts`           | `create()` `update()` `publish()` `updateStatus()`                                                                       | One-time products                       |
