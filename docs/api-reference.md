@@ -76,7 +76,7 @@ const { portalUrl, expiresAt } = await client.auth.createCustomerPortalLink({
 
 - **Environment** is the API Key's environment (test key → test portal, prod key → prod portal); it is not a parameter.
 - **Security**: `storeId` and `buyerIdentity` must come from your backend's authenticated session, never from browser input. `portalUrl` carries a bearer token — redirect immediately, send `Cache-Control: no-store` and `Referrer-Policy: no-referrer` on the redirect, and do not log it.
-- **Errors**: invalid `storeId` / empty `buyerIdentity` throw `WaffoPancakeError` (400, `layer: "sdk"`) before any request; a response without `portalUrl` throws `WaffoPancakeError` with `layer: "sdk"`.
+- **Errors**: invalid `storeId` / empty `buyerIdentity` throw `WaffoPancakeError` (400, `layer: "sdk"`) before any request; a response without `portalUrl` or `token` throws `WaffoPancakeError` with `layer: "sdk"`.
 
 ---
 

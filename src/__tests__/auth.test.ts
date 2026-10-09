@@ -193,6 +193,21 @@ describe("auth.createCustomerPortalLink", () => {
     expect((err as WaffoPancakeError).message).toContain("portalUrl");
   });
 
+  it("should throw an sdk-layer error when the response has no token", async () => {
+    const client = createClient(
+      createMockFetch(() => ({
+        data: { token: "", expiresAt: "2026-04-02T10:15:00.000Z", portalUrl: PORTAL_URL },
+      })),
+    );
+
+    const err = await client.auth.createCustomerPortalLink({ storeId: STORE_ID, buyerIdentity: "u-1" }).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(WaffoPancakeError);
+    expect((err as WaffoPancakeError).errors[0].layer).toBe("sdk");
+    expect((err as WaffoPancakeError).message).toContain("token");
+    expect((err as WaffoPancakeError).message).not.toContain(PORTAL_URL);
+  });
+
   it("should surface API errors", async () => {
     const mockFetch = vi.fn(async () => ({
       status: 400,

@@ -338,7 +338,7 @@ Send a customer who is signed in to **your** site straight into your store's Pan
 // Your backend route, behind your own login check
 export async function GET(request: Request) {
   const user = await requireSignedInUser(request); // your session, not request parameters
-  if (!user) return Response.redirect("/login", 302);
+  if (!user) return new Response(null, { status: 302, headers: { Location: "/login", "Cache-Control": "no-store" } });
 
   const { portalUrl } = await client.auth.createCustomerPortalLink({
     storeId: "STO_xxx",

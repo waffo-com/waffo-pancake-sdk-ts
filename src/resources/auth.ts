@@ -77,7 +77,7 @@ export class AuthResource {
    * - `storeId` must be a Store Short ID (`STO_xxx`); `buyerIdentity` must be non-empty.
    *   Both are checked before any request is sent (`WaffoPancakeError`, 400, `layer: "sdk"`)
    * - Throws `WaffoPancakeError` (`layer: "sdk"`) when the platform response has no
-   *   `portalUrl`, e.g. an API that predates portal links
+   *   `portalUrl` (e.g. an API that predates portal links) or no `token`
    *
    * Security: `buyerIdentity` and `storeId` must come from your backend's own
    * authenticated session for the signed-in customer, never from request
@@ -87,7 +87,7 @@ export class AuthResource {
    * @param params - Store and customer identity from your authenticated session
    * @param options - Per-request options (e.g. `idempotencyKey`)
    * @returns Portal URL with `#token=...` appended, and the token expiry
-   * @throws {WaffoPancakeError} On invalid input, API errors, or a response without `portalUrl`
+   * @throws {WaffoPancakeError} On invalid input, API errors, or a response without `portalUrl` or `token`
    *
    * @example
    * // In your authenticated route handler
@@ -96,7 +96,10 @@ export class AuthResource {
    *   storeId: "STO_xxx",
    *   buyerIdentity: user.id,
    * });
-   * return Response.redirect(portalUrl, 302);
+   * return new Response(null, {
+   *   status: 302,
+   *   headers: { Location: portalUrl, "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" },
+   * });
    * // portalUrl => "https://pancake.waffo.ai/consumer/portal/store/STO_xxx#token=eyJ..."
    */
   async createCustomerPortalLink(
@@ -115,6 +118,11 @@ export class AuthResource {
     if (typeof data.portalUrl !== "string" || data.portalUrl === "") {
       throw new WaffoPancakeError(result.status, [
         { message: 'Missing portalUrl in issue-session-token response for purpose "portal"', layer: "sdk" },
+      ]);
+    }
+    if (typeof data.token !== "string" || data.token === "") {
+      throw new WaffoPancakeError(result.status, [
+        { message: 'Missing token in issue-session-token response for purpose "portal"', layer: "sdk" },
       ]);
     }
 

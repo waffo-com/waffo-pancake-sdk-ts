@@ -4,13 +4,13 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.26.0] - 2026-10-09
 
 Customers signed in to a merchant's site can enter the store's customer portal without email verification.
 
 ### Added
 
-- **`client.auth.createCustomerPortalLink({ storeId, buyerIdentity }, options?)`** → `{ portalUrl, expiresAt }`. Calls `issue-session-token` with `purpose: "portal"` and returns the portal URL with the session token appended as a fragment (`#token=...`), the same convention as `checkoutUrl` from authenticated checkout. The portal environment is the API Key's environment. Throws `WaffoPancakeError` (`layer: "sdk"`) when the platform response has no `portalUrl`.
+- **`client.auth.createCustomerPortalLink({ storeId, buyerIdentity }, options?)`** → `{ portalUrl, expiresAt }`. Calls `issue-session-token` with `purpose: "portal"` and returns the portal URL with the session token appended as a fragment (`#token=...`), the same convention as `checkoutUrl` from authenticated checkout. The portal environment is the API Key's environment. Throws `WaffoPancakeError` (`layer: "sdk"`) when the platform response has no `portalUrl` or no `token`.
 - **`CreateCustomerPortalLinkParams`**, **`CustomerPortalLink`** types.
 
 ### Changed
