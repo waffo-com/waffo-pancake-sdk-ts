@@ -1012,7 +1012,7 @@ export interface CreateCheckoutSessionParams {
   billingDetail?: BillingDetail;
   /** Redirect URL after successful payment */
   successUrl?: string;
-  /** Session expiration in seconds (default: 45 minutes) */
+  /** Session expiration in seconds (default: 24 hours; recommended range 60 to 604800 (7 days)) */
   expiresInSeconds?: number;
   /** Dark mode override (true=dark, false=light, omit=use store default) */
   darkMode?: boolean;
@@ -1109,7 +1109,7 @@ export interface CreatePlanChangeSessionParams {
   priceSnapshot?: PriceSnapshot;
   /** Redirect URL after the change is confirmed and paid */
   successUrl?: string;
-  /** Session expiration in seconds (default: 45 minutes) */
+  /** Session expiration in seconds (default: 24 hours; recommended range 60 to 604800 (7 days)) */
   expiresInSeconds?: number;
   /** Dark mode override (true=dark, false=light, omit=use store default) */
   darkMode?: boolean;
