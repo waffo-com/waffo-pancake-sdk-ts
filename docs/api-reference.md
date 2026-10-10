@@ -47,6 +47,37 @@ const { token, expiresAt } = await client.auth.issueSessionToken({
 | `token`     | `string` | JWT token string      |
 | `expiresAt` | `string` | Token expiration time |
 
+### `client.auth.createCustomerPortalLink(params, options?)`
+
+Create a link that signs a customer into your store's Pancake customer portal without email verification. Calls `issue-session-token` with `purpose: "portal"` and appends the returned token to the portal URL as a fragment (`#token=...`).
+
+```typescript
+const { portalUrl, expiresAt } = await client.auth.createCustomerPortalLink({
+  storeId: "STO_xxx",
+  buyerIdentity: session.user.id, // from YOUR authenticated session
+});
+// 302-redirect the browser to portalUrl
+// => "https://pancake.waffo.ai/consumer/portal/store/STO_xxx#token=eyJ..."
+```
+
+**Parameters `CreateCustomerPortalLinkParams`**:
+
+| Field           | Type     | Required | Description                                                                                  |
+| --------------- | -------- | -------- | -------------------------------------------------------------------------------------------- |
+| `storeId`       | `string` | Yes      | Store ID (`STO_xxx`)                                                                         |
+| `buyerIdentity` | `string` | Yes      | Customer identity in your system — the same value used for `checkout.authenticated.create()` |
+
+**Returns `CustomerPortalLink`**:
+
+| Field       | Type     | Description                                                             |
+| ----------- | -------- | ----------------------------------------------------------------------- |
+| `portalUrl` | `string` | Portal URL with the session token appended as a fragment (`#token=...`) |
+| `expiresAt` | `string` | Session token expiration time                                           |
+
+- **Environment** is the API Key's environment (test key → test portal, prod key → prod portal); it is not a parameter.
+- **Security**: `storeId` and `buyerIdentity` must come from your backend's authenticated session, never from browser input. `portalUrl` carries a bearer token — redirect immediately, send `Cache-Control: no-store` and `Referrer-Policy: no-referrer` on the redirect, and do not log it.
+- **Errors**: invalid `storeId` / empty `buyerIdentity` throw `WaffoPancakeError` (400, `layer: "sdk"`) before any request; a response without `portalUrl` or `token` throws `WaffoPancakeError` with `layer: "sdk"`.
+
 ---
 
 ## Stores

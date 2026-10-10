@@ -344,6 +344,50 @@ export interface SessionToken {
   expiresAt: string;
 }
 
+/**
+ * Parameters for creating a customer portal link.
+ *
+ * Both fields must come from your own backend's authenticated session for the
+ * signed-in customer — never from browser input. Whoever controls
+ * `buyerIdentity` gets that customer's portal.
+ *
+ * The portal environment is not a parameter: it is the environment of the API
+ * Key the client signs with (test key → test portal, prod key → prod portal).
+ *
+ * @example
+ * { storeId: "STO_2D5F8G3H1K4M6N9P0Q2R4T", buyerIdentity: "user-123" }
+ */
+export interface CreateCustomerPortalLinkParams {
+  /** Store ID (Short ID `STO_xxx`) whose portal the customer enters */
+  storeId: string;
+  /**
+   * Customer identity in your system — the same value you pass as
+   * `buyerIdentity` to `checkout.authenticated.create()`, so the portal shows
+   * the orders placed under it.
+   */
+  buyerIdentity: string;
+}
+
+/**
+ * Customer portal link — redirect the customer's browser to `portalUrl`.
+ *
+ * @example
+ * {
+ *   portalUrl: "https://pancake.waffo.ai/consumer/portal/store/STO_xxx#token=eyJhbGciOi...",
+ *   expiresAt: "2026-03-10T09:15:00.000Z",
+ * }
+ */
+export interface CustomerPortalLink {
+  /**
+   * Portal URL with the session token appended as a URL fragment (`#token=...`).
+   * It is a bearer credential: issue it per request, redirect to it right away,
+   * and do not log, cache or embed it in pages that are shared.
+   */
+  portalUrl: string;
+  /** Session token expiration time (ISO 8601 UTC) — after it, issue a new link */
+  expiresAt: string;
+}
+
 // ---------------------------------------------------------------------------
 // Store — from waffo-pancake-store-service
 // ---------------------------------------------------------------------------
