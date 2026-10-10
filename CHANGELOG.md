@@ -15,7 +15,8 @@ Customers signed in to a merchant's site can enter the store's customer portal w
 
 ### Changed
 
-- Nothing: `issueSessionToken()` keeps its signature, request body and response.
+- `issueSessionToken()` keeps its signature, request body and response.
+- **Documentation only — `expiresInSeconds` on `CreateCheckoutSessionParams` / `CreatePlanChangeSessionParams`.** The JSDoc and `docs/api-reference.md` now state the platform's current rule: the default session TTL is 24 hours (it was documented as 45 minutes), and the recommended range is 60 to 604800 seconds (1 minute to 7 days). Out-of-range values are accepted and logged by the platform today and may be rejected by a future platform release; the SDK forwards what you pass, as before.
 
 ## [0.25.0] - 2026-09-22
 
