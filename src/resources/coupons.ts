@@ -1,4 +1,5 @@
 import { unwrapAction } from "./internal.js";
+import { WaffoPancakeError } from "../errors.js";
 import {
   validateAmountString,
   validateCurrencyCode,
@@ -49,6 +50,12 @@ export class CouponsResource {
     validateEnum("discount.type", params.discount.type, ["percentage", "fixed_amount"]);
     if (params.discount.type === "percentage") {
       validateRequired("discount.percentOff", params.discount.percentOff);
+      const percentOff = params.discount.percentOff;
+      if (!(percentOff > 0 && percentOff <= 100)) {
+        throw new WaffoPancakeError(400, [
+          { message: `Invalid discount.percentOff: expected a value above 0 and up to 100, got ${percentOff}`, layer: "sdk" },
+        ]);
+      }
     } else {
       const entries = Object.entries(params.discount.amountOff ?? {});
       if (entries.length === 0) validateRequired("discount.amountOff", undefined);
@@ -61,6 +68,8 @@ export class CouponsResource {
     if (params.duration === "repeating") {
       validateRequired("durationInPeriods", params.durationInPeriods);
       validatePositiveInteger("durationInPeriods", params.durationInPeriods as number);
+    } else if (params.durationInPeriods !== undefined && params.durationInPeriods !== null) {
+      throw new WaffoPancakeError(400, [{ message: "durationInPeriods is only allowed when duration is repeating", layer: "sdk" }]);
     }
     for (const productId of params.productIds ?? []) validateShortId("productIds[]", productId, "PROD");
     return unwrapAction(await this.http.post<{ coupon: CouponDetail }>("/v1/actions/coupon/create-coupon", params, options));

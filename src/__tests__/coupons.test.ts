@@ -61,6 +61,8 @@ describe("coupons.create", () => {
     ["fixed amount without currencies", { discount: { type: "fixed_amount", amountOff: {} } }],
     ["invalid amount", { discount: { type: "fixed_amount", amountOff: { USD: "abc" } } }],
     ["invalid product ID", { productIds: ["STO_0000000000000000000000"] }],
+    ["percentOff above 100", { discount: { type: "percentage", percentOff: 101 } }],
+    ["durationInPeriods without repeating", { duration: "once", durationInPeriods: 3 }],
   ])("rejects %s before sending", async (_label, override) => {
     const mockFetch = createMockFetch(() => ({}));
     const client = createClient(mockFetch);
@@ -115,6 +117,16 @@ describe("promotionCodes", () => {
     expect(result.batchId).toBe("batch-1");
     expect(result.promotionCodes).toHaveLength(1);
     expect(mockFetch.mock.calls[0][0]).toBe("https://api.test.com/v1/actions/promotion-code/generate-promotion-codes");
+  });
+
+  it.each([
+    ["prefix with invalid characters", { prefix: "KOL_" }],
+    ["length below 8", { length: 7 }],
+  ])("generate rejects %s", async (_label, override) => {
+    const mockFetch = createMockFetch(() => ({}));
+    const client = createClient(mockFetch);
+    await expect(client.promotionCodes.generate({ couponId: COUPON_ID, count: 1, ...override })).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it.each([0, 501, 1.5])("generate rejects count %s", async (count) => {
