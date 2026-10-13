@@ -665,6 +665,8 @@ try {
 
 | Namespace                          | Methods                                                                                                                  | Description                             |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| `client.coupons`                   | `create()` `update()` `deactivate()`                                                                                     | Coupons (discount codes)                |
+| `client.promotionCodes`            | `create()` `generate()` `deactivate()`                                                                                   | Promotion codes                         |
 | `client.checkout.authenticated`    | `create()`                                                                                                               | Authenticated checkout (recommended)    |
 | `client.checkout.anonymous`        | `create()`                                                                                                               | Anonymous checkout                      |
 | `client.checkout`                  | `createSession()`                                                                                                        | Low-level checkout session              |

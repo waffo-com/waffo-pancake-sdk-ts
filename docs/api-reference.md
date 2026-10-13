@@ -546,6 +546,109 @@ const { group } = await client.subscriptionProductGroups.publish({ id: "spg_xxx"
 
 ---
 
+## Coupons
+
+A coupon defines a discount; the `code` you set on it becomes its default promotion code, the code buyers type. Add more codes with [`promotionCodes`](#promotion-codes). Codes are 3–32 letters, digits or `-`, case-insensitive (stored uppercase), and unique among the store's **active** codes in the same environment; a deactivated code is released and can be reused. Deactivation is permanent. Only the name of a coupon can change — create a new coupon to change the discount.
+
+Server-side only: requests are signed with your private key. List and read coupons with [`client.graphql.query`](#graphql) (`coupons`, `couponsCount`, `coupon`).
+
+### `client.coupons.create(params, options?)`
+
+```typescript
+const { coupon } = await client.coupons.create(
+  {
+    storeId: "STO_xxx",
+    name: "Black Friday 20% off",
+    code: "BF2026",
+    discount: { type: "percentage", percentOff: 20 },
+    duration: "repeating",
+    durationInPeriods: 3,
+    maxRedemptions: 1000,
+  },
+  { idempotencyKey: "coupon-bf2026" },
+);
+// coupon.status => "active" (or "pending" while the payment provider is confirming; it resolves automatically)
+```
+
+**Parameters `CreateCouponParams`**:
+
+| Field                  | Type                   | Required         | Description                                                                                                  |
+| ---------------------- | ---------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------ |
+| `storeId`              | `string`               | Yes              | Store ID                                                                                                     |
+| `name`                 | `string`               | Yes              | Internal name (≤ 64 characters), not visible to buyers                                                       |
+| `code`                 | `string`               | Yes              | Buyer-facing code                                                                                            |
+| `discount`             | `CouponDiscount`       | Yes              | `{ type: "percentage", percentOff }` (0 < x ≤ 100) or `{ type: "fixed_amount", amountOff: { USD: "5.00" } }` |
+| `duration`             | `CouponDuration`       | No               | `once` (default), `repeating` or `forever` — how many subscription periods get the discount                  |
+| `durationInPeriods`    | `number`               | When `repeating` | Number of billing periods                                                                                    |
+| `productIds`           | `string[]`             | No               | Restrict to these products; empty means the whole store                                                      |
+| `maxRedemptions`       | `number \| null`       | No               | Global redemption limit; refunds do not give uses back                                                       |
+| `dailyRedemptionLimit` | `number \| null`       | No               | Per-buyer limit per UTC day                                                                                  |
+| `redeemBy`             | `string \| null`       | No               | Expiry (ISO 8601). Discounts already attached to subscriptions also end at this time                         |
+| `restrictions`         | `DiscountRestrictions` | No               | `firstTimeOnly`, `customerEmails`, `perCustomerLimit`                                                        |
+
+**Returns `{ coupon: CouponDetail }`**. Errors: 409 when the code is taken (also when retrying **without** the idempotency key, because the first request already took it), 502 when the payment provider rejects the coupon (its code is released).
+
+### `client.coupons.update(params, options?)`
+
+Rename a coupon — the only field that can change.
+
+```typescript
+const { coupon } = await client.coupons.update({ id: "CPN_xxx", name: "Black Friday (extended)" });
+```
+
+### `client.coupons.deactivate(params, options?)`
+
+Deactivate permanently. All its promotion codes are deactivated and their codes released. Discounts already attached to subscriptions continue until the subscription's next plan change. Calling it again returns the coupon unchanged.
+
+```typescript
+const { coupon } = await client.coupons.deactivate({ id: "CPN_xxx" });
+```
+
+---
+
+## Promotion Codes
+
+Promotion codes point to a coupon and can add restrictions on top of the coupon's own rules.
+
+### `client.promotionCodes.create(params, options?)`
+
+```typescript
+const { promotionCode } = await client.promotionCodes.create({
+  couponId: "CPN_xxx",
+  code: "KOL-ALICE", // optional; a random code is generated when omitted
+  restrictions: { maxRedemptions: 100, minimumAmount: { USD: "50.00" } },
+});
+```
+
+**`PromotionCodeRestrictions`**: `firstTimeOnly`, `customerEmails`, `perCustomerLimit`, `maxRedemptions` (≤ the coupon's), `expiresAt` (≤ the coupon's `redeemBy`; defaults to it), `minimumAmount` (pre-discount, pre-tax amount per currency; currencies not listed have no minimum).
+
+**Returns `{ promotionCode: PromotionCodeDetail }`**. Errors: 409 when the code is taken or the coupon is not `active`.
+
+### `client.promotionCodes.generate(params, options?)`
+
+Generate 1–500 random codes in one call. Random parts use letters and digits without `0 O 1 I L`.
+
+```typescript
+const { batchId, promotionCodes } = await client.promotionCodes.generate(
+  { couponId: "CPN_xxx", count: 100, prefix: "KOL-", length: 10, restrictions: { maxRedemptions: 1 } },
+  { idempotencyKey: "kol-batch-2026-11" },
+);
+```
+
+> **Always retry with the same idempotency key.** Codes are random, so a retry without it generates another batch.
+
+**Returns `{ batchId: string, promotionCodes: PromotionCodeDetail[] }`**
+
+### `client.promotionCodes.deactivate(params, options?)`
+
+Deactivate permanently and release the code. The coupon's own code can only be deactivated together with the coupon (409).
+
+```typescript
+const { promotionCode } = await client.promotionCodes.deactivate({ id: "PMC_xxx" });
+```
+
+---
+
 ## Orders
 
 ### `client.orders.cancelSubscription(params)`

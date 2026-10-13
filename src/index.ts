@@ -91,6 +91,22 @@ export type {
   UpdateOnetimeProductParams,
   UpdateOnetimeStatusParams,
 
+  // Coupon & Promotion Code
+  CouponDetail,
+  CouponDiscount,
+  CouponDuration,
+  CouponStatus,
+  CreateCouponParams,
+  CreatePromotionCodeParams,
+  DeactivateCouponParams,
+  DeactivatePromotionCodeParams,
+  DiscountRestrictions,
+  GeneratePromotionCodesParams,
+  PromotionCodeDetail,
+  PromotionCodeRestrictions,
+  PromotionCodeStatus,
+  UpdateCouponParams,
+
   // Subscription Product
   CreateSubscriptionProductParams,
   PublishSubscriptionProductParams,

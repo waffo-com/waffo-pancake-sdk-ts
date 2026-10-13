@@ -25,6 +25,8 @@ const SHORT_ID_LABELS: Record<string, string> = {
   REF: "Refund",
   TKT: "Ticket",
   MER: "Merchant",
+  CPN: "Coupon",
+  PMC: "Promotion Code",
 };
 
 function fail(message: string): never {
@@ -192,5 +194,18 @@ export function validatePlanChangeCommon(params: {
   }
   if (params.changeCreditAmount !== undefined) {
     validateAmountString("changeCreditAmount", params.changeCreditAmount);
+  }
+}
+
+/** Discount code format: 3–32 letters, digits or `-` (case-insensitive). */
+const DISCOUNT_CODE_REGEX = /^[A-Za-z0-9-]{3,32}$/;
+
+/**
+ * Validate a discount / promotion code (3–32 letters, digits or `-`).
+ */
+export function validateDiscountCode(field: string, value: string): void {
+  validateRequired(field, value);
+  if (!DISCOUNT_CODE_REGEX.test(value)) {
+    fail(`Invalid ${field}: expected 3-32 letters, digits or '-', got "${value}"`);
   }
 }

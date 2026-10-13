@@ -941,6 +941,146 @@ export interface PublishSubscriptionProductGroupParams {
 }
 
 // ---------------------------------------------------------------------------
+// Coupon & Promotion Code — from waffo-pancake-product-service
+// ---------------------------------------------------------------------------
+
+/**
+ * Coupon status. `pending` resolves automatically once the payment provider confirms;
+ * `inactive` is permanent (a deactivated coupon cannot be re-enabled).
+ */
+export type CouponStatus = "pending" | "active" | "inactive" | "failed";
+
+/** Promotion code status. `inactive` is permanent; the code is released and can be reused. */
+export type PromotionCodeStatus = "active" | "inactive";
+
+/** How long a coupon applies to a subscription. One-time orders always use it once. */
+export type CouponDuration = "once" | "repeating" | "forever";
+
+/** Discount of a coupon: a percentage, or a fixed amount per currency (display format, e.g. `"5.00"`). */
+export type CouponDiscount = { type: "percentage"; percentOff: number } | { type: "fixed_amount"; amountOff: Record<string, string> };
+
+/** Buyer restrictions enforced by Pancake. */
+export interface DiscountRestrictions {
+  /** Only buyers making their first purchase in this store. */
+  firstTimeOnly?: boolean;
+  /** Only these buyer emails (case-insensitive). Empty means anyone. */
+  customerEmails?: string[];
+  /** Lifetime uses per buyer. `null` means unlimited. */
+  perCustomerLimit?: number | null;
+}
+
+/** Additional restrictions of a promotion code, enforced together with its coupon's rules. */
+export interface PromotionCodeRestrictions extends DiscountRestrictions {
+  /** Redemption limit of this code; must not exceed the coupon's `maxRedemptions`. */
+  maxRedemptions?: number | null;
+  /** Expiry (ISO 8601); must not be later than the coupon's `redeemBy`. Defaults to the coupon's `redeemBy`. */
+  expiresAt?: string | null;
+  /** Minimum pre-discount, pre-tax amount per currency (display format). Currencies not listed have no minimum. */
+  minimumAmount?: Record<string, string> | null;
+}
+
+/**
+ * Coupon detail. `code` is the buyer-facing code carried by the coupon's default promotion code.
+ * @see docs/api-reference/endpoints/coupons/overview.mdx
+ */
+export interface CouponDetail {
+  id: string;
+  storeId: string;
+  name: string;
+  code: string;
+  status: CouponStatus;
+  discountType: CouponDiscount["type"];
+  percentOff: number | null;
+  amountOff: Record<string, string> | null;
+  duration: CouponDuration;
+  durationInPeriods: number | null;
+  productIds: string[];
+  maxRedemptions: number | null;
+  dailyRedemptionLimit: number | null;
+  redeemBy: string | null;
+  restrictions: Required<DiscountRestrictions>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Parameters for creating a coupon. The `code` becomes the coupon's default promotion code.
+ * @see docs/api-reference/endpoints/coupons/create-coupon.mdx
+ */
+export interface CreateCouponParams {
+  storeId: string;
+  /** Internal name (≤ 64 characters), not visible to buyers. */
+  name: string;
+  /** 3–32 letters, digits or `-`; case-insensitive (stored uppercase). Unique among active codes of the store. */
+  code: string;
+  discount: CouponDiscount;
+  /** Defaults to `once`. */
+  duration?: CouponDuration;
+  /** Required when `duration` is `repeating`. */
+  durationInPeriods?: number | null;
+  /** Restricted products (`PROD_xxx`). Empty means the whole store. */
+  productIds?: string[];
+  /** Global redemption limit. `null` means unlimited. */
+  maxRedemptions?: number | null;
+  /** Per-buyer limit per UTC day. `null` means unlimited. */
+  dailyRedemptionLimit?: number | null;
+  /** Expiry (ISO 8601). Discounts already attached to subscriptions also end at this time. */
+  redeemBy?: string | null;
+  restrictions?: DiscountRestrictions;
+}
+
+/** Parameters for renaming a coupon. The name is the only field that can change. */
+export interface UpdateCouponParams {
+  id: string;
+  name: string;
+}
+
+/** Parameters for deactivating a coupon (permanent). */
+export interface DeactivateCouponParams {
+  id: string;
+}
+
+/**
+ * Promotion code detail.
+ * @see docs/api-reference/endpoints/promotion-codes/overview.mdx
+ */
+export interface PromotionCodeDetail {
+  id: string;
+  couponId: string;
+  code: string;
+  status: PromotionCodeStatus;
+  restrictions: Required<PromotionCodeRestrictions>;
+  batchId: string | null;
+  createdAt: string;
+}
+
+/** Parameters for creating one promotion code. A random code is generated when `code` is omitted. */
+export interface CreatePromotionCodeParams {
+  couponId: string;
+  code?: string;
+  restrictions?: PromotionCodeRestrictions;
+}
+
+/**
+ * Parameters for generating promotion codes in bulk (1–500, synchronous).
+ * Always retry with the same idempotency key; a retry without it generates another batch.
+ */
+export interface GeneratePromotionCodesParams {
+  couponId: string;
+  count: number;
+  /** Code prefix, 1–12 letters, digits or `-`. */
+  prefix?: string;
+  /** Length of the random part, 8–16. Defaults to 10. */
+  length?: number;
+  restrictions?: PromotionCodeRestrictions;
+}
+
+/** Parameters for deactivating a promotion code (permanent). The coupon's own code cannot be deactivated alone. */
+export interface DeactivatePromotionCodeParams {
+  id: string;
+}
+
+// ---------------------------------------------------------------------------
 // Order — from waffo-pancake-order-service
 // ---------------------------------------------------------------------------
 
