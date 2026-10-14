@@ -1013,12 +1013,15 @@ export type CashierLanguage =
 /**
  * Payment methods that can be offered on the hosted checkout page.
  *
- * Availability depends on the product type × currency pair. One-time: `USD` supports all four;
- * `EUR` / `GBP` / `HKD` / `JPY` support `card` / `applepay` / `googlepay`; `CNY` supports `wechat`.
+ * `alipay` is Alipay for mainland China and `alipayhk` is AlipayHK; they are separate methods.
+ *
+ * Availability depends on the product type × currency pair. One-time: `USD` supports all six;
+ * `HKD` supports `card` / `applepay` / `googlepay` / `alipayhk`; `CNY` supports `wechat` / `alipay`;
+ * `EUR` / `GBP` / `JPY` support `card` / `applepay` / `googlepay`.
  * Subscription: `USD` / `EUR` / `GBP` / `HKD` / `JPY` support `card` / `applepay` / `googlepay`.
  * Currencies outside this matrix cannot be charged at all — checkout session creation is rejected with a 400.
  */
-export type PaymentMethod = "card" | "applepay" | "googlepay" | "wechat";
+export type PaymentMethod = "card" | "applepay" | "googlepay" | "wechat" | "alipay" | "alipayhk";
 
 /**
  * Session-level price override, accepted with API Key authentication only.

@@ -4,6 +4,14 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Alipay is available for one-time checkouts.
+
+### Added
+
+- **`PaymentMethod` gains `"alipay"` and `"alipayhk"`.** `alipay` is Alipay for mainland China, offered for `CNY` and `USD`; `alipayhk` is AlipayHK, offered for `HKD` and `USD`. Both are one-time only. Pass them in `includePaymentMethods` / `excludePaymentMethods` like any other method. A checkout that passes neither now offers them wherever its currency supports them (`USD` offers both); list them in `excludePaymentMethods` to opt out.
+
 ## [0.26.0] - 2026-10-10
 
 Customers signed in to a merchant's site can enter the store's customer portal without email verification.
