@@ -597,6 +597,41 @@ await client.subscriptionProductGroups.publish({ id: group.id });
 await client.subscriptionProductGroups.delete({ id: group.id });
 ```
 
+### Coupons & Promotion Codes
+
+A coupon defines the discount; its `code` is the code buyers type. Add more codes with `promotionCodes`. Deactivation is permanent and releases the codes for reuse. Read coupons with `client.graphql.query` (`coupons`, `coupon`, `promotionCodes`).
+
+```typescript
+import { CouponDiscountType, CouponDuration } from "@waffo/pancake-ts";
+
+const { coupon } = await client.coupons.create(
+  {
+    storeId: "STO_xxx",
+    name: "Black Friday 20% off",
+    code: "BF2026",
+    discount: { type: CouponDiscountType.Percentage, percentOff: 20 },
+    duration: CouponDuration.Repeating,
+    durationInPeriods: 3,
+  },
+  { idempotencyKey: "coupon-bf2026" },
+);
+
+// One code with extra restrictions (a random code is generated when `code` is omitted)
+await client.promotionCodes.create({
+  couponId: coupon.id,
+  code: "KOL-ALICE",
+  restrictions: { maxRedemptions: 100, minimumAmount: { USD: "50.00" } },
+});
+
+// 1–500 random single-use codes — always retry with the same idempotency key
+const { promotionCodes } = await client.promotionCodes.generate(
+  { couponId: coupon.id, count: 100, prefix: "KOL-", restrictions: { maxRedemptions: 1 } },
+  { idempotencyKey: "kol-batch-2026-11" },
+);
+
+await client.coupons.deactivate({ id: coupon.id });
+```
+
 ### Orders
 
 ```typescript
@@ -678,6 +713,8 @@ try {
 | `client.onetimeProducts`           | `create()` `update()` `publish()` `updateStatus()`                                                                       | One-time products                       |
 | `client.subscriptionProducts`      | `create()` `update()` `publish()` `updateStatus()`                                                                       | Subscription products                   |
 | `client.subscriptionProductGroups` | `create()` `update()` `delete()` `publish()`                                                                             | Product groups                          |
+| `client.coupons`                   | `create()` `update()` `deactivate()`                                                                                     | Coupons (discount codes)                |
+| `client.promotionCodes`            | `create()` `generate()` `deactivate()`                                                                                   | Promotion codes                         |
 | `client.orders`                    | `cancelSubscription()`                                                                                                   | Order management                        |
 | `client.contentSafety`             | `scanPrompt()`                                                                                                           | AIGC prompt content-safety scan         |
 
@@ -718,6 +755,10 @@ try {
 | `RefundStatus`               | `Succeeded`, `Failed`                                                                                                                                                                                                                                                                                                                                        |
 | `MediaType`                  | `Image`, `Video`                                                                                                                                                                                                                                                                                                                                             |
 | `CheckoutSessionProductType` | `Onetime`, `Subscription`                                                                                                                                                                                                                                                                                                                                    |
+| `CouponStatus`               | `Pending`, `Active`, `Inactive`, `Failed`                                                                                                                                                                                                                                                                                                                    |
+| `CouponDiscountType`         | `Percentage`, `FixedAmount`                                                                                                                                                                                                                                                                                                                                  |
+| `CouponDuration`             | `Once`, `Repeating`, `Forever`                                                                                                                                                                                                                                                                                                                               |
+| `PromotionCodeStatus`        | `Active`, `Inactive`                                                                                                                                                                                                                                                                                                                                         |
 | `ErrorLayer`                 | `Gateway`, `User`, `Store`, `Product`, `Order`, `Ticket`, `GraphQL`, `Resource`, `Email`                                                                                                                                                                                                                                                                     |
 | `WebhookEventType`           | `OrderCompleted`, `SubscriptionActivated`, `SubscriptionPaymentSucceeded`, `SubscriptionRenewed`, `SubscriptionRecovered`, `SubscriptionPlanChanged`, `SubscriptionPlanChangeScheduled`, `SubscriptionPlanChangeFailed`, `SubscriptionCanceling`, `SubscriptionUncanceled`, `SubscriptionCanceled`, `SubscriptionPastDue`, `RefundSucceeded`, `RefundFailed` |
 
@@ -756,11 +797,14 @@ src/
     ├── onetime-products.ts
     ├── subscription-products.ts
     ├── subscription-product-groups.ts
+    ├── coupons.ts
+    ├── promotion-codes.ts
     ├── customer.ts
     ├── orders.ts
     ├── checkout.ts
     ├── checkout-anonymous.ts
     ├── checkout-authenticated.ts
+    ├── content-safety.ts
     ├── graphql.ts
     └── webhooks.ts
 docs/
