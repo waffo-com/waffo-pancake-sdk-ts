@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { WaffoPancake } from "../client.js";
 import { WaffoPancakeError } from "../errors.js";
+import { CouponDiscountType, CouponDuration } from "../types.js";
 
 const { privateKey: TEST_PRIVATE_KEY } = generateKeyPairSync("rsa", {
   modulusLength: 2048,
@@ -41,8 +42,8 @@ describe("coupons.create", () => {
         storeId: STORE_ID,
         name: "Black Friday",
         code: "bf2026",
-        discount: { type: "percentage", percentOff: 20 },
-        duration: "repeating",
+        discount: { type: CouponDiscountType.Percentage, percentOff: 20 },
+        duration: CouponDuration.Repeating,
         durationInPeriods: 3,
       },
       { idempotencyKey: "coupon-bf2026" },
@@ -60,6 +61,11 @@ describe("coupons.create", () => {
     ["repeating without durationInPeriods", { duration: "repeating" }],
     ["fixed amount without currencies", { discount: { type: "fixed_amount", amountOff: {} } }],
     ["invalid amount", { discount: { type: "fixed_amount", amountOff: { USD: "abc" } } }],
+    ["zero amount", { discount: { type: "fixed_amount", amountOff: { USD: "0" } } }],
+    ["zero amount with decimals", { discount: { type: "fixed_amount", amountOff: { USD: "0.00" } } }],
+    ["unknown duration", { duration: "weekly" }],
+    ["unknown discount type", { discount: { type: "free_shipping" } }],
+    ["name over 64 characters", { name: "优".repeat(65) }],
     ["invalid product ID", { productIds: ["STO_0000000000000000000000"] }],
     ["percentOff above 100", { discount: { type: "percentage", percentOff: 101 } }],
     ["durationInPeriods without repeating", { duration: "once", durationInPeriods: 3 }],
@@ -71,11 +77,25 @@ describe("coupons.create", () => {
         storeId: STORE_ID,
         name: "Black Friday",
         code: "BF2026",
-        discount: { type: "percentage", percentOff: 20 },
+        discount: { type: CouponDiscountType.Percentage, percentOff: 20 },
         ...override,
       } as never),
     ).rejects.toThrow(WaffoPancakeError);
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("accepts a positive fixed amount and a 64-character multibyte name", async () => {
+    const mockFetch = createMockFetch(() => ({ data: { coupon: { id: COUPON_ID } } }));
+    const client = createClient(mockFetch);
+
+    await client.coupons.create({
+      storeId: STORE_ID,
+      name: "优".repeat(64),
+      code: "SAVE5",
+      discount: { type: CouponDiscountType.FixedAmount, amountOff: { USD: "0.01", JPY: "500" } },
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -1,11 +1,12 @@
 import { unwrapAction } from "./internal.js";
 import { WaffoPancakeError } from "../errors.js";
+import { CouponDiscountType, CouponDuration } from "../types.js";
 import {
-  validateAmountString,
   validateCurrencyCode,
   validateDiscountCode,
   validateEnum,
   validateMaxLength,
+  validatePositiveAmountString,
   validatePositiveInteger,
   validateRequired,
   validateShortId,
@@ -34,8 +35,8 @@ export class CouponsResource {
    *     storeId: "STO_xxx",
    *     name: "Black Friday 20% off",
    *     code: "BF2026",
-   *     discount: { type: "percentage", percentOff: 20 },
-   *     duration: "repeating",
+   *     discount: { type: CouponDiscountType.Percentage, percentOff: 20 },
+   *     duration: CouponDuration.Repeating,
    *     durationInPeriods: 3,
    *   },
    *   { idempotencyKey: "coupon-bf2026" },
@@ -44,11 +45,11 @@ export class CouponsResource {
   async create(params: CreateCouponParams, options?: RequestOptions): Promise<{ coupon: CouponDetail; warnings?: Notice[] }> {
     validateShortId("storeId", params.storeId, "STO");
     validateRequired("name", params.name);
-    validateMaxLength("name", params.name, 64);
+    validateMaxLength("name", params.name.trim(), 64);
     validateDiscountCode("code", params.code);
     validateRequired("discount", params.discount);
-    validateEnum("discount.type", params.discount.type, ["percentage", "fixed_amount"]);
-    if (params.discount.type === "percentage") {
+    validateEnum("discount.type", params.discount.type, Object.values(CouponDiscountType));
+    if (params.discount.type === CouponDiscountType.Percentage) {
       validateRequired("discount.percentOff", params.discount.percentOff);
       const percentOff = params.discount.percentOff;
       if (!(percentOff > 0 && percentOff <= 100)) {
@@ -61,11 +62,11 @@ export class CouponsResource {
       if (entries.length === 0) validateRequired("discount.amountOff", undefined);
       for (const [currency, amount] of entries) {
         validateCurrencyCode(`discount.amountOff.${currency} (key)`, currency);
-        validateAmountString(`discount.amountOff.${currency}`, amount);
+        validatePositiveAmountString(`discount.amountOff.${currency}`, amount);
       }
     }
-    if (params.duration !== undefined) validateEnum("duration", params.duration, ["once", "repeating", "forever"]);
-    if (params.duration === "repeating") {
+    if (params.duration !== undefined) validateEnum("duration", params.duration, Object.values(CouponDuration));
+    if (params.duration === CouponDuration.Repeating) {
       validateRequired("durationInPeriods", params.durationInPeriods);
       validatePositiveInteger("durationInPeriods", params.durationInPeriods as number);
     } else if (params.durationInPeriods !== undefined && params.durationInPeriods !== null) {
@@ -87,7 +88,7 @@ export class CouponsResource {
   async update(params: UpdateCouponParams, options?: RequestOptions): Promise<{ coupon: CouponDetail; warnings?: Notice[] }> {
     validateShortId("id", params.id, "CPN");
     validateRequired("name", params.name);
-    validateMaxLength("name", params.name, 64);
+    validateMaxLength("name", params.name.trim(), 64);
     return unwrapAction(await this.http.post<{ coupon: CouponDetail }>("/v1/actions/coupon/update-coupon", params, options));
   }
 
@@ -101,7 +102,7 @@ export class CouponsResource {
    *
    * @example
    * const { coupon } = await client.coupons.deactivate({ id: "CPN_xxx" });
-   * // coupon.status === "inactive"
+   * // coupon.status === CouponStatus.Inactive
    */
   async deactivate(params: DeactivateCouponParams, options?: RequestOptions): Promise<{ coupon: CouponDetail; warnings?: Notice[] }> {
     validateShortId("id", params.id, "CPN");

@@ -12,8 +12,8 @@ Merchants can create and manage coupons and promotion codes from their server.
 
 - **`client.coupons`** — `create(params, options?)`, `update(params, options?)` (rename only), `deactivate(params, options?)` (permanent). The `code` of a coupon becomes its default promotion code.
 - **`client.promotionCodes`** — `create(params, options?)` (code optional, generated when omitted), `generate(params, options?)` (1–500 random codes; retry with the same idempotency key), `deactivate(params, options?)` (permanent; the code is released for reuse).
-- Types: `CouponDetail`, `CouponDiscount`, `CouponDuration`, `CouponStatus`, `CreateCouponParams`, `UpdateCouponParams`, `DeactivateCouponParams`, `DiscountRestrictions`, `PromotionCodeDetail`, `PromotionCodeRestrictions`, `PromotionCodeStatus`, `CreatePromotionCodeParams`, `GeneratePromotionCodesParams`, `DeactivatePromotionCodeParams`.
-- Local validation of `CPN_` / `PMC_` IDs and of the code format (3–32 letters, digits or `-`).
+- Types: `CouponDetail`, `CouponDiscount`, `CreateCouponParams`, `UpdateCouponParams`, `DeactivateCouponParams`, `DiscountRestrictions`, `PromotionCodeDetail`, `PromotionCodeRestrictions`, `CreatePromotionCodeParams`, `GeneratePromotionCodesParams`, `DeactivatePromotionCodeParams`; enums `CouponStatus`, `CouponDiscountType`, `CouponDuration`, `PromotionCodeStatus`.
+- Local validation of `CPN_` / `PMC_` IDs, of the code format (3–32 letters, digits or `-`), and that fixed amounts are greater than 0.
 
 ## [0.26.0] - 2026-10-10
 

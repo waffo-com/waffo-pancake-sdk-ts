@@ -16,6 +16,10 @@ const SHORT_ID_REGEX = /^[A-Z]{2,5}_[0-9A-Za-z]{22}$/;
 const CURRENCY_CODE_REGEX = /^[A-Z]{3}$/;
 const COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 const AMOUNT_STRING_REGEX = /^\d+(\.\d+)?$/;
+/** Discount code format: 3–32 letters, digits or `-` (case-insensitive). */
+const DISCOUNT_CODE_REGEX = /^[A-Za-z0-9-]{3,32}$/;
+/** Prefix of bulk-generated promotion codes: 1–12 letters, digits or `-`. */
+const CODE_PREFIX_REGEX = /^[A-Za-z0-9-]{1,12}$/;
 
 const SHORT_ID_LABELS: Record<string, string> = {
   STO: "Store",
@@ -76,6 +80,16 @@ export function validateAmountString(field: string, value: string): void {
   validateRequired(field, value);
   if (!AMOUNT_STRING_REGEX.test(value)) {
     fail(`Invalid ${field}: expected numeric string in display format (e.g., "9.99", "1000"), got "${value}"`);
+  }
+}
+
+/**
+ * Validate that amount is a numeric string in display format and greater than zero.
+ */
+export function validatePositiveAmountString(field: string, value: string): void {
+  validateAmountString(field, value);
+  if (Number(value) <= 0) {
+    fail(`Invalid ${field}: expected an amount greater than 0, got "${value}"`);
   }
 }
 
@@ -197,9 +211,6 @@ export function validatePlanChangeCommon(params: {
   }
 }
 
-/** Discount code format: 3–32 letters, digits or `-` (case-insensitive). */
-const DISCOUNT_CODE_REGEX = /^[A-Za-z0-9-]{3,32}$/;
-
 /**
  * Validate a discount / promotion code (3–32 letters, digits or `-`).
  */
@@ -207,5 +218,14 @@ export function validateDiscountCode(field: string, value: string): void {
   validateRequired(field, value);
   if (!DISCOUNT_CODE_REGEX.test(value)) {
     fail(`Invalid ${field}: expected 3-32 letters, digits or '-', got "${value}"`);
+  }
+}
+
+/**
+ * Validate the prefix of bulk-generated promotion codes (1–12 letters, digits or `-`).
+ */
+export function validateCodePrefix(field: string, value: string): void {
+  if (!CODE_PREFIX_REGEX.test(value)) {
+    fail(`Invalid ${field}: expected 1-12 letters, digits or '-', got "${value}"`);
   }
 }

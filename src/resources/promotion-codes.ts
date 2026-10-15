@@ -1,6 +1,6 @@
 import { unwrapAction } from "./internal.js";
 import { WaffoPancakeError } from "../errors.js";
-import { validateDiscountCode, validateShortId, validateRequired } from "../validation.js";
+import { validateCodePrefix, validateDiscountCode, validateShortId, validateRequired } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
 import type {
@@ -65,11 +65,7 @@ export class PromotionCodesResource {
         { message: `Invalid count: expected integer between 1 and 500, got ${params.count}`, layer: "sdk" },
       ]);
     }
-    if (params.prefix !== undefined && !/^[A-Za-z0-9-]{1,12}$/.test(params.prefix)) {
-      throw new WaffoPancakeError(400, [
-        { message: `Invalid prefix: expected 1-12 letters, digits or '-', got "${params.prefix}"`, layer: "sdk" },
-      ]);
-    }
+    if (params.prefix !== undefined) validateCodePrefix("prefix", params.prefix);
     if (params.length !== undefined && (!Number.isInteger(params.length) || params.length < 8 || params.length > 16)) {
       throw new WaffoPancakeError(400, [
         { message: `Invalid length: expected integer between 8 and 16, got ${params.length}`, layer: "sdk" },
@@ -93,7 +89,7 @@ export class PromotionCodesResource {
    *
    * @example
    * const { promotionCode } = await client.promotionCodes.deactivate({ id: "PMC_xxx" });
-   * // promotionCode.status === "inactive"
+   * // promotionCode.status === PromotionCodeStatus.Inactive
    */
   async deactivate(
     params: DeactivatePromotionCodeParams,

@@ -945,19 +945,49 @@ export interface PublishSubscriptionProductGroupParams {
 // ---------------------------------------------------------------------------
 
 /**
- * Coupon status. `pending` resolves automatically once the payment provider confirms;
- * `inactive` is permanent (a deactivated coupon cannot be re-enabled).
+ * Coupon status. `Pending` resolves automatically once the payment provider confirms;
+ * `Inactive` is permanent (a deactivated coupon cannot be re-enabled).
+ * @see docs/api-reference/endpoints/coupons/overview.mdx
  */
-export type CouponStatus = "pending" | "active" | "inactive" | "failed";
+export enum CouponStatus {
+  Pending = "pending",
+  Active = "active",
+  Inactive = "inactive",
+  Failed = "failed",
+}
 
-/** Promotion code status. `inactive` is permanent; the code is released and can be reused. */
-export type PromotionCodeStatus = "active" | "inactive";
+/**
+ * Promotion code status. `Inactive` is permanent; the code is released and can be reused.
+ * @see docs/api-reference/endpoints/promotion-codes/overview.mdx
+ */
+export enum PromotionCodeStatus {
+  Active = "active",
+  Inactive = "inactive",
+}
 
-/** How long a coupon applies to a subscription. One-time orders always use it once. */
-export type CouponDuration = "once" | "repeating" | "forever";
+/**
+ * How a coupon discounts an order.
+ * @see docs/api-reference/endpoints/coupons/overview.mdx
+ */
+export enum CouponDiscountType {
+  Percentage = "percentage",
+  FixedAmount = "fixed_amount",
+}
+
+/**
+ * How long a coupon applies to a subscription. One-time orders always use it once.
+ * @see docs/api-reference/endpoints/coupons/overview.mdx
+ */
+export enum CouponDuration {
+  Once = "once",
+  Repeating = "repeating",
+  Forever = "forever",
+}
 
 /** Discount of a coupon: a percentage, or a fixed amount per currency (display format, e.g. `"5.00"`). */
-export type CouponDiscount = { type: "percentage"; percentOff: number } | { type: "fixed_amount"; amountOff: Record<string, string> };
+export type CouponDiscount =
+  | { type: CouponDiscountType.Percentage; percentOff: number }
+  | { type: CouponDiscountType.FixedAmount; amountOff: Record<string, string> };
 
 /** Buyer restrictions enforced by Pancake. */
 export interface DiscountRestrictions {
@@ -989,7 +1019,7 @@ export interface CouponDetail {
   name: string;
   code: string;
   status: CouponStatus;
-  discountType: CouponDiscount["type"];
+  discountType: CouponDiscountType;
   percentOff: number | null;
   amountOff: Record<string, string> | null;
   duration: CouponDuration;
@@ -1014,9 +1044,9 @@ export interface CreateCouponParams {
   /** 3–32 letters, digits or `-`; case-insensitive (stored uppercase). Unique among active codes of the store. */
   code: string;
   discount: CouponDiscount;
-  /** Defaults to `once`. */
+  /** Defaults to `Once`. */
   duration?: CouponDuration;
-  /** Required when `duration` is `repeating`. */
+  /** Required when `duration` is `Repeating`. */
   durationInPeriods?: number | null;
   /** Restricted products (`PROD_xxx`). Empty means the whole store. */
   productIds?: string[];
