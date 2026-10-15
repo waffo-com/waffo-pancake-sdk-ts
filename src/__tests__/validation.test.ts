@@ -289,6 +289,24 @@ describe("validateCheckoutCommon", () => {
   it("should validate billingDetail when present", () => {
     expect(() => validateCheckoutCommon({ ...valid, billingDetail: { country: "usa", isBusiness: false } })).toThrow(WaffoPancakeError);
   });
+
+  it("should accept a CPN_ couponId on its own", () => {
+    expect(() => validateCheckoutCommon({ ...valid, couponId: "CPN_0000000000000000000000" })).not.toThrow();
+  });
+
+  it("should reject a couponId with another prefix", () => {
+    expect(() => validateCheckoutCommon({ ...valid, couponId: "PMC_0000000000000000000000" })).toThrow(/expected CPN_ prefix/);
+  });
+
+  it("should accept allowPromotionCodes on its own", () => {
+    expect(() => validateCheckoutCommon({ ...valid, allowPromotionCodes: true })).not.toThrow();
+  });
+
+  it.each([true, false])("should reject couponId together with allowPromotionCodes: %s", (allowPromotionCodes) => {
+    expect(() => validateCheckoutCommon({ ...valid, couponId: "CPN_0000000000000000000000", allowPromotionCodes })).toThrow(
+      /couponId and allowPromotionCodes are mutually exclusive/,
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

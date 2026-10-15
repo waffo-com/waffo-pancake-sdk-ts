@@ -1252,6 +1252,26 @@ export interface CreateCheckoutSessionParams {
    * Mutually exclusive with {@link CreateCheckoutSessionParams.includePaymentMethods}.
    */
   excludePaymentMethods?: PaymentMethod[];
+  /**
+   * Coupon to apply to this session (Short ID, `CPN_xxx` — the Pancake coupon ID, not
+   * the payment provider's). The discount is locked: the customer sees it applied but
+   * cannot change or remove it, and no code entry field is shown. One-time products only
+   * for now — a subscription product is rejected with a 409.
+   * The platform rejects a coupon from another store or environment, one that is not
+   * `active` or expires within 60 seconds, one not covering the product, and a fixed
+   * amount coupon with no amount for {@link CreateCheckoutSessionParams.currency}, with
+   * a 409. Rules tied to the customer are checked when the order is placed.
+   *
+   * Mutually exclusive with {@link CreateCheckoutSessionParams.allowPromotionCodes}.
+   */
+  couponId?: string;
+  /**
+   * Show a code entry field on the checkout page, where the customer can enter a coupon
+   * code or promotion code (default `false` for sessions created with the API Key).
+   *
+   * Mutually exclusive with {@link CreateCheckoutSessionParams.couponId}.
+   */
+  allowPromotionCodes?: boolean;
 }
 
 /** Result of creating a checkout session. */

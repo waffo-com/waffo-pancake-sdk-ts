@@ -78,6 +78,7 @@ Both modes support **dynamic pricing** and **trial control** at checkout time:
 
 - `priceSnapshot` — override the product's stored price with a custom amount (e.g., coupon, volume discount); for subscription products this replaces the regular period price only
 - `withTrial` — explicitly enable or disable the trial period for subscriptions (`true` = force trial, `false` = skip trial, omit = use default rules)
+- `couponId` / `allowPromotionCodes` — apply a coupon the customer cannot change, or show a code entry field (one-time products) — see [Discounts at Checkout](#discounts-at-checkout)
 
 ### Authenticated Checkout (Recommended)
 
@@ -142,6 +143,29 @@ const result = await client.checkout.anonymous.create({
 
 window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
 ```
+
+### Discounts at Checkout
+
+A session either carries a coupon you chose, or lets the customer enter one — never both. Both work with every checkout method (`createSession()`, `anonymous.create()`, `authenticated.create()`), for one-time products.
+
+```typescript
+// Apply a coupon (CPN_ ID from client.coupons.create) — the customer sees "discount applied"
+// and the discounted amount, but cannot see, change or remove the code
+await client.checkout.authenticated.create({
+  productId: "PROD_xxx",
+  currency: "USD",
+  buyerIdentity: "userIdInYourSystem",
+  couponId: "CPN_xxx",
+});
+
+// Or show a code entry field where the customer types a coupon or promotion code
+await client.checkout.anonymous.create({ productId: "PROD_xxx", currency: "USD", allowPromotionCodes: true });
+```
+
+- `allowPromotionCodes` defaults to `false` for sessions created with your API Key — no code entry field unless you turn it on.
+- Passing `couponId` together with `allowPromotionCodes` (either value) throws `WaffoPancakeError` (400, `layer: "sdk"`) before any request is sent; a `couponId` without the `CPN_` prefix is rejected the same way.
+- The platform rejects a coupon that belongs to another store or environment, is not `active`, expires within 60 seconds, does not cover the product, or is a fixed amount with no amount in the session currency, with a 409 whose message names the reason. Rules tied to the customer (eligible customers, first order, per-customer limits) are checked when the customer places the order.
+- Subscription products do not take discounts yet: `couponId` on a subscription product is rejected with a 409.
 
 ### Plan Change Links
 

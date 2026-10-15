@@ -159,6 +159,11 @@ export function validateBillingDetail(detail: { country: string; isBusiness: boo
 
 /**
  * Validate checkout session common fields.
+ *
+ * `couponId` and `allowPromotionCodes` are mutually exclusive: a session either has a
+ * coupon applied and locked by the merchant, or lets the customer enter a code. Passing
+ * both (with any `allowPromotionCodes` value) is rejected here, as the platform would
+ * reject it with a 400.
  */
 export function validateCheckoutCommon(params: {
   productId: string;
@@ -167,6 +172,8 @@ export function validateCheckoutCommon(params: {
   billingDetail?: { country: string; isBusiness: boolean };
   expiresInSeconds?: number;
   orderMerchantExternalId?: string;
+  couponId?: string;
+  allowPromotionCodes?: boolean;
 }): void {
   validateShortId("productId", params.productId, "PROD");
   validateCurrencyCode("currency", params.currency);
@@ -181,6 +188,14 @@ export function validateCheckoutCommon(params: {
     validatePositiveInteger("expiresInSeconds", params.expiresInSeconds);
   }
   validateMaxLength("orderMerchantExternalId", params.orderMerchantExternalId, 128);
+  if (params.couponId !== undefined) {
+    validateShortId("couponId", params.couponId, "CPN");
+    if (params.allowPromotionCodes !== undefined) {
+      fail(
+        "couponId and allowPromotionCodes are mutually exclusive: pass couponId to apply a coupon, or allowPromotionCodes to let the customer enter a code",
+      );
+    }
+  }
 }
 
 /**

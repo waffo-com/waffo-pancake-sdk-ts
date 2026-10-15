@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
-Merchants can create and manage coupons and promotion codes from their server.
+Merchants can create and manage coupons and promotion codes from their server, and apply them to checkout sessions for one-time products.
 
 ### Added
 
@@ -14,6 +14,13 @@ Merchants can create and manage coupons and promotion codes from their server.
 - **`client.promotionCodes`** — `create(params, options?)` (code optional, generated when omitted), `generate(params, options?)` (1–500 random codes; retry with the same idempotency key), `deactivate(params, options?)` (permanent; the code is released for reuse).
 - Types: `CouponDetail`, `CouponDiscount`, `CreateCouponParams`, `UpdateCouponParams`, `DeactivateCouponParams`, `DiscountRestrictions`, `PromotionCodeDetail`, `PromotionCodeRestrictions`, `CreatePromotionCodeParams`, `GeneratePromotionCodesParams`, `DeactivatePromotionCodeParams`; enums `CouponStatus`, `CouponDiscountType`, `CouponDuration`, `PromotionCodeStatus`.
 - Local validation of `CPN_` / `PMC_` IDs, of the code format (3–32 letters, digits or `-`), and that fixed amounts are greater than 0.
+- **`CreateCheckoutSessionParams.couponId` (optional `string`)** — apply a coupon (`CPN_xxx`) to the session; the discount is locked and the customer cannot change or remove it. Inherited by `AnonymousCheckoutParams` and `AuthenticatedCheckoutParams`. One-time products only for now; the platform answers 409 for a subscription product, and for a coupon that is not usable in this store, environment, product or currency.
+- **`CreateCheckoutSessionParams.allowPromotionCodes` (optional `boolean`)** — show a code entry field on the checkout page. Defaults to `false` for API Key sessions.
+- Local validation: `couponId` must be a `CPN_` Short ID, and `couponId` together with `allowPromotionCodes` (either value) throws `WaffoPancakeError` (400, `layer: "sdk"`) before the request is sent — the platform rejects the combination with a 400.
+
+### Changed
+
+- **`client.checkout.createSession()` now validates its input** the same way `checkout.anonymous.create()` and `checkout.authenticated.create()` do (`productId`, `currency`, `priceSnapshot`, `billingDetail`, `expiresInSeconds`, `orderMerchantExternalId`, and the two discount fields above). Malformed input that used to reach the platform and come back as a 400 now throws the same `WaffoPancakeError` (400) locally, without a request.
 
 ## [0.26.0] - 2026-10-10
 
