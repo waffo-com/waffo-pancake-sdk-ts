@@ -555,36 +555,38 @@ Server-side only: requests are signed with your private key. List and read coupo
 ### `client.coupons.create(params, options?)`
 
 ```typescript
+import { CouponDiscountType, CouponDuration } from "@waffo/pancake-ts";
+
 const { coupon } = await client.coupons.create(
   {
     storeId: "STO_xxx",
     name: "Black Friday 20% off",
     code: "BF2026",
-    discount: { type: "percentage", percentOff: 20 },
-    duration: "repeating",
+    discount: { type: CouponDiscountType.Percentage, percentOff: 20 },
+    duration: CouponDuration.Repeating,
     durationInPeriods: 3,
     maxRedemptions: 1000,
   },
   { idempotencyKey: "coupon-bf2026" },
 );
-// coupon.status => "active" (or "pending" while the payment provider is confirming; it resolves automatically)
+// coupon.status => CouponStatus.Active (or CouponStatus.Pending while the payment provider is confirming; it resolves automatically)
 ```
 
 **Parameters `CreateCouponParams`**:
 
-| Field                  | Type                   | Required         | Description                                                                                                  |
-| ---------------------- | ---------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------ |
-| `storeId`              | `string`               | Yes              | Store ID                                                                                                     |
-| `name`                 | `string`               | Yes              | Internal name (≤ 64 characters), not visible to buyers                                                       |
-| `code`                 | `string`               | Yes              | Buyer-facing code                                                                                            |
-| `discount`             | `CouponDiscount`       | Yes              | `{ type: "percentage", percentOff }` (0 < x ≤ 100) or `{ type: "fixed_amount", amountOff: { USD: "5.00" } }` |
-| `duration`             | `CouponDuration`       | No               | `once` (default), `repeating` or `forever` — how many subscription periods get the discount                  |
-| `durationInPeriods`    | `number`               | When `repeating` | Number of billing periods                                                                                    |
-| `productIds`           | `string[]`             | No               | Restrict to these products; empty means the whole store                                                      |
-| `maxRedemptions`       | `number \| null`       | No               | Global redemption limit; refunds do not give uses back                                                       |
-| `dailyRedemptionLimit` | `number \| null`       | No               | Per-buyer limit per UTC day                                                                                  |
-| `redeemBy`             | `string \| null`       | No               | Expiry (ISO 8601). Discounts already attached to subscriptions also end at this time                         |
-| `restrictions`         | `DiscountRestrictions` | No               | `firstTimeOnly`, `customerEmails`, `perCustomerLimit`                                                        |
+| Field                  | Type                   | Required         | Description                                                                                                                                                     |
+| ---------------------- | ---------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storeId`              | `string`               | Yes              | Store ID                                                                                                                                                        |
+| `name`                 | `string`               | Yes              | Internal name (≤ 64 characters), not visible to buyers                                                                                                          |
+| `code`                 | `string`               | Yes              | Buyer-facing code                                                                                                                                               |
+| `discount`             | `CouponDiscount`       | Yes              | `{ type: CouponDiscountType.Percentage, percentOff }` (0 < x ≤ 100) or `{ type: CouponDiscountType.FixedAmount, amountOff: { USD: "5.00" } }` (each amount > 0) |
+| `duration`             | `CouponDuration`       | No               | `Once` (default), `Repeating` or `Forever` — how many subscription periods get the discount                                                                     |
+| `durationInPeriods`    | `number`               | When `Repeating` | Number of billing periods                                                                                                                                       |
+| `productIds`           | `string[]`             | No               | Restrict to these products; empty means the whole store                                                                                                         |
+| `maxRedemptions`       | `number \| null`       | No               | Global redemption limit; refunds do not give uses back                                                                                                          |
+| `dailyRedemptionLimit` | `number \| null`       | No               | Per-buyer limit per UTC day                                                                                                                                     |
+| `redeemBy`             | `string \| null`       | No               | Expiry (ISO 8601). Discounts already attached to subscriptions also end at this time                                                                            |
+| `restrictions`         | `DiscountRestrictions` | No               | `firstTimeOnly`, `customerEmails`, `perCustomerLimit`                                                                                                           |
 
 **Returns `{ coupon: CouponDetail }`**. Errors: 409 when the code is taken (also when retrying **without** the idempotency key, because the first request already took it), 502 when the payment provider rejects the coupon (its code is released).
 
@@ -622,7 +624,7 @@ const { promotionCode } = await client.promotionCodes.create({
 
 **`PromotionCodeRestrictions`**: `firstTimeOnly`, `customerEmails`, `perCustomerLimit`, `maxRedemptions` (≤ the coupon's), `expiresAt` (≤ the coupon's `redeemBy`; defaults to it), `minimumAmount` (pre-discount, pre-tax amount per currency; currencies not listed have no minimum).
 
-**Returns `{ promotionCode: PromotionCodeDetail }`**. Errors: 409 when the code is taken or the coupon is not `active`.
+**Returns `{ promotionCode: PromotionCodeDetail }`**. Errors: 409 when the code is taken or the coupon is not `Active`.
 
 ### `client.promotionCodes.generate(params, options?)`
 
@@ -1161,6 +1163,22 @@ All exported type interfaces:
 | `UpdateSubscriptionProductGroupParams`  | Update request (`productIds` = full replacement)                                                  |
 | `DeleteSubscriptionProductGroupParams`  | Delete request                                                                                    |
 | `PublishSubscriptionProductGroupParams` | Publish test → prod                                                                               |
+| **Coupon & Promotion Code**             |                                                                                                   |
+| `CouponStatus`                          | Coupon status (`Pending` / `Active` / `Inactive` / `Failed`)                                      |
+| `CouponDiscountType`                    | Discount type (`Percentage` / `FixedAmount`)                                                      |
+| `CouponDuration`                        | Subscription periods that get the discount (`Once` / `Repeating` / `Forever`)                     |
+| `CouponDiscount`                        | Discount of a coupon (percentage or fixed amount per currency)                                    |
+| `DiscountRestrictions`                  | Buyer restrictions (`firstTimeOnly` / `customerEmails` / `perCustomerLimit`)                      |
+| `CouponDetail`                          | Coupon entity                                                                                     |
+| `CreateCouponParams`                    | Create request (`code` becomes the default promotion code)                                        |
+| `UpdateCouponParams`                    | Rename request                                                                                    |
+| `DeactivateCouponParams`                | Deactivate request (permanent)                                                                    |
+| `PromotionCodeStatus`                   | Promotion code status (`Active` / `Inactive`)                                                     |
+| `PromotionCodeRestrictions`             | Coupon restrictions plus `maxRedemptions` / `expiresAt` / `minimumAmount`                         |
+| `PromotionCodeDetail`                   | Promotion code entity                                                                             |
+| `CreatePromotionCodeParams`             | Create request (`code` optional)                                                                  |
+| `GeneratePromotionCodesParams`          | Bulk generate request (1–500 codes)                                                               |
+| `DeactivatePromotionCodeParams`         | Deactivate request (permanent)                                                                    |
 | **Order**                               |                                                                                                   |
 | `CancelSubscriptionParams`              | Cancel subscription request                                                                       |
 | `CancelSubscriptionResult`              | Cancel subscription response                                                                      |
