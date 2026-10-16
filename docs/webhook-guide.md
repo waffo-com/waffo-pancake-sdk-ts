@@ -455,12 +455,13 @@ On payment events `amount` is the amount actually charged, equal to `chargedAmou
 
 **Subscription fields** — present on the subscription domain events, **not** on `subscription.payment_succeeded`:
 
-| Field                | Type     | Description                                                           |
-| -------------------- | -------- | --------------------------------------------------------------------- |
-| `billingPeriod`      | `string` | Billing period: `"weekly"`, `"monthly"`, `"quarterly"`, `"yearly"`    |
-| `currentPeriodStart` | `string` | Current billing period start date (ISO 8601)                          |
-| `currentPeriodEnd`   | `string` | Current billing period end date (ISO 8601)                            |
-| `canceledAt`         | `string` | Subscription cancellation timestamp (ISO 8601, present when canceled) |
+| Field                | Type     | Description                                                                                                                                                                                                                               |
+| -------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `billingPeriod`      | `string` | Billing period: `"weekly"`, `"monthly"`, `"quarterly"`, `"yearly"`                                                                                                                                                                        |
+| `currentPeriodStart` | `string` | Current billing period start date (ISO 8601)                                                                                                                                                                                              |
+| `currentPeriodEnd`   | `string` | Current billing period end date (ISO 8601)                                                                                                                                                                                                |
+| `canceledAt`         | `string` | Subscription cancellation timestamp (ISO 8601, present when canceled)                                                                                                                                                                     |
+| `cancelInitiator`    | `string` | Who initiated the cancellation, present together with `canceledAt`: `buyer`, `customer`, `merchant`, `platform` (canceled by Waffo Pancake; cannot be reactivated) or `system`. Absent on subscriptions canceled before the field existed |
 
 Which events carry that block:
 

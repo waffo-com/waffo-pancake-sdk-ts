@@ -4,6 +4,14 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Subscription webhooks say who canceled the subscription.
+
+### Added
+
+- **`WebhookEventData.cancelInitiator` (optional `string`)** — who initiated the cancellation, present together with `canceledAt` on `subscription.canceling` / `subscription.canceled` and the other subscription domain events: `"buyer"`, `"customer"`, `"merchant"`, `"platform"` or `"system"`. `"platform"` means Waffo Pancake canceled it (for example after a risk shutdown of the store): the buyer cannot reactivate it, and re-enabling the store does not restore it. Absent on subscriptions canceled before the field existed; existing handlers are unaffected.
+
 ## [0.26.0] - 2026-10-10
 
 Customers signed in to a merchant's site can enter the store's customer portal without email verification.

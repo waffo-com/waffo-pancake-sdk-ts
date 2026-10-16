@@ -1680,6 +1680,13 @@ export interface WebhookEventData {
   currentPeriodEnd?: string;
   /** Subscription cancellation timestamp (ISO 8601, present when canceled) */
   canceledAt?: string;
+  /**
+   * Who initiated the cancellation, present together with `canceledAt`:
+   * `"buyer"`, `"customer"`, `"merchant"`, `"platform"` (canceled by Waffo Pancake — the buyer
+   * cannot reactivate it, and re-enabling the store does not restore it) or `"system"`.
+   * Absent on subscriptions canceled before the field existed. Treat unknown values as opaque.
+   */
+  cancelInitiator?: string;
 
   // Refund (present for refund events: refund.succeeded, refund.failed)
   /** Refund status (e.g., "succeeded", "failed") */
