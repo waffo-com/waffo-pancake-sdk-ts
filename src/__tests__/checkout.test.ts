@@ -515,7 +515,7 @@ describe("checkout discount params on the wrappers", () => {
     });
 
     const bodyFor = (path: string) =>
-      JSON.parse(mockFetch.mock.calls.find(([url]: [string]) => url.includes(path))![1].body as string) as Record<string, unknown>;
+      JSON.parse(mockFetch.mock.calls.find(([url]) => String(url).includes(path))![1].body as string) as Record<string, unknown>;
     expect(bodyFor("create-session").couponId).toBe("CPN_0000000000000000000000");
     expect(bodyFor("issue-session-token").couponId).toBeUndefined();
   });
