@@ -78,6 +78,7 @@ Both modes support **dynamic pricing** and **trial control** at checkout time:
 
 - `priceSnapshot` — override the product's stored price with a custom amount (e.g., coupon, volume discount); for subscription products this replaces the regular period price only
 - `withTrial` — explicitly enable or disable the trial period for subscriptions (`true` = force trial, `false` = skip trial, omit = use default rules)
+- `couponId` / `allowPromotionCodes` — apply a coupon the customer cannot change, or show a code entry field (one-time products) — see [Discounts at Checkout](#discounts-at-checkout)
 
 ### Authenticated Checkout (Recommended)
 
@@ -142,6 +143,29 @@ const result = await client.checkout.anonymous.create({
 
 window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
 ```
+
+### Discounts at Checkout
+
+A session either carries a coupon you chose, or lets the customer enter one — never both. Both work with every checkout method (`createSession()`, `anonymous.create()`, `authenticated.create()`), for one-time products.
+
+```typescript
+// Apply a coupon (CPN_ ID from client.coupons.create) — the customer sees "discount applied"
+// and the discounted amount, but cannot see, change or remove the code
+await client.checkout.authenticated.create({
+  productId: "PROD_xxx",
+  currency: "USD",
+  buyerIdentity: "userIdInYourSystem",
+  couponId: "CPN_xxx",
+});
+
+// Or show a code entry field where the customer types a coupon or promotion code
+await client.checkout.anonymous.create({ productId: "PROD_xxx", currency: "USD", allowPromotionCodes: true });
+```
+
+- `allowPromotionCodes` defaults to `false` for sessions created with your API Key — no code entry field unless you turn it on.
+- Passing `couponId` together with `allowPromotionCodes` (either value) throws `WaffoPancakeError` (400, `layer: "sdk"`) before any request is sent; a `couponId` without the `CPN_` prefix is rejected the same way.
+- The platform rejects a coupon that belongs to another store or environment, is not `active`, expires within 60 seconds, does not cover the product, or is a fixed amount with no amount in the session currency, with a 409 whose message names the reason. Rules tied to the customer (eligible customers, first order, per-customer limits) are checked when the customer places the order.
+- Subscription products do not take discounts yet: `couponId` on a subscription product is rejected with a 409.
 
 ### Plan Change Links
 
@@ -597,6 +621,41 @@ await client.subscriptionProductGroups.publish({ id: group.id });
 await client.subscriptionProductGroups.delete({ id: group.id });
 ```
 
+### Coupons & Promotion Codes
+
+A coupon defines the discount; its `code` is the code buyers type. Add more codes with `promotionCodes`. Deactivation is permanent and releases the codes for reuse. Read coupons with `client.graphql.query` (`coupons`, `coupon`, `promotionCodes`).
+
+```typescript
+import { CouponDiscountType, CouponDuration } from "@waffo/pancake-ts";
+
+const { coupon } = await client.coupons.create(
+  {
+    storeId: "STO_xxx",
+    name: "Black Friday 20% off",
+    code: "BF2026",
+    discount: { type: CouponDiscountType.Percentage, percentOff: 20 },
+    duration: CouponDuration.Repeating,
+    durationInPeriods: 3,
+  },
+  { idempotencyKey: "coupon-bf2026" },
+);
+
+// One code with extra restrictions (a random code is generated when `code` is omitted)
+await client.promotionCodes.create({
+  couponId: coupon.id,
+  code: "KOL-ALICE",
+  restrictions: { maxRedemptions: 100, minimumAmount: { USD: "50.00" } },
+});
+
+// 1–500 random single-use codes — always retry with the same idempotency key
+const { promotionCodes } = await client.promotionCodes.generate(
+  { couponId: coupon.id, count: 100, prefix: "KOL-", restrictions: { maxRedemptions: 1 } },
+  { idempotencyKey: "kol-batch-2026-11" },
+);
+
+await client.coupons.deactivate({ id: coupon.id });
+```
+
 ### Orders
 
 ```typescript
@@ -678,6 +737,8 @@ try {
 | `client.onetimeProducts`           | `create()` `update()` `publish()` `updateStatus()`                                                                       | One-time products                       |
 | `client.subscriptionProducts`      | `create()` `update()` `publish()` `updateStatus()`                                                                       | Subscription products                   |
 | `client.subscriptionProductGroups` | `create()` `update()` `delete()` `publish()`                                                                             | Product groups                          |
+| `client.coupons`                   | `create()` `update()` `deactivate()`                                                                                     | Coupons (discount codes)                |
+| `client.promotionCodes`            | `create()` `generate()` `deactivate()`                                                                                   | Promotion codes                         |
 | `client.orders`                    | `cancelSubscription()`                                                                                                   | Order management                        |
 | `client.contentSafety`             | `scanPrompt()`                                                                                                           | AIGC prompt content-safety scan         |
 
@@ -718,6 +779,10 @@ try {
 | `RefundStatus`               | `Succeeded`, `Failed`                                                                                                                                                                                                                                                                                                                                        |
 | `MediaType`                  | `Image`, `Video`                                                                                                                                                                                                                                                                                                                                             |
 | `CheckoutSessionProductType` | `Onetime`, `Subscription`                                                                                                                                                                                                                                                                                                                                    |
+| `CouponStatus`               | `Pending`, `Active`, `Inactive`, `Failed`                                                                                                                                                                                                                                                                                                                    |
+| `CouponDiscountType`         | `Percentage`, `FixedAmount`                                                                                                                                                                                                                                                                                                                                  |
+| `CouponDuration`             | `Once`, `Repeating`, `Forever`                                                                                                                                                                                                                                                                                                                               |
+| `PromotionCodeStatus`        | `Active`, `Inactive`                                                                                                                                                                                                                                                                                                                                         |
 | `ErrorLayer`                 | `Gateway`, `User`, `Store`, `Product`, `Order`, `Ticket`, `GraphQL`, `Resource`, `Email`                                                                                                                                                                                                                                                                     |
 | `WebhookEventType`           | `OrderCompleted`, `SubscriptionActivated`, `SubscriptionPaymentSucceeded`, `SubscriptionRenewed`, `SubscriptionRecovered`, `SubscriptionPlanChanged`, `SubscriptionPlanChangeScheduled`, `SubscriptionPlanChangeFailed`, `SubscriptionCanceling`, `SubscriptionUncanceled`, `SubscriptionCanceled`, `SubscriptionPastDue`, `RefundSucceeded`, `RefundFailed` |
 
@@ -756,11 +821,14 @@ src/
     ├── onetime-products.ts
     ├── subscription-products.ts
     ├── subscription-product-groups.ts
+    ├── coupons.ts
+    ├── promotion-codes.ts
     ├── customer.ts
     ├── orders.ts
     ├── checkout.ts
     ├── checkout-anonymous.ts
     ├── checkout-authenticated.ts
+    ├── content-safety.ts
     ├── graphql.ts
     └── webhooks.ts
 docs/

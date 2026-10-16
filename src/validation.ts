@@ -16,6 +16,10 @@ const SHORT_ID_REGEX = /^[A-Z]{2,5}_[0-9A-Za-z]{22}$/;
 const CURRENCY_CODE_REGEX = /^[A-Z]{3}$/;
 const COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 const AMOUNT_STRING_REGEX = /^\d+(\.\d+)?$/;
+/** Discount code format: 3–32 letters, digits or `-` (case-insensitive). */
+const DISCOUNT_CODE_REGEX = /^[A-Za-z0-9-]{3,32}$/;
+/** Prefix of bulk-generated promotion codes: 1–12 letters, digits or `-`. */
+const CODE_PREFIX_REGEX = /^[A-Za-z0-9-]{1,12}$/;
 
 const SHORT_ID_LABELS: Record<string, string> = {
   STO: "Store",
@@ -25,6 +29,8 @@ const SHORT_ID_LABELS: Record<string, string> = {
   REF: "Refund",
   TKT: "Ticket",
   MER: "Merchant",
+  CPN: "Coupon",
+  PMC: "Promotion Code",
 };
 
 function fail(message: string): never {
@@ -74,6 +80,16 @@ export function validateAmountString(field: string, value: string): void {
   validateRequired(field, value);
   if (!AMOUNT_STRING_REGEX.test(value)) {
     fail(`Invalid ${field}: expected numeric string in display format (e.g., "9.99", "1000"), got "${value}"`);
+  }
+}
+
+/**
+ * Validate that amount is a numeric string in display format and greater than zero.
+ */
+export function validatePositiveAmountString(field: string, value: string): void {
+  validateAmountString(field, value);
+  if (Number(value) <= 0) {
+    fail(`Invalid ${field}: expected an amount greater than 0, got "${value}"`);
   }
 }
 
@@ -143,6 +159,11 @@ export function validateBillingDetail(detail: { country: string; isBusiness: boo
 
 /**
  * Validate checkout session common fields.
+ *
+ * `couponId` and `allowPromotionCodes` are mutually exclusive: a session either has a
+ * coupon applied and locked by the merchant, or lets the customer enter a code. Passing
+ * both (with any `allowPromotionCodes` value) is rejected here, as the platform would
+ * reject it with a 400.
  */
 export function validateCheckoutCommon(params: {
   productId: string;
@@ -151,6 +172,8 @@ export function validateCheckoutCommon(params: {
   billingDetail?: { country: string; isBusiness: boolean };
   expiresInSeconds?: number;
   orderMerchantExternalId?: string;
+  couponId?: string;
+  allowPromotionCodes?: boolean;
 }): void {
   validateShortId("productId", params.productId, "PROD");
   validateCurrencyCode("currency", params.currency);
@@ -165,6 +188,14 @@ export function validateCheckoutCommon(params: {
     validatePositiveInteger("expiresInSeconds", params.expiresInSeconds);
   }
   validateMaxLength("orderMerchantExternalId", params.orderMerchantExternalId, 128);
+  if (params.couponId !== undefined) {
+    validateShortId("couponId", params.couponId, "CPN");
+    if (params.allowPromotionCodes !== undefined) {
+      fail(
+        "couponId and allowPromotionCodes are mutually exclusive: pass couponId to apply a coupon, or allowPromotionCodes to let the customer enter a code",
+      );
+    }
+  }
 }
 
 /**
@@ -192,5 +223,24 @@ export function validatePlanChangeCommon(params: {
   }
   if (params.changeCreditAmount !== undefined) {
     validateAmountString("changeCreditAmount", params.changeCreditAmount);
+  }
+}
+
+/**
+ * Validate a discount / promotion code (3–32 letters, digits or `-`).
+ */
+export function validateDiscountCode(field: string, value: string): void {
+  validateRequired(field, value);
+  if (!DISCOUNT_CODE_REGEX.test(value)) {
+    fail(`Invalid ${field}: expected 3-32 letters, digits or '-', got "${value}"`);
+  }
+}
+
+/**
+ * Validate the prefix of bulk-generated promotion codes (1–12 letters, digits or `-`).
+ */
+export function validateCodePrefix(field: string, value: string): void {
+  if (!CODE_PREFIX_REGEX.test(value)) {
+    fail(`Invalid ${field}: expected 1-12 letters, digits or '-', got "${value}"`);
   }
 }
