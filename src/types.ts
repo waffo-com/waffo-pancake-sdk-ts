@@ -977,10 +977,10 @@ export enum CouponDiscountType {
 /**
  * How long a coupon applies to a subscription: `Once` discounts one billing period,
  * `Repeating` the number of periods in `durationInPeriods`, `Forever` every period until
- * the coupon's `redeemBy`, after which renewals are charged the full price. Only periods
- * with a price above zero count: a free trial uses none of them, and the discount starts
- * with the first paid period; a paid trial is discounted and counts as the first period.
- * One-time orders always use a coupon once.
+ * the subscription ends. Only periods with a price above zero count: a free trial uses none
+ * of them, and the discount starts with the first paid period; a paid trial is discounted
+ * and counts as the first period. With any duration, renewals charged after the coupon's
+ * `redeemBy` are charged the full price. One-time orders always use a coupon once.
  * @see docs/api-reference/endpoints/coupons/overview.mdx
  */
 export enum CouponDuration {
@@ -1696,8 +1696,8 @@ export enum WebhookEventType {
  * @see docs/api-reference/webhooks.mdx
  */
 /**
- * Amount breakdown of the object a webhook event refers to: the list price behind a charge, the
- * original payment behind a refund, or the plan price behind a subscription status change.
+ * Amount breakdown of the object a webhook event refers to: the price snapshot behind a charge,
+ * the original payment behind a refund, or the plan price behind a subscription status change.
  *
  * Money fields are display strings, already converted from minor units (e.g. "29.00" for USD,
  * "4500" for JPY). The block never uses the name `amount` — that name is reserved for the
@@ -1841,9 +1841,10 @@ export interface WebhookEventData {
    * Only on refund events, and only when the channel reported an amount for that payment — the
    * key is absent otherwise, never zero-filled. This is the ceiling a refund can reach: it is
    * what the buyer was really charged, whereas {@link WebhookEventData.originalPayment}`.total`
-   * is the list price snapshot taken when the order was placed. The two differ when a prorated
-   * credit or a zero-amount card check applied to that payment, and refunding up to the list
-   * price is then rejected by the channel.
+   * is the amount expected for that payment, after any discount (the price before the discount
+   * is its `listTotal`). The two differ when a prorated credit or a zero-amount card check
+   * applied to that payment, and refunding up to the expected amount is then rejected by the
+   * channel.
    */
   originalChargedAmount?: string;
   /**

@@ -409,11 +409,11 @@ All events include the **Order**, **Amount**, and **Product** sections. Addition
 
 **Amount fields** — the object this event's figure refers to. Each block is a `WebhookAmountBreakdown` (`total`, `subtotal?`, `taxAmount`, `taxRate?`, `taxName?`, `listTotal?`, `discountAmount?`), and at most one of them appears on a given event:
 
-| Field             | Type                     | Present on                                                               |
-| ----------------- | ------------------------ | ------------------------------------------------------------------------ |
-| `listPrice`       | `WebhookAmountBreakdown` | Payment events — the list price snapshot taken when the order was placed |
-| `originalPayment` | `WebhookAmountBreakdown` | Refund events — the payment being refunded, as originally charged        |
-| `planPrice`       | `WebhookAmountBreakdown` | Subscription status events — the plan's list price for the current phase |
+| Field             | Type                     | Present on                                                                                                              |
+| ----------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `listPrice`       | `WebhookAmountBreakdown` | Payment events — the amount expected for this payment, after any discount; the price before the discount is `listTotal` |
+| `originalPayment` | `WebhookAmountBreakdown` | Refund events — the amount expected for the payment being refunded, after any discount                                  |
+| `planPrice`       | `WebhookAmountBreakdown` | Subscription status events — the plan's list price for the current phase                                                |
 
 **Discounts in the block.** `listPrice` and `originalPayment` carry `listTotal` (price before the discount, tax included) and `discountAmount` (tax-inclusive discount) when the payment was recorded with them; payments recorded before these keys were introduced do not carry them. Without a discount `discountAmount` is zero and `listTotal` equals `total`. With a coupon or promotion code, `total` and `taxAmount` are the discounted amounts expected for that payment while `subtotal` stays the pre-discount amount excluding tax, so `subtotal + taxAmount` does not equal `total` — use `listTotal - discountAmount = total`. On a subscription each payment carries the amounts for its own period: `discountAmount` is zero once the coupon's duration has run out. `planPrice` never carries the two keys; it is always the list price before any discount.
 
@@ -426,9 +426,9 @@ if (listPrice?.discountAmount !== undefined && Number(listPrice.discountAmount) 
 
 Alongside the block, refund events carry the same subject as a flat display string:
 
-| Field                   | Type     | Required | Description                                                                                                                                                                                                                                                              |
-| ----------------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `originalChargedAmount` | `string` | No       | What the payment being refunded actually collected. Refund events only; absent when the channel reported no amount for that payment. Use it as the refundable ceiling — `originalPayment.total` is the list price and refunding up to it is rejected when the two differ |
+| Field                   | Type     | Required | Description                                                                                                                                                                                                                                                                                                         |
+| ----------------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `originalChargedAmount` | `string` | No       | What the payment being refunded actually collected. Refund events only; absent when the channel reported no amount for that payment. Use it as the refundable ceiling — `originalPayment.total` is the amount expected for that payment (after any discount) and refunding up to it is rejected when the two differ |
 
 **Deprecated amount fields.** These six keep being sent and their types do not change, but their meaning drifts across event families, so each has a subject-specific replacement. Removal is no earlier than 12 months away and ships with the next major version.
 
@@ -441,7 +441,7 @@ Alongside the block, refund events carry the same subject as a flat display stri
 | `taxRate`   | `listPrice.taxRate`   | `originalPayment.taxRate`   | `planPrice.taxRate`        |
 | `taxName`   | `listPrice.taxName`   | `originalPayment.taxName`   | `planPrice.taxName`        |
 
-On payment events `amount` is the amount actually charged, equal to `chargedAmount`; when the channel reported no amount it falls back to the list price total. On every other event its value is unchanged, as are all five other deprecated fields.
+On payment events `amount` is the amount actually charged, equal to `chargedAmount`; when the channel reported no amount it falls back to `listPrice.total`, the amount expected for the payment. On every other event its value is unchanged, as are all five other deprecated fields.
 
 **Product fields** (always present):
 
