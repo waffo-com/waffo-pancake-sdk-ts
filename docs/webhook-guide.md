@@ -407,13 +407,22 @@ All events include the **Order**, **Amount**, and **Product** sections. Addition
 | `subtotal`       | `string` | No       | **Deprecated** — see the deprecation table below                                                       |
 | `total`          | `string` | No       | **Deprecated** — see the deprecation table below                                                       |
 
-**Amount fields** — the object this event's figure refers to. Each block is a `WebhookAmountBreakdown` (`total`, `subtotal?`, `taxAmount`, `taxRate?`, `taxName?`), and at most one of them appears on a given event:
+**Amount fields** — the object this event's figure refers to. Each block is a `WebhookAmountBreakdown` (`total`, `subtotal?`, `taxAmount`, `taxRate?`, `taxName?`, `listTotal?`, `discountAmount?`), and at most one of them appears on a given event:
 
 | Field             | Type                     | Present on                                                               |
 | ----------------- | ------------------------ | ------------------------------------------------------------------------ |
 | `listPrice`       | `WebhookAmountBreakdown` | Payment events — the list price snapshot taken when the order was placed |
 | `originalPayment` | `WebhookAmountBreakdown` | Refund events — the payment being refunded, as originally charged        |
 | `planPrice`       | `WebhookAmountBreakdown` | Subscription status events — the plan's list price for the current phase |
+
+**Discounts in the block.** `listPrice` and `originalPayment` carry `listTotal` (price before the discount, tax included) and `discountAmount` (tax-inclusive discount) when the payment was recorded with them; payments recorded before these keys were introduced do not carry them. Without a discount `discountAmount` is zero and `listTotal` equals `total`. With a coupon or promotion code, `total` and `taxAmount` are the discounted amounts expected for that payment while `subtotal` stays the pre-discount amount excluding tax, so `subtotal + taxAmount` does not equal `total` — use `listTotal - discountAmount = total`. On a subscription each payment carries the amounts for its own period: `discountAmount` is zero once the coupon's duration has run out. `planPrice` never carries the two keys; it is always the list price before any discount.
+
+```typescript
+const { listPrice } = event.data;
+if (listPrice?.discountAmount !== undefined && Number(listPrice.discountAmount) > 0) {
+  console.log(`Discounted from ${listPrice.listTotal} to ${listPrice.total}`);
+}
+```
 
 Alongside the block, refund events carry the same subject as a flat display string:
 

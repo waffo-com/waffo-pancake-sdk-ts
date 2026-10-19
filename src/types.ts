@@ -1714,6 +1714,26 @@ export interface WebhookAmountBreakdown {
   taxRate?: number;
   /** Tax name (e.g., "Consumption Tax") */
   taxName?: string;
+  /**
+   * Price before the discount, tax included.
+   *
+   * Only in `listPrice` and `originalPayment`, and only when that payment was recorded with the
+   * discount fields — payments recorded before these keys were introduced do not carry them.
+   * Never in `planPrice`, which is always the list price before any discount. When present,
+   * `listTotal - discountAmount = total`: `total` is the amount expected for that payment after
+   * the discount. Without a discount `listTotal` equals `total`.
+   */
+  listTotal?: string;
+  /**
+   * Discount applied to that payment, tax included. Zero in display format (e.g. "0.00" for USD,
+   * "0" for JPY) when no discount applies.
+   *
+   * Present under the same conditions as {@link WebhookAmountBreakdown.listTotal}. With a
+   * discount, `total` and `taxAmount` are the discounted amounts while `subtotal` stays the
+   * pre-discount amount excluding tax, so `subtotal + taxAmount` does not equal `total` — use
+   * `listTotal - discountAmount = total` instead.
+   */
+  discountAmount?: string;
 }
 
 export interface WebhookEventData {
@@ -1808,7 +1828,9 @@ export interface WebhookEventData {
 
   // Amount — the object this event's figure refers to
   /**
-   * List price snapshot taken when the order was placed.
+   * Price snapshot recorded for this payment. With a coupon or promotion code, `total` is the
+   * discounted amount expected for the payment, and `listTotal` / `discountAmount` give the price
+   * before the discount and the discount itself (when the payment was recorded with them).
    *
    * Only on payment events. Absent when the order carries no amount snapshot.
    */
@@ -1825,13 +1847,17 @@ export interface WebhookEventData {
    */
   originalChargedAmount?: string;
   /**
-   * The payment being refunded, as it was originally charged.
+   * The payment being refunded, as it was originally charged. Carries `listTotal` /
+   * `discountAmount` when that payment was recorded with them, read the same way as in
+   * {@link WebhookEventData.listPrice}.
    *
    * Only on refund events. Absent when that payment carries no amount snapshot.
    */
   originalPayment?: WebhookAmountBreakdown;
   /**
-   * The subscription's list price for the current phase.
+   * The subscription's list price for the current phase, always before any coupon discount — it
+   * never carries `listTotal` / `discountAmount`. The discounted amount of a charge is in
+   * {@link WebhookEventData.listPrice} on `subscription.payment_succeeded`.
    *
    * Only on subscription status events (every `subscription.*` event except
    * `subscription.payment_succeeded`). Absent when the subscription carries no price snapshot.
