@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
-Merchants can create and manage coupons and promotion codes from their server, and apply them to checkout sessions for one-time products. **`checkout.createSession()` also starts validating its input locally** — see the BREAKING entry under Changed before upgrading.
+Merchants can create and manage coupons and promotion codes from their server, and apply them to checkout sessions for one-time products and new subscriptions. **`checkout.createSession()` also starts validating its input locally** — see the BREAKING entry under Changed before upgrading.
 
 ### Added
 
@@ -14,7 +14,7 @@ Merchants can create and manage coupons and promotion codes from their server, a
 - **`client.promotionCodes`** — `create(params, options?)` (code optional, generated when omitted), `generate(params, options?)` (1–500 random codes; retry with the same idempotency key), `deactivate(params, options?)` (permanent; the code is released for reuse).
 - Types: `CouponDetail`, `CouponDiscount`, `CreateCouponParams`, `UpdateCouponParams`, `DeactivateCouponParams`, `DiscountRestrictions`, `PromotionCodeDetail`, `PromotionCodeRestrictions`, `CreatePromotionCodeParams`, `GeneratePromotionCodesParams`, `DeactivatePromotionCodeParams`; enums `CouponStatus`, `CouponDiscountType`, `CouponDuration`, `PromotionCodeStatus`.
 - Local validation of `CPN_` / `PMC_` IDs, of the code format (3–32 letters, digits or `-`), and that fixed amounts are greater than 0.
-- **`CreateCheckoutSessionParams.couponId` (optional `string`)** — apply a coupon (`CPN_xxx`) to the session; the discount is locked and the customer cannot change or remove it. Inherited by `AnonymousCheckoutParams` and `AuthenticatedCheckoutParams`. One-time products only for now; the platform answers 409 for a subscription product, and for a coupon that is not usable in this store, environment, product or currency.
+- **`CreateCheckoutSessionParams.couponId` (optional `string`)** — apply a coupon (`CPN_xxx`) to the session; the discount is locked and the customer cannot change or remove it. Inherited by `AnonymousCheckoutParams` and `AuthenticatedCheckoutParams`. Works for one-time products and new subscriptions; the platform answers 409 for a coupon that is not usable in this store, environment, product or currency. On a subscription the coupon's `duration` sets how many billing periods are discounted (`once` / `repeating` / `forever`, ending at the coupon's `redeemBy`): a free trial uses no discount and it starts with the first paid period, a paid trial is discounted and counts as the first period. The use is counted when the first discounted charge succeeds. Plan changes do not take discounts yet.
 - **`CreateCheckoutSessionParams.allowPromotionCodes` (optional `boolean`)** — show a code entry field on the checkout page. Defaults to `false` for API Key sessions.
 - Local validation: `couponId` must be a `CPN_` Short ID, and `couponId` together with `allowPromotionCodes` (either value) throws `WaffoPancakeError` (400, `layer: "sdk"`) before the request is sent — the platform rejects the combination with a 400.
 

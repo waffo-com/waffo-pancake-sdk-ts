@@ -975,7 +975,12 @@ export enum CouponDiscountType {
 }
 
 /**
- * How long a coupon applies to a subscription. One-time orders always use it once.
+ * How long a coupon applies to a subscription: `Once` discounts one billing period,
+ * `Repeating` the number of periods in `durationInPeriods`, `Forever` every period until
+ * the coupon's `redeemBy`, after which renewals are charged the full price. Only periods
+ * with a price above zero count: a free trial uses none of them, and the discount starts
+ * with the first paid period; a paid trial is discounted and counts as the first period.
+ * One-time orders always use a coupon once.
  * @see docs/api-reference/endpoints/coupons/overview.mdx
  */
 export enum CouponDuration {
@@ -1255,8 +1260,10 @@ export interface CreateCheckoutSessionParams {
   /**
    * Coupon to apply to this session (Short ID, `CPN_xxx` — the Pancake coupon ID, not
    * the payment provider's). The discount is locked: the customer sees it applied but
-   * cannot change or remove it, and no code entry field is shown. One-time products only
-   * for now — a subscription product is rejected with a 409.
+   * cannot change or remove it, and no code entry field is shown. Works for one-time
+   * products and new subscriptions; plan changes do not take discounts yet. On a
+   * subscription the coupon's {@link CouponDuration} decides how many billing periods
+   * are discounted.
    * The platform rejects a coupon from another store or environment, one that is not
    * `active` or expires within 60 seconds, one not covering the product, and a fixed
    * amount coupon with no amount for {@link CreateCheckoutSessionParams.currency}, with
