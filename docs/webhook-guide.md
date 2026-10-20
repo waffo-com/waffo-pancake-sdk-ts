@@ -474,11 +474,11 @@ Which events carry that block:
 ### Migrating off the subscription fields on `subscription.payment_succeeded`
 
 `subscription.payment_succeeded` is a pure payment event: it describes one charge and carries
-no `billingPeriod`, `currentPeriodStart`, `currentPeriodEnd`, `canceledAt` or `orderStatus`.
+no `billingPeriod`, `currentPeriodStart`, `currentPeriodEnd`, `canceledAt`, `cancelInitiator` or `orderStatus`.
 The subscription's period and status now travel on the subscription domain events only, where
 they are written and published inside the same request — so they no longer arrive empty.
 
-If your handler reads any of those five fields off `subscription.payment_succeeded`:
+If your handler reads any of those fields off `subscription.payment_succeeded` (`cancelInitiator` travels with `canceledAt`):
 
 | You used it for                     | Read it from instead                                                                                   |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
