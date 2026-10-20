@@ -158,12 +158,41 @@ export function validateBillingDetail(detail: { country: string; isBusiness: boo
 }
 
 /**
- * Validate checkout session common fields.
+ * Validate the discount fields of a checkout or plan-change session.
  *
- * `couponId` and `allowPromotionCodes` are mutually exclusive: a session either has a
- * coupon applied and locked by the merchant, or lets the customer enter a code. Passing
- * both (with any `allowPromotionCodes` value) is rejected here, as the platform would
- * reject it with a 400.
+ * `couponId` is mutually exclusive with both `promotionCode` and `allowPromotionCodes`:
+ * a session either has a coupon applied and locked by the merchant, or carries a
+ * prefilled promotion code and / or a code entry field. Passing `couponId` with either
+ * (with any `allowPromotionCodes` value) is rejected here, as the platform would reject
+ * it with a 400. `promotionCode` must be a non-empty string.
+ */
+export function validateSessionDiscount(params: { couponId?: string; promotionCode?: string; allowPromotionCodes?: boolean }): void {
+  if (params.promotionCode !== undefined) {
+    if (typeof params.promotionCode !== "string") {
+      fail(`Invalid promotionCode: expected a string, got ${typeof params.promotionCode}`);
+    }
+    if (params.promotionCode.trim() === "") {
+      fail("promotionCode cannot be empty");
+    }
+  }
+  if (params.couponId !== undefined) {
+    validateShortId("couponId", params.couponId, "CPN");
+    if (params.promotionCode !== undefined) {
+      fail(
+        "couponId and promotionCode are mutually exclusive: pass couponId to apply a coupon, or promotionCode to prefill a promotion code",
+      );
+    }
+    if (params.allowPromotionCodes !== undefined) {
+      fail(
+        "couponId and allowPromotionCodes are mutually exclusive: pass couponId to apply a coupon, or allowPromotionCodes to let the customer enter a code",
+      );
+    }
+  }
+}
+
+/**
+ * Validate checkout session common fields, including the discount fields
+ * (see `validateSessionDiscount`).
  */
 export function validateCheckoutCommon(params: {
   productId: string;
@@ -173,6 +202,7 @@ export function validateCheckoutCommon(params: {
   expiresInSeconds?: number;
   orderMerchantExternalId?: string;
   couponId?: string;
+  promotionCode?: string;
   allowPromotionCodes?: boolean;
 }): void {
   validateShortId("productId", params.productId, "PROD");
@@ -188,23 +218,17 @@ export function validateCheckoutCommon(params: {
     validatePositiveInteger("expiresInSeconds", params.expiresInSeconds);
   }
   validateMaxLength("orderMerchantExternalId", params.orderMerchantExternalId, 128);
-  if (params.couponId !== undefined) {
-    validateShortId("couponId", params.couponId, "CPN");
-    if (params.allowPromotionCodes !== undefined) {
-      fail(
-        "couponId and allowPromotionCodes are mutually exclusive: pass couponId to apply a coupon, or allowPromotionCodes to let the customer enter a code",
-      );
-    }
-  }
+  validateSessionDiscount(params);
 }
 
 /**
  * Validate plan-change session fields.
  *
- * Covers the same ground as `validateCheckoutCommon` plus the plan-change-only
- * fields (plan change params carry no `billingDetail` — it comes from the origin
- * subscription). The mode rules themselves (which field may accompany which) are
- * the platform's to enforce — this only catches malformed input.
+ * Covers the same ground as `validateCheckoutCommon` — including the discount
+ * fields — plus the plan-change-only fields (plan change params carry no
+ * `billingDetail` — it comes from the origin subscription). The other mode rules
+ * (which field may accompany which) are the platform's to enforce — this only
+ * catches malformed input.
  */
 export function validatePlanChangeCommon(params: {
   originOrderId: string;
@@ -215,6 +239,9 @@ export function validatePlanChangeCommon(params: {
   orderMerchantExternalId?: string;
   changeAmount?: string;
   changeCreditAmount?: string;
+  couponId?: string;
+  promotionCode?: string;
+  allowPromotionCodes?: boolean;
 }): void {
   validateCheckoutCommon(params);
   validateShortId("originOrderId", params.originOrderId, "ORD");

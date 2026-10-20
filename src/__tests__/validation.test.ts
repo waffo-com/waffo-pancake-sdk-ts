@@ -307,6 +307,20 @@ describe("validateCheckoutCommon", () => {
       /couponId and allowPromotionCodes are mutually exclusive/,
     );
   });
+
+  it.each([true, false])("should accept promotionCode with allowPromotionCodes: %s", (allowPromotionCodes) => {
+    expect(() => validateCheckoutCommon({ ...valid, promotionCode: "spring-20", allowPromotionCodes })).not.toThrow();
+  });
+
+  it("should reject couponId together with promotionCode", () => {
+    expect(() => validateCheckoutCommon({ ...valid, couponId: "CPN_0000000000000000000000", promotionCode: "SPRING-20" })).toThrow(
+      /couponId and promotionCode are mutually exclusive/,
+    );
+  });
+
+  it("should reject an empty promotionCode", () => {
+    expect(() => validateCheckoutCommon({ ...valid, promotionCode: "" })).toThrow(/promotionCode cannot be empty/);
+  });
 });
 
 // ---------------------------------------------------------------------------

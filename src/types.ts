@@ -1261,20 +1261,37 @@ export interface CreateCheckoutSessionParams {
    * Coupon to apply to this session (Short ID, `CPN_xxx` — the Pancake coupon ID, not
    * the payment provider's). The discount is locked: the customer sees it applied but
    * cannot change or remove it, and no code entry field is shown. Works for one-time
-   * products and new subscriptions; plan changes do not take discounts yet. On a
-   * subscription the coupon's {@link CouponDuration} decides how many billing periods
-   * are discounted.
+   * products and new subscriptions (plan changes take one through
+   * {@link CreatePlanChangeSessionParams.couponId}). On a subscription the coupon's
+   * {@link CouponDuration} decides how many billing periods are discounted.
    * The platform rejects a coupon from another store or environment, one that is not
    * `active` or expires within 60 seconds, one not covering the product, and a fixed
    * amount coupon with no amount for {@link CreateCheckoutSessionParams.currency}, with
    * a 409. Rules tied to the customer are checked when the order is placed.
    *
-   * Mutually exclusive with {@link CreateCheckoutSessionParams.allowPromotionCodes}.
+   * Mutually exclusive with {@link CreateCheckoutSessionParams.promotionCode} and
+   * {@link CreateCheckoutSessionParams.allowPromotionCodes}.
    */
   couponId?: string;
   /**
+   * Promotion code to prefill on the checkout page (the code string the customer would
+   * type, case-insensitive). Merchant credentials only. Whether the customer can change
+   * it is decided by {@link CreateCheckoutSessionParams.allowPromotionCodes}: with
+   * `allowPromotionCodes: true` the customer can replace it with another code or remove
+   * it; without it (or with `false`) the code is locked.
+   * The platform looks the code up among currently usable promotion codes and rejects one
+   * that cannot be used in this store, environment, product or currency with a 409 whose
+   * message names the reason. Rules tied to the customer are checked when the order is
+   * placed.
+   *
+   * Mutually exclusive with {@link CreateCheckoutSessionParams.couponId}.
+   */
+  promotionCode?: string;
+  /**
    * Show a code entry field on the checkout page, where the customer can enter a coupon
    * code or promotion code (default `false` for sessions created with the API Key).
+   * Together with {@link CreateCheckoutSessionParams.promotionCode}, `true` lets the
+   * customer change or remove the prefilled code.
    *
    * Mutually exclusive with {@link CreateCheckoutSessionParams.couponId}.
    */
@@ -1373,6 +1390,43 @@ export interface CreatePlanChangeSessionParams {
    * Mutually exclusive with {@link CreatePlanChangeSessionParams.includePaymentMethods}.
    */
   excludePaymentMethods?: PaymentMethod[];
+  /**
+   * Coupon to apply to the new plan (Short ID, `CPN_xxx`). Locked: the customer cannot
+   * change or remove it, and no code entry field is shown. It replaces the subscription's
+   * current discount — the remaining periods of that discount are dropped and the new
+   * coupon's {@link CouponDuration} counts from the new subscription's first charge above
+   * zero. The platform checks it against the target plan's product, with the same 409
+   * reasons as {@link CreateCheckoutSessionParams.couponId}.
+   *
+   * Without a coupon or promotion code, the current discount carries over to the new plan
+   * with the periods already used, unless it has no periods left, its coupon's `redeemBy`
+   * is within 60 seconds, or the coupon is deactivated — then the new plan is charged the
+   * full price. See https://docs.waffo.ai/guides/discounts#subscriptions.
+   *
+   * Mutually exclusive with {@link CreatePlanChangeSessionParams.promotionCode} and
+   * {@link CreatePlanChangeSessionParams.allowPromotionCodes}.
+   */
+  couponId?: string;
+  /**
+   * Promotion code to prefill on the confirmation page (the code string, case-insensitive).
+   * Merchant credentials only. Like {@link CreatePlanChangeSessionParams.couponId} it
+   * replaces the subscription's current discount. With
+   * {@link CreatePlanChangeSessionParams.allowPromotionCodes} `true` the customer can
+   * replace it with another code or remove it; otherwise it is locked. Rejected with a 409
+   * when it cannot be used for the target plan.
+   *
+   * Mutually exclusive with {@link CreatePlanChangeSessionParams.couponId}.
+   */
+  promotionCode?: string;
+  /**
+   * Show a code entry field on the confirmation page, where the customer can enter a
+   * coupon code or promotion code for the new plan (default `false` for sessions created
+   * with the API Key). Together with {@link CreatePlanChangeSessionParams.promotionCode},
+   * `true` lets the customer change or remove the prefilled code.
+   *
+   * Mutually exclusive with {@link CreatePlanChangeSessionParams.couponId}.
+   */
+  allowPromotionCodes?: boolean;
 }
 
 // ---------------------------------------------------------------------------

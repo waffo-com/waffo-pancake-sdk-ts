@@ -520,3 +520,65 @@ describe("checkout discount params on the wrappers", () => {
     expect(bodyFor("issue-session-token").couponId).toBeUndefined();
   });
 });
+
+describe("checkout promotionCode", () => {
+  const sessionFetch = () =>
+    createMockFetch((url) =>
+      url.includes("issue-session-token")
+        ? { data: { token: "tok", expiresAt: "2026-04-02T10:00:00.000Z" } }
+        : { data: { sessionId: "cs_pc", checkoutUrl: "https://pancake.waffo.ai/checkout/cs_pc", expiresAt: "2026-04-02T10:00:00.000Z" } },
+    );
+
+  it("should forward promotionCode with or without allowPromotionCodes on every checkout method", async () => {
+    const mockFetch = sessionFetch();
+    const client = createClient(mockFetch);
+    const base = { productId: "PROD_0000000000000000000000", currency: "USD", promotionCode: "SPRING-20" };
+
+    await client.checkout.createSession(base);
+    await client.checkout.anonymous.create({ ...base, allowPromotionCodes: true });
+    await client.checkout.authenticated.create({ ...base, buyerIdentity: "user-1", allowPromotionCodes: false });
+
+    const sessionBodies = mockFetch.mock.calls
+      .filter(([url]) => String(url).includes("create-session"))
+      .map(([, options]) => JSON.parse(options.body as string) as Record<string, unknown>);
+    expect(sessionBodies.map((b) => b.promotionCode)).toEqual(["SPRING-20", "SPRING-20", "SPRING-20"]);
+    expect(sessionBodies.map((b) => b.allowPromotionCodes)).toEqual([undefined, true, false]);
+    const tokenBody = JSON.parse(
+      mockFetch.mock.calls.find(([url]) => String(url).includes("issue-session-token"))![1].body as string,
+    ) as Record<string, unknown>;
+    expect(tokenBody.promotionCode).toBeUndefined();
+  });
+
+  it("should reject couponId together with promotionCode without sending", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+    const params = {
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      couponId: "CPN_0000000000000000000000",
+      promotionCode: "SPRING-20",
+    };
+
+    const error = await client.checkout.createSession(params).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(WaffoPancakeError);
+    expect((error as WaffoPancakeError).status).toBe(400);
+    expect((error as WaffoPancakeError).errors[0].layer).toBe("sdk");
+    expect((error as WaffoPancakeError).errors[0].message).toMatch(/couponId and promotionCode are mutually exclusive/);
+    await expect(client.checkout.anonymous.create(params)).rejects.toThrow(/mutually exclusive/);
+    await expect(client.checkout.authenticated.create({ ...params, buyerIdentity: "user-1" })).rejects.toThrow(/mutually exclusive/);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should reject an empty or non-string promotionCode without sending", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+    const base = { productId: "PROD_0000000000000000000000", currency: "USD" };
+
+    await expect(client.checkout.createSession({ ...base, promotionCode: "" })).rejects.toThrow(/promotionCode cannot be empty/);
+    await expect(client.checkout.anonymous.create({ ...base, promotionCode: "   " })).rejects.toThrow(/promotionCode cannot be empty/);
+    await expect(client.checkout.createSession({ ...base, promotionCode: 20 as unknown as string })).rejects.toThrow(
+      /expected a string, got number/,
+    );
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+});

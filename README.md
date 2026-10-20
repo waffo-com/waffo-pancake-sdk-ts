@@ -78,7 +78,7 @@ Both modes support **dynamic pricing** and **trial control** at checkout time:
 
 - `priceSnapshot` — override the product's stored price with a custom amount (e.g., coupon, volume discount); for subscription products this replaces the regular period price only
 - `withTrial` — explicitly enable or disable the trial period for subscriptions (`true` = force trial, `false` = skip trial, omit = use default rules)
-- `couponId` / `allowPromotionCodes` — apply a coupon the customer cannot change, or show a code entry field (one-time products and new subscriptions) — see [Discounts at Checkout](#discounts-at-checkout)
+- `couponId` / `promotionCode` / `allowPromotionCodes` — apply a coupon the customer cannot change, prefill a promotion code (changeable only with `allowPromotionCodes: true`), or show a code entry field (one-time products, new subscriptions and plan changes) — see [Discounts at Checkout](#discounts-at-checkout)
 
 ### Authenticated Checkout (Recommended)
 
@@ -146,7 +146,7 @@ window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
 
 ### Discounts at Checkout
 
-A session either carries a coupon you chose, or lets the customer enter one — never both. Both work with every checkout method (`createSession()`, `anonymous.create()`, `authenticated.create()`), for one-time products and new subscriptions.
+A session either carries a coupon you chose (locked), or works with promotion codes — a code you prefill, a code entry field, or both. A coupon never comes with either. Every checkout method (`createSession()`, `anonymous.create()`, `authenticated.create()`) and both plan change methods (`createPlanChangeSession()`, `authenticated.createPlanChange()`) take them, for one-time products, new subscriptions and plan changes.
 
 ```typescript
 // Apply a coupon (CPN_ ID from client.coupons.create) — the customer sees "discount applied"
@@ -160,15 +160,20 @@ await client.checkout.authenticated.create({
 
 // Or show a code entry field where the customer types a coupon or promotion code
 await client.checkout.anonymous.create({ productId: "PROD_xxx", currency: "USD", allowPromotionCodes: true });
+
+// Or prefill a promotion code (the code string). With allowPromotionCodes: true the customer
+// can replace it with another code or remove it; without it the code is locked
+await client.checkout.createSession({ productId: "PROD_xxx", currency: "USD", promotionCode: "SPRING-20", allowPromotionCodes: true });
 ```
 
 - `allowPromotionCodes` defaults to `false` for sessions created with your API Key — no code entry field unless you turn it on.
-- Passing `couponId` together with `allowPromotionCodes` (either value) throws `WaffoPancakeError` (400, `layer: "sdk"`) before any request is sent; a `couponId` without the `CPN_` prefix is rejected the same way.
-- The platform rejects a coupon that belongs to another store or environment, is not `active`, expires within 60 seconds, does not cover the product, or is a fixed amount with no amount in the session currency, with a 409 whose message names the reason. Rules tied to the customer (eligible customers, first order, per-customer limits) are checked when the customer places the order.
+- `promotionCode` takes the code string (case-insensitive) and needs your API Key. With `allowPromotionCodes: true` the customer can replace the prefilled code or remove it and enter another; without it (or with `false`) the code is locked.
+- Passing `couponId` together with `promotionCode` or `allowPromotionCodes` (either value) throws `WaffoPancakeError` (400, `layer: "sdk"`) before any request is sent; a `couponId` without the `CPN_` prefix, or an empty `promotionCode`, is rejected the same way.
+- The platform rejects a coupon or prefilled promotion code that belongs to another store or environment, is not `active`, expires within 60 seconds, does not cover the product, or is a fixed amount with no amount in the session currency, with a 409 whose message names the reason. Rules tied to the customer (eligible customers, first order, per-customer limits) are checked when the customer places the order.
 - On a subscription, the coupon's `duration` decides how many billing periods are discounted: `once` one period, `repeating` `durationInPeriods` periods, `forever` every period until the subscription ends. Only periods with a price above zero count — a free trial uses no discount and it starts with the first paid period, while a paid trial is discounted and counts as the first period. With any duration, renewals charged after the coupon's `redeemBy` are charged the full price.
 - A promotion code's minimum amount is checked against the first charge that should be discounted, before the discount and excluding tax: the trial price for a paid trial, the regular price otherwise.
 - A use is counted once, when the first discounted charge succeeds. If the subscription is canceled before that (for example during a free trial), it first moves to `canceling`, and the use is given back when the subscription ends.
-- Plan changes do not take discounts yet: a plan change session shows no code entry field.
+- On a plan change, a coupon or code replaces the subscription's current discount and counts its periods from the new subscription's first charge above zero; without one, the current discount carries over to the new plan with the periods already used, unless it has no periods left, its coupon's `redeemBy` is within 60 seconds, or the coupon is deactivated — then the new plan is charged the full price. A promotion code's minimum amount is checked against the new plan's regular price before the discount, excluding tax, without subtracting the credit for the current plan. See [Discounts](https://docs.waffo.ai/guides/discounts#subscriptions).
 
 ### Plan Change Links
 
@@ -200,6 +205,7 @@ const result = await client.checkout.authenticated.createPlanChange({
 ```
 
 - **`changeAmount` vs `changeCreditAmount`** — two ways to price the same change: `changeAmount` sets what you charge for this period, `changeCreditAmount` sets how much you credit against it. Same unit and tax basis, opposite meaning, so they are mutually exclusive and sending both is rejected with a 400.
+- **Discounts** — `couponId`, `promotionCode` and `allowPromotionCodes` work as on a new purchase; a coupon or code replaces the subscription's discount, and without one the current discount carries over while it still applies (see [Discounts at Checkout](#discounts-at-checkout)).
 - **Merchant credentials only** — `changeAmount`, `changeCreditAmount` and `withTrial` are honored because these calls are signed with your API Key. A customer-session credential calling the endpoint directly has them silently dropped.
 - **Anonymous has no plan change** — a Store Slug session has no subscription to attribute the change to (the platform answers 403), so `checkout.anonymous` carries no plan change method at all.
 - **Customer self-service** — to let customers start a change themselves, switch on `selfServicePlanChange` on the product group (see [Subscription Product Groups](#subscription-product-groups)) and call `customer.createPlanChangeSession()` on their session (see [Customer Self-Service](#customer-self-service)). That path is the only one the switch gates; merchant-issued links ignore it.

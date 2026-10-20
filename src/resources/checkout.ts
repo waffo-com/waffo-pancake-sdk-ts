@@ -60,7 +60,8 @@ export class CheckoutResource {
    * `checkout.authenticated.create()` which handle the full flow automatically.
    *
    * Validates the same fields as those two methods, including that `couponId` is a
-   * `CPN_` Short ID and is not combined with `allowPromotionCodes`.
+   * `CPN_` Short ID and is not combined with `promotionCode` or `allowPromotionCodes`,
+   * and that `promotionCode` is a non-empty string.
    *
    * @param params - Checkout session parameters
    * @returns Session ID, checkout URL, and expiration
@@ -79,6 +80,15 @@ export class CheckoutResource {
    *
    * // Or let the customer enter a code on the checkout page
    * await client.checkout.createSession({ productId: "PROD_xxx", currency: "USD", allowPromotionCodes: true });
+   *
+   * // Prefill a promotion code; allowPromotionCodes: true lets the customer change or remove it,
+   * // leave it out to lock the code
+   * await client.checkout.createSession({
+   *   productId: "PROD_xxx",
+   *   currency: "USD",
+   *   promotionCode: "SPRING-20",
+   *   allowPromotionCodes: true,
+   * });
    */
   async createSession(
     params: CreateCheckoutSessionParams,
@@ -103,6 +113,13 @@ export class CheckoutResource {
    *   only; the platform silently drops them for any other credential
    * - `changeAmount` and `changeCreditAmount` are mutually exclusive, and the
    *   platform rejects both-at-once with a 400 — the SDK forwards what you pass
+   * - Discounts: `couponId` (locked), `promotionCode` (prefilled; changeable only with
+   *   `allowPromotionCodes: true`) or `allowPromotionCodes` alone (code entry field).
+   *   A coupon or code replaces the subscription's current discount; without one the
+   *   current discount carries over with the periods already used, unless it has no
+   *   periods left, its coupon's `redeemBy` is within 60 seconds, or the coupon is
+   *   deactivated. `couponId` with `promotionCode` or `allowPromotionCodes` throws
+   *   `WaffoPancakeError` (400, `layer: "sdk"`) before sending
    * - Issued with your API Key, so the platform checks only that the subscription is
    *   yours: any target plan is allowed, in the group or not. For the customer-driven
    *   half (same group + `selfServicePlanChange` on), see

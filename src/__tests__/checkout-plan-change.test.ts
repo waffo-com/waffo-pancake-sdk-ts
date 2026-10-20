@@ -221,6 +221,81 @@ describe("checkout.authenticated.createPlanChange", () => {
   });
 });
 
+describe("plan change discount params", () => {
+  it("should forward couponId on the plan change methods", async () => {
+    const mockFetch = changeSessionFetch("cs_cpn");
+    const client = createClient(mockFetch);
+    const params = {
+      originOrderId: ORIGIN_ORDER_ID,
+      productId: TARGET_PRODUCT_ID,
+      currency: "USD",
+      couponId: "CPN_0000000000000000000000",
+    };
+
+    await client.checkout.createPlanChangeSession(params);
+    expect(bodyOf(mockFetch, "create-session").couponId).toBe("CPN_0000000000000000000000");
+
+    mockFetch.mockClear();
+    await client.checkout.authenticated.createPlanChange({ ...params, buyerIdentity: "user-1" });
+    expect(bodyOf(mockFetch, "create-session").couponId).toBe("CPN_0000000000000000000000");
+    expect(bodyOf(mockFetch, "issue-session-token").couponId).toBeUndefined();
+  });
+
+  it("should forward promotionCode and allowPromotionCodes on the plan change methods", async () => {
+    const mockFetch = changeSessionFetch("cs_pc");
+    const client = createClient(mockFetch);
+    const params = { originOrderId: ORIGIN_ORDER_ID, productId: TARGET_PRODUCT_ID, currency: "USD" };
+
+    await client.checkout.createPlanChangeSession({ ...params, promotionCode: "SPRING-20", allowPromotionCodes: true });
+    const body = bodyOf(mockFetch, "create-session");
+    expect(body.promotionCode).toBe("SPRING-20");
+    expect(body.allowPromotionCodes).toBe(true);
+
+    mockFetch.mockClear();
+    await client.checkout.authenticated.createPlanChange({ ...params, buyerIdentity: "user-1", allowPromotionCodes: true });
+    expect(bodyOf(mockFetch, "create-session").allowPromotionCodes).toBe(true);
+    expect(bodyOf(mockFetch, "create-session").promotionCode).toBeUndefined();
+  });
+
+  it("should reject couponId with promotionCode or allowPromotionCodes before sending", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+    const params = {
+      originOrderId: ORIGIN_ORDER_ID,
+      productId: TARGET_PRODUCT_ID,
+      currency: "USD",
+      couponId: "CPN_0000000000000000000000",
+    };
+
+    const error = await client.checkout.createPlanChangeSession({ ...params, promotionCode: "SPRING-20" }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(WaffoPancakeError);
+    expect((error as WaffoPancakeError).status).toBe(400);
+    expect((error as WaffoPancakeError).errors[0].layer).toBe("sdk");
+    expect((error as WaffoPancakeError).errors[0].message).toMatch(/couponId and promotionCode are mutually exclusive/);
+    await expect(client.checkout.createPlanChangeSession({ ...params, allowPromotionCodes: false })).rejects.toThrow(
+      /couponId and allowPromotionCodes are mutually exclusive/,
+    );
+    await expect(
+      client.checkout.authenticated.createPlanChange({ ...params, buyerIdentity: "user-1", allowPromotionCodes: true }),
+    ).rejects.toThrow(/mutually exclusive/);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should reject a malformed couponId or an empty promotionCode before sending", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+    const params = { originOrderId: ORIGIN_ORDER_ID, productId: TARGET_PRODUCT_ID, currency: "USD" };
+
+    await expect(client.checkout.createPlanChangeSession({ ...params, couponId: "PMC_0000000000000000000000" })).rejects.toThrow(
+      /expected CPN_ prefix/,
+    );
+    await expect(client.checkout.createPlanChangeSession({ ...params, promotionCode: " " })).rejects.toThrow(
+      /promotionCode cannot be empty/,
+    );
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
+
 describe("plan change surface (compile-time)", () => {
   it("should keep the plan change fields off the new-purchase and anonymous params", async () => {
     const mockFetch = changeSessionFetch("cs_new");
