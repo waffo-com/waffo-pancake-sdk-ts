@@ -945,12 +945,11 @@ export interface PublishSubscriptionProductGroupParams {
 // ---------------------------------------------------------------------------
 
 /**
- * Coupon status. `Pending` resolves automatically once the payment provider confirms;
+ * Coupon status. Creation either succeeds (`Active`) or fails (`Failed`, the code is released);
  * `Inactive` is permanent (a deactivated coupon cannot be re-enabled).
  * @see docs/api-reference/endpoints/coupons/overview.mdx
  */
 export enum CouponStatus {
-  Pending = "pending",
   Active = "active",
   Inactive = "inactive",
   Failed = "failed",

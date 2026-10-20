@@ -569,7 +569,7 @@ const { coupon } = await client.coupons.create(
   },
   { idempotencyKey: "coupon-bf2026" },
 );
-// coupon.status => CouponStatus.Active (or CouponStatus.Pending while the payment provider is confirming; it resolves automatically)
+// coupon.status => CouponStatus.Active (a successful creation is always active)
 ```
 
 **Parameters `CreateCouponParams`**:
@@ -588,7 +588,7 @@ const { coupon } = await client.coupons.create(
 | `redeemBy`             | `string \| null`       | No               | Expiry (ISO 8601). Discounts already attached to subscriptions also end at this time                                                                            |
 | `restrictions`         | `DiscountRestrictions` | No               | `firstTimeOnly`, `customerEmails`, `perCustomerLimit`                                                                                                           |
 
-**Returns `{ coupon: CouponDetail }`**. Errors: 409 when the code is taken (also when retrying **without** the idempotency key, because the first request already took it), 502 when the payment provider rejects the coupon (its code is released).
+**Returns `{ coupon: CouponDetail }`**. Errors: 409 when the code is taken (also when retrying a request that succeeded **without** the idempotency key, because the first request already took it), 502 when the payment provider rejects the coupon or does not confirm the creation — the creation failed and its code is released, so retry with the same code.
 
 ### `client.coupons.update(params, options?)`
 
@@ -1191,7 +1191,7 @@ All exported type interfaces:
 | `DeleteSubscriptionProductGroupParams`  | Delete request                                                                                    |
 | `PublishSubscriptionProductGroupParams` | Publish test → prod                                                                               |
 | **Coupon & Promotion Code**             |                                                                                                   |
-| `CouponStatus`                          | Coupon status (`Pending` / `Active` / `Inactive` / `Failed`)                                      |
+| `CouponStatus`                          | Coupon status (`Active` / `Inactive` / `Failed`)                                                  |
 | `CouponDiscountType`                    | Discount type (`Percentage` / `FixedAmount`)                                                      |
 | `CouponDuration`                        | Subscription periods that get the discount (`Once` / `Repeating` / `Forever`)                     |
 | `CouponDiscount`                        | Discount of a coupon (percentage or fixed amount per currency)                                    |

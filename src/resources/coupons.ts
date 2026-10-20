@@ -22,9 +22,10 @@ export class CouponsResource {
   /**
    * Create a coupon. The given `code` becomes the coupon's default promotion code.
    *
-   * The returned `status` is `active` once the payment provider confirms, or `pending` when the
-   * confirmation is still in progress (it resolves automatically). Retry with the same idempotency key:
-   * without it, a retry is rejected with 409 because the first request already took the code.
+   * The returned `status` is always `active`. When the payment provider rejects the coupon or does not
+   * confirm it, the request fails with 502 and the code is released, so it can be created again with the
+   * same code. If the request itself fails on your side (timeout, network), retry with the same idempotency
+   * key: a creation that succeeded is returned instead of a 409 for the code it already took.
    *
    * @param params - Coupon creation parameters
    * @returns Created coupon
