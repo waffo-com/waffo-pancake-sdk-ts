@@ -4,6 +4,17 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Merchants can create and manage coupons and promotion codes from their server.
+
+### Added
+
+- **`client.coupons`** — `create(params, options?)`, `update(params, options?)` (rename only), `deactivate(params, options?)` (permanent). The `code` of a coupon becomes its default promotion code.
+- **`client.promotionCodes`** — `create(params, options?)` (code optional, generated when omitted), `generate(params, options?)` (1–500 random codes; retry with the same idempotency key), `deactivate(params, options?)` (permanent; the code is released for reuse).
+- Types: `CouponDetail`, `CouponDiscount`, `CreateCouponParams`, `UpdateCouponParams`, `DeactivateCouponParams`, `DiscountRestrictions`, `PromotionCodeDetail`, `PromotionCodeRestrictions`, `CreatePromotionCodeParams`, `GeneratePromotionCodesParams`, `DeactivatePromotionCodeParams`; enums `CouponStatus`, `CouponDiscountType`, `CouponDuration`, `PromotionCodeStatus`.
+- Local validation of `CPN_` / `PMC_` IDs, of the code format (3–32 letters, digits or `-`), and that fixed amounts are greater than 0.
+
 ## [0.26.0] - 2026-10-10
 
 Customers signed in to a merchant's site can enter the store's customer portal without email verification.

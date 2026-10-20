@@ -8,10 +8,12 @@ import {
   validateAmountString,
   validateBillingDetail,
   validateCheckoutCommon,
+  validateCodePrefix,
   validateCountryCode,
   validateCurrencyCode,
   validateEnum,
   validateMaxLength,
+  validatePositiveAmountString,
   validatePositiveInteger,
   validatePrices,
   validateRequired,
@@ -145,6 +147,26 @@ describe("validateAmountString", () => {
 
   it("should throw for empty string", () => {
     expect(() => validateAmountString("amount", "")).toThrow(WaffoPancakeError);
+  });
+});
+
+describe("validatePositiveAmountString", () => {
+  it.each(["0.01", "5.00", "500"])("passes for %s", (value) => {
+    expect(() => validatePositiveAmountString("amount", value)).not.toThrow();
+  });
+
+  it.each(["0", "0.00", "abc", ""])("throws for %j", (value) => {
+    expect(() => validatePositiveAmountString("amount", value)).toThrow(WaffoPancakeError);
+  });
+});
+
+describe("validateCodePrefix", () => {
+  it.each(["K", "KOL-", "ABCDEFGHIJKL"])("passes for %s", (value) => {
+    expect(() => validateCodePrefix("prefix", value)).not.toThrow();
+  });
+
+  it.each(["", "KOL_", "ABCDEFGHIJKLM"])("throws for %j", (value) => {
+    expect(() => validateCodePrefix("prefix", value)).toThrow(WaffoPancakeError);
   });
 });
 

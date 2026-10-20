@@ -11,6 +11,9 @@ export { verifyWebhook } from "./webhooks.js";
 export {
   BillingPeriod,
   ChangeTiming,
+  CouponDiscountType,
+  CouponDuration,
+  CouponStatus,
   EntityStatus,
   Environment,
   ErrorLayer,
@@ -18,6 +21,7 @@ export {
   OnetimeOrderStatus,
   PaymentStatus,
   ProductVersionStatus,
+  PromotionCodeStatus,
   RefundStatus,
   RefundTicketStatus,
   ScanAction,
@@ -90,6 +94,19 @@ export type {
   PublishOnetimeProductParams,
   UpdateOnetimeProductParams,
   UpdateOnetimeStatusParams,
+
+  // Coupon & Promotion Code
+  CouponDetail,
+  CouponDiscount,
+  CreateCouponParams,
+  CreatePromotionCodeParams,
+  DeactivateCouponParams,
+  DeactivatePromotionCodeParams,
+  DiscountRestrictions,
+  GeneratePromotionCodesParams,
+  PromotionCodeDetail,
+  PromotionCodeRestrictions,
+  UpdateCouponParams,
 
   // Subscription Product
   CreateSubscriptionProductParams,
