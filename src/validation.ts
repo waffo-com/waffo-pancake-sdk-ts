@@ -166,7 +166,7 @@ export function validateBillingDetail(detail: { country: string; isBusiness: boo
  * (with any `allowPromotionCodes` value) is rejected here, as the platform would reject
  * it with a 400. `promotionCode` must be a non-empty string.
  */
-export function validateSessionDiscount(params: { couponId?: string; promotionCode?: string; allowPromotionCodes?: boolean }): void {
+function validateSessionDiscount(params: { couponId?: string; promotionCode?: string; allowPromotionCodes?: boolean }): void {
   if (params.promotionCode !== undefined) {
     if (typeof params.promotionCode !== "string") {
       fail(`Invalid promotionCode: expected a string, got ${typeof params.promotionCode}`);
