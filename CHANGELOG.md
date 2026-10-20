@@ -4,6 +4,31 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Merchants can create and manage coupons and promotion codes from their server, and apply them to checkout sessions for one-time products. **`checkout.createSession()` also starts validating its input locally** — see the BREAKING entry under Changed before upgrading.
+
+### Added
+
+- **`client.coupons`** — `create(params, options?)`, `update(params, options?)` (rename only), `deactivate(params, options?)` (permanent). The `code` of a coupon becomes its default promotion code.
+- **`client.promotionCodes`** — `create(params, options?)` (code optional, generated when omitted), `generate(params, options?)` (1–500 random codes; retry with the same idempotency key), `deactivate(params, options?)` (permanent; the code is released for reuse).
+- Types: `CouponDetail`, `CouponDiscount`, `CreateCouponParams`, `UpdateCouponParams`, `DeactivateCouponParams`, `DiscountRestrictions`, `PromotionCodeDetail`, `PromotionCodeRestrictions`, `CreatePromotionCodeParams`, `GeneratePromotionCodesParams`, `DeactivatePromotionCodeParams`; enums `CouponStatus`, `CouponDiscountType`, `CouponDuration`, `PromotionCodeStatus`.
+- Local validation of `CPN_` / `PMC_` IDs, of the code format (3–32 letters, digits or `-`), and that fixed amounts are greater than 0.
+- **`CreateCheckoutSessionParams.couponId` (optional `string`)** — apply a coupon (`CPN_xxx`) to the session; the discount is locked and the customer cannot change or remove it. Inherited by `AnonymousCheckoutParams` and `AuthenticatedCheckoutParams`. One-time products only for now; the platform answers 409 for a subscription product, and for a coupon that is not usable in this store, environment, product or currency.
+- **`CreateCheckoutSessionParams.allowPromotionCodes` (optional `boolean`)** — show a code entry field on the checkout page. Defaults to `false` for API Key sessions.
+- Local validation: `couponId` must be a `CPN_` Short ID, and `couponId` together with `allowPromotionCodes` (either value) throws `WaffoPancakeError` (400, `layer: "sdk"`) before the request is sent — the platform rejects the combination with a 400.
+
+### Changed
+
+- **BREAKING: `client.checkout.createSession()` now validates its input locally**, with the same rules as `checkout.anonymous.create()` and `checkout.authenticated.create()` (`productId`, `currency`, `priceSnapshot`, `billingDetail`, `expiresInSeconds`, `orderMerchantExternalId`, and the two discount fields above). Until now it was the one method that sent its params unchecked. A failed check throws `WaffoPancakeError` (400, `layer: "sdk"`) and no request is sent. Some of the input it now rejects passes the platform's request checks, before and after this release — calls that used to go through now throw instead:
+  - **`expiresInSeconds` that is `0`, negative or not an integer** (e.g. `0`, `-60`, `90.5`). The platform only requires a number; values outside 60–604800 are logged, not rejected.
+  - **`billingDetail` whose `country` is not two uppercase letters, or whose `isBusiness` is not a boolean** — including a `billingDetail` that leaves either field out (e.g. `{ country: "us" }`, `{ country: "US" }`). The platform accepts any object there and does not check its fields.
+  - **`priceSnapshot` without `taxCategory`, without `amount`, or with an `amount` that is not a plain decimal string** (e.g. `"9.99"` passes; `"-5"`, `"1e3"`, `" 9.99"`, `"9,99"` do not). The platform's request schema makes all three fields optional and does not check the format of `amount` (it is handed to currency conversion as is); a snapshot without `amount` is ignored.
+  - **`orderMerchantExternalId` longer than 128 characters before trimming but not after** (surrounding whitespace). The SDK counts the string as passed; the platform trims first and then applies the 1–128 limit. The reverse is not new: an empty or whitespace-only value passes the SDK and is still rejected by the platform with a 400.
+  - **`couponId` / `allowPromotionCodes`** — new fields, so nothing that worked before is affected.
+  - Not new: a malformed `productId` (not a `PROD_` Short ID) or `currency` (not three uppercase letters) was already a 400 from the platform; it is now the same 400 without a request.
+  - **What to do**: if you call `createSession()` directly, make sure the cases above cannot reach it, or catch `WaffoPancakeError` with `layer: "sdk"`. Calls through `checkout.anonymous.create()` / `checkout.authenticated.create()` are unaffected — they already ran these checks.
+
 ## [0.26.0] - 2026-10-10
 
 Customers signed in to a merchant's site can enter the store's customer portal without email verification.

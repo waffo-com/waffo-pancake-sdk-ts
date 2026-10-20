@@ -434,4 +434,89 @@ describe("checkout.createSession (low-level)", () => {
     expect(result.sessionId).toBe("cs_low");
     expect(mockFetch).toHaveBeenCalledOnce();
   });
+
+  it("should forward couponId and allowPromotionCodes in the request body", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: { sessionId: "cs_cpn", checkoutUrl: "https://pancake.waffo.ai/checkout/cs_cpn", expiresAt: "2026-04-02T10:00:00.000Z" },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.createSession({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      couponId: "CPN_0000000000000000000000",
+    });
+    await client.checkout.createSession({ productId: "PROD_0000000000000000000000", currency: "USD", allowPromotionCodes: true });
+
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body as string).couponId).toBe("CPN_0000000000000000000000");
+    expect(JSON.parse(mockFetch.mock.calls[1][1].body as string).allowPromotionCodes).toBe(true);
+  });
+
+  it("should validate params before sending", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    await expect(client.checkout.createSession({ productId: "bad", currency: "USD" })).rejects.toThrow(WaffoPancakeError);
+    await expect(
+      client.checkout.createSession({ productId: "PROD_0000000000000000000000", currency: "USD", couponId: "PMC_0000000000000000000000" }),
+    ).rejects.toThrow(/expected CPN_ prefix/);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should reject couponId together with allowPromotionCodes without sending", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    const error = await client.checkout
+      .createSession({
+        productId: "PROD_0000000000000000000000",
+        currency: "USD",
+        couponId: "CPN_0000000000000000000000",
+        allowPromotionCodes: false,
+      })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(WaffoPancakeError);
+    expect((error as WaffoPancakeError).status).toBe(400);
+    expect((error as WaffoPancakeError).errors[0].layer).toBe("sdk");
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
+
+describe("checkout discount params on the wrappers", () => {
+  it("should reject couponId together with allowPromotionCodes on anonymous and authenticated", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+    const params = {
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      couponId: "CPN_0000000000000000000000",
+      allowPromotionCodes: true,
+    };
+
+    await expect(client.checkout.anonymous.create(params)).rejects.toThrow(/mutually exclusive/);
+    await expect(client.checkout.authenticated.create({ ...params, buyerIdentity: "user-1" })).rejects.toThrow(/mutually exclusive/);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should send couponId to create-session only, not to issue-session-token", async () => {
+    const mockFetch = createMockFetch((url) =>
+      url.includes("issue-session-token")
+        ? { data: { token: "tok", expiresAt: "2026-04-02T10:00:00.000Z" } }
+        : { data: { sessionId: "cs_a", checkoutUrl: "https://pancake.waffo.ai/checkout/cs_a", expiresAt: "2026-04-02T10:00:00.000Z" } },
+    );
+    const client = createClient(mockFetch);
+
+    await client.checkout.authenticated.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      buyerIdentity: "user-1",
+      couponId: "CPN_0000000000000000000000",
+    });
+
+    const bodyFor = (path: string) =>
+      JSON.parse(mockFetch.mock.calls.find(([url]) => String(url).includes(path))![1].body as string) as Record<string, unknown>;
+    expect(bodyFor("create-session").couponId).toBe("CPN_0000000000000000000000");
+    expect(bodyFor("issue-session-token").couponId).toBeUndefined();
+  });
 });
