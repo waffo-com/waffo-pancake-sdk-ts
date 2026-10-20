@@ -941,6 +941,181 @@ export interface PublishSubscriptionProductGroupParams {
 }
 
 // ---------------------------------------------------------------------------
+// Coupon & Promotion Code — from waffo-pancake-product-service
+// ---------------------------------------------------------------------------
+
+/**
+ * Coupon status. `Pending` resolves automatically once the payment provider confirms;
+ * `Inactive` is permanent (a deactivated coupon cannot be re-enabled).
+ * @see docs/api-reference/endpoints/coupons/overview.mdx
+ */
+export enum CouponStatus {
+  Pending = "pending",
+  Active = "active",
+  Inactive = "inactive",
+  Failed = "failed",
+}
+
+/**
+ * Promotion code status. `Inactive` is permanent; the code is released and can be reused.
+ * @see docs/api-reference/endpoints/promotion-codes/overview.mdx
+ */
+export enum PromotionCodeStatus {
+  Active = "active",
+  Inactive = "inactive",
+}
+
+/**
+ * How a coupon discounts an order.
+ * @see docs/api-reference/endpoints/coupons/overview.mdx
+ */
+export enum CouponDiscountType {
+  Percentage = "percentage",
+  FixedAmount = "fixed_amount",
+}
+
+/**
+ * How long a coupon applies to a subscription: `Once` discounts one billing period,
+ * `Repeating` the number of periods in `durationInPeriods`, `Forever` every period until
+ * the subscription ends. Only periods with a price above zero count: a free trial uses none
+ * of them, and the discount starts with the first paid period; a paid trial is discounted
+ * and counts as the first period. With any duration, renewals charged after the coupon's
+ * `redeemBy` are charged the full price. One-time orders always use a coupon once.
+ * @see docs/api-reference/endpoints/coupons/overview.mdx
+ */
+export enum CouponDuration {
+  Once = "once",
+  Repeating = "repeating",
+  Forever = "forever",
+}
+
+/** Discount of a coupon: a percentage, or a fixed amount per currency (display format, e.g. `"5.00"`). */
+export type CouponDiscount =
+  | { type: CouponDiscountType.Percentage; percentOff: number }
+  | { type: CouponDiscountType.FixedAmount; amountOff: Record<string, string> };
+
+/** Buyer restrictions enforced by Pancake. */
+export interface DiscountRestrictions {
+  /** Only buyers making their first purchase in this store. */
+  firstTimeOnly?: boolean;
+  /** Only these buyer emails (case-insensitive). Empty means anyone. */
+  customerEmails?: string[];
+  /** Lifetime uses per buyer. `null` means unlimited. */
+  perCustomerLimit?: number | null;
+}
+
+/** Additional restrictions of a promotion code, enforced together with its coupon's rules. */
+export interface PromotionCodeRestrictions extends DiscountRestrictions {
+  /** Redemption limit of this code; must not exceed the coupon's `maxRedemptions`. */
+  maxRedemptions?: number | null;
+  /** Expiry (ISO 8601); must not be later than the coupon's `redeemBy`. Defaults to the coupon's `redeemBy`. */
+  expiresAt?: string | null;
+  /** Minimum pre-discount, pre-tax amount per currency (display format). Currencies not listed have no minimum. */
+  minimumAmount?: Record<string, string> | null;
+}
+
+/**
+ * Coupon detail. `code` is the buyer-facing code carried by the coupon's default promotion code.
+ * @see docs/api-reference/endpoints/coupons/overview.mdx
+ */
+export interface CouponDetail {
+  id: string;
+  storeId: string;
+  name: string;
+  code: string;
+  status: CouponStatus;
+  discountType: CouponDiscountType;
+  percentOff: number | null;
+  amountOff: Record<string, string> | null;
+  duration: CouponDuration;
+  durationInPeriods: number | null;
+  productIds: string[];
+  maxRedemptions: number | null;
+  dailyRedemptionLimit: number | null;
+  redeemBy: string | null;
+  restrictions: Required<DiscountRestrictions>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Parameters for creating a coupon. The `code` becomes the coupon's default promotion code.
+ * @see docs/api-reference/endpoints/coupons/create-coupon.mdx
+ */
+export interface CreateCouponParams {
+  storeId: string;
+  /** Internal name (≤ 64 characters), not visible to buyers. */
+  name: string;
+  /** 3–32 letters, digits or `-`; case-insensitive (stored uppercase). Unique among active codes of the store. */
+  code: string;
+  discount: CouponDiscount;
+  /** Defaults to `Once`. */
+  duration?: CouponDuration;
+  /** Required when `duration` is `Repeating`. */
+  durationInPeriods?: number | null;
+  /** Restricted products (`PROD_xxx`). Empty means the whole store. */
+  productIds?: string[];
+  /** Global redemption limit. `null` means unlimited. */
+  maxRedemptions?: number | null;
+  /** Per-buyer limit per UTC day. `null` means unlimited. */
+  dailyRedemptionLimit?: number | null;
+  /** Expiry (ISO 8601). Discounts already attached to subscriptions also end at this time. */
+  redeemBy?: string | null;
+  restrictions?: DiscountRestrictions;
+}
+
+/** Parameters for renaming a coupon. The name is the only field that can change. */
+export interface UpdateCouponParams {
+  id: string;
+  name: string;
+}
+
+/** Parameters for deactivating a coupon (permanent). */
+export interface DeactivateCouponParams {
+  id: string;
+}
+
+/**
+ * Promotion code detail.
+ * @see docs/api-reference/endpoints/promotion-codes/overview.mdx
+ */
+export interface PromotionCodeDetail {
+  id: string;
+  couponId: string;
+  code: string;
+  status: PromotionCodeStatus;
+  restrictions: Required<PromotionCodeRestrictions>;
+  batchId: string | null;
+  createdAt: string;
+}
+
+/** Parameters for creating one promotion code. A random code is generated when `code` is omitted. */
+export interface CreatePromotionCodeParams {
+  couponId: string;
+  code?: string;
+  restrictions?: PromotionCodeRestrictions;
+}
+
+/**
+ * Parameters for generating promotion codes in bulk (1–500, synchronous).
+ * Always retry with the same idempotency key; a retry without it generates another batch.
+ */
+export interface GeneratePromotionCodesParams {
+  couponId: string;
+  count: number;
+  /** Code prefix, 1–12 letters, digits or `-`. */
+  prefix?: string;
+  /** Length of the random part, 8–16. Defaults to 10. */
+  length?: number;
+  restrictions?: PromotionCodeRestrictions;
+}
+
+/** Parameters for deactivating a promotion code (permanent). The coupon's own code cannot be deactivated alone. */
+export interface DeactivatePromotionCodeParams {
+  id: string;
+}
+
+// ---------------------------------------------------------------------------
 // Order — from waffo-pancake-order-service
 // ---------------------------------------------------------------------------
 
@@ -1082,6 +1257,28 @@ export interface CreateCheckoutSessionParams {
    * Mutually exclusive with {@link CreateCheckoutSessionParams.includePaymentMethods}.
    */
   excludePaymentMethods?: PaymentMethod[];
+  /**
+   * Coupon to apply to this session (Short ID, `CPN_xxx` — the Pancake coupon ID, not
+   * the payment provider's). The discount is locked: the customer sees it applied but
+   * cannot change or remove it, and no code entry field is shown. Works for one-time
+   * products and new subscriptions; plan changes do not take discounts yet. On a
+   * subscription the coupon's {@link CouponDuration} decides how many billing periods
+   * are discounted.
+   * The platform rejects a coupon from another store or environment, one that is not
+   * `active` or expires within 60 seconds, one not covering the product, and a fixed
+   * amount coupon with no amount for {@link CreateCheckoutSessionParams.currency}, with
+   * a 409. Rules tied to the customer are checked when the order is placed.
+   *
+   * Mutually exclusive with {@link CreateCheckoutSessionParams.allowPromotionCodes}.
+   */
+  couponId?: string;
+  /**
+   * Show a code entry field on the checkout page, where the customer can enter a coupon
+   * code or promotion code (default `false` for sessions created with the API Key).
+   *
+   * Mutually exclusive with {@link CreateCheckoutSessionParams.couponId}.
+   */
+  allowPromotionCodes?: boolean;
 }
 
 /** Result of creating a checkout session. */
@@ -1499,8 +1696,8 @@ export enum WebhookEventType {
  * @see docs/api-reference/webhooks.mdx
  */
 /**
- * Amount breakdown of the object a webhook event refers to: the list price behind a charge, the
- * original payment behind a refund, or the plan price behind a subscription status change.
+ * Amount breakdown of the object a webhook event refers to: the price snapshot behind a charge,
+ * the original payment behind a refund, or the plan price behind a subscription status change.
  *
  * Money fields are display strings, already converted from minor units (e.g. "29.00" for USD,
  * "4500" for JPY). The block never uses the name `amount` — that name is reserved for the
@@ -1517,6 +1714,26 @@ export interface WebhookAmountBreakdown {
   taxRate?: number;
   /** Tax name (e.g., "Consumption Tax") */
   taxName?: string;
+  /**
+   * Price before the discount, tax included.
+   *
+   * Only in `listPrice` and `originalPayment`, and only when that payment was recorded with the
+   * discount fields — payments recorded before these keys were introduced do not carry them.
+   * Never in `planPrice`, which is always the list price before any discount. When present,
+   * `listTotal - discountAmount = total`: `total` is the amount expected for that payment after
+   * the discount. Without a discount `listTotal` equals `total`.
+   */
+  listTotal?: string;
+  /**
+   * Discount applied to that payment, tax included. Zero in display format (e.g. "0.00" for USD,
+   * "0" for JPY) when no discount applies.
+   *
+   * Present under the same conditions as {@link WebhookAmountBreakdown.listTotal}. With a
+   * discount, `total` and `taxAmount` are the discounted amounts while `subtotal` stays the
+   * pre-discount amount excluding tax, so `subtotal + taxAmount` does not equal `total` — use
+   * `listTotal - discountAmount = total` instead.
+   */
+  discountAmount?: string;
 }
 
 export interface WebhookEventData {
@@ -1611,7 +1828,9 @@ export interface WebhookEventData {
 
   // Amount — the object this event's figure refers to
   /**
-   * List price snapshot taken when the order was placed.
+   * Price snapshot recorded for this payment. With a coupon or promotion code, `total` is the
+   * discounted amount expected for the payment, and `listTotal` / `discountAmount` give the price
+   * before the discount and the discount itself (when the payment was recorded with them).
    *
    * Only on payment events. Absent when the order carries no amount snapshot.
    */
@@ -1622,19 +1841,24 @@ export interface WebhookEventData {
    * Only on refund events, and only when the channel reported an amount for that payment — the
    * key is absent otherwise, never zero-filled. This is the ceiling a refund can reach: it is
    * what the buyer was really charged, whereas {@link WebhookEventData.originalPayment}`.total`
-   * is the list price snapshot taken when the order was placed. The two differ when a prorated
-   * credit or a zero-amount card check applied to that payment, and refunding up to the list
-   * price is then rejected by the channel.
+   * is the amount expected for that payment, after any discount (the price before the discount
+   * is its `listTotal`). The two differ when a prorated credit or a zero-amount card check
+   * applied to that payment, and refunding up to the expected amount is then rejected by the
+   * channel.
    */
   originalChargedAmount?: string;
   /**
-   * The payment being refunded, as it was originally charged.
+   * The payment being refunded, as it was originally charged. Carries `listTotal` /
+   * `discountAmount` when that payment was recorded with them, read the same way as in
+   * {@link WebhookEventData.listPrice}.
    *
    * Only on refund events. Absent when that payment carries no amount snapshot.
    */
   originalPayment?: WebhookAmountBreakdown;
   /**
-   * The subscription's list price for the current phase.
+   * The subscription's list price for the current phase, always before any coupon discount — it
+   * never carries `listTotal` / `discountAmount`. The discounted amount of a charge is in
+   * {@link WebhookEventData.listPrice} on `subscription.payment_succeeded`.
    *
    * Only on subscription status events (every `subscription.*` event except
    * `subscription.payment_succeeded`). Absent when the subscription carries no price snapshot.

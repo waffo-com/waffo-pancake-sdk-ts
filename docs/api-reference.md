@@ -546,6 +546,111 @@ const { group } = await client.subscriptionProductGroups.publish({ id: "spg_xxx"
 
 ---
 
+## Coupons
+
+A coupon defines a discount; the `code` you set on it becomes its default promotion code, the code buyers type. Add more codes with [`promotionCodes`](#promotion-codes). Codes are 3–32 letters, digits or `-`, case-insensitive (stored uppercase), and unique among the store's **active** codes in the same environment; a deactivated code is released and can be reused. Deactivation is permanent. Only the name of a coupon can change — create a new coupon to change the discount.
+
+Server-side only: requests are signed with your private key. List and read coupons with [`client.graphql.query`](#graphql) (`coupons`, `couponsCount`, `coupon`).
+
+### `client.coupons.create(params, options?)`
+
+```typescript
+import { CouponDiscountType, CouponDuration } from "@waffo/pancake-ts";
+
+const { coupon } = await client.coupons.create(
+  {
+    storeId: "STO_xxx",
+    name: "Black Friday 20% off",
+    code: "BF2026",
+    discount: { type: CouponDiscountType.Percentage, percentOff: 20 },
+    duration: CouponDuration.Repeating,
+    durationInPeriods: 3,
+    maxRedemptions: 1000,
+  },
+  { idempotencyKey: "coupon-bf2026" },
+);
+// coupon.status => CouponStatus.Active (or CouponStatus.Pending while the payment provider is confirming; it resolves automatically)
+```
+
+**Parameters `CreateCouponParams`**:
+
+| Field                  | Type                   | Required         | Description                                                                                                                                                     |
+| ---------------------- | ---------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `storeId`              | `string`               | Yes              | Store ID                                                                                                                                                        |
+| `name`                 | `string`               | Yes              | Internal name (≤ 64 characters), not visible to buyers                                                                                                          |
+| `code`                 | `string`               | Yes              | Buyer-facing code                                                                                                                                               |
+| `discount`             | `CouponDiscount`       | Yes              | `{ type: CouponDiscountType.Percentage, percentOff }` (0 < x ≤ 100) or `{ type: CouponDiscountType.FixedAmount, amountOff: { USD: "5.00" } }` (each amount > 0) |
+| `duration`             | `CouponDuration`       | No               | `Once` (default), `Repeating` or `Forever` — how many subscription periods get the discount                                                                     |
+| `durationInPeriods`    | `number`               | When `Repeating` | Number of billing periods                                                                                                                                       |
+| `productIds`           | `string[]`             | No               | Restrict to these products; empty means the whole store                                                                                                         |
+| `maxRedemptions`       | `number \| null`       | No               | Global redemption limit; refunds do not give uses back                                                                                                          |
+| `dailyRedemptionLimit` | `number \| null`       | No               | Per-buyer limit per UTC day                                                                                                                                     |
+| `redeemBy`             | `string \| null`       | No               | Expiry (ISO 8601). Discounts already attached to subscriptions also end at this time                                                                            |
+| `restrictions`         | `DiscountRestrictions` | No               | `firstTimeOnly`, `customerEmails`, `perCustomerLimit`                                                                                                           |
+
+**Returns `{ coupon: CouponDetail }`**. Errors: 409 when the code is taken (also when retrying **without** the idempotency key, because the first request already took it), 502 when the payment provider rejects the coupon (its code is released).
+
+### `client.coupons.update(params, options?)`
+
+Rename a coupon — the only field that can change.
+
+```typescript
+const { coupon } = await client.coupons.update({ id: "CPN_xxx", name: "Black Friday (extended)" });
+```
+
+### `client.coupons.deactivate(params, options?)`
+
+Deactivate permanently. All its promotion codes are deactivated and their codes released. Discounts already attached to subscriptions continue until the subscription's next plan change. Calling it again returns the coupon unchanged.
+
+```typescript
+const { coupon } = await client.coupons.deactivate({ id: "CPN_xxx" });
+```
+
+---
+
+## Promotion Codes
+
+Promotion codes point to a coupon and can add restrictions on top of the coupon's own rules.
+
+### `client.promotionCodes.create(params, options?)`
+
+```typescript
+const { promotionCode } = await client.promotionCodes.create({
+  couponId: "CPN_xxx",
+  code: "KOL-ALICE", // optional; a random code is generated when omitted
+  restrictions: { maxRedemptions: 100, minimumAmount: { USD: "50.00" } },
+});
+```
+
+**`PromotionCodeRestrictions`**: `firstTimeOnly`, `customerEmails`, `perCustomerLimit`, `maxRedemptions` (≤ the coupon's), `expiresAt` (≤ the coupon's `redeemBy`; defaults to it), `minimumAmount` (pre-discount, pre-tax amount per currency; currencies not listed have no minimum).
+
+**Returns `{ promotionCode: PromotionCodeDetail }`**. Errors: 409 when the code is taken or the coupon is not `Active`.
+
+### `client.promotionCodes.generate(params, options?)`
+
+Generate 1–500 random codes in one call. Random parts use letters and digits without `0 O 1 I L`.
+
+```typescript
+const { batchId, promotionCodes } = await client.promotionCodes.generate(
+  { couponId: "CPN_xxx", count: 100, prefix: "KOL-", length: 10, restrictions: { maxRedemptions: 1 } },
+  { idempotencyKey: "kol-batch-2026-11" },
+);
+```
+
+> **Always retry with the same idempotency key.** Codes are random, so a retry without it generates another batch.
+
+**Returns `{ batchId: string, promotionCodes: PromotionCodeDetail[] }`**
+
+### `client.promotionCodes.deactivate(params, options?)`
+
+Deactivate permanently and release the code. The coupon's own code can only be deactivated together with the coupon (409).
+
+```typescript
+const { promotionCode } = await client.promotionCodes.deactivate({ id: "PMC_xxx" });
+```
+
+---
+
 ## Orders
 
 ### `client.orders.cancelSubscription(params)`
@@ -757,21 +862,23 @@ const subResult = await client.checkout.authenticated.create({
 
 **Parameters `AuthenticatedCheckoutParams`**:
 
-| Field                     | Type                     | Required | Description                                                                                                                                                                                                                                                                                                                                                                    |
-| ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                                                                                                                                                                                                         |
-| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                                                                                                                                                                                                       |
-| `buyerIdentity`           | `string`                 | Yes      | Customer identity (email or merchant-defined identifier)                                                                                                                                                                                                                                                                                                                       |
-| `buyerEmail`              | `string`                 | No       | Pre-fill checkout page email field (independent from `buyerIdentity`)                                                                                                                                                                                                                                                                                                          |
-| `billingDetail`           | `BillingDetail`          | No       | Pre-filled billing details. Passing this couples the cashier to the order's billing country: it then offers only that country's payment market and the customer cannot switch. The country that applies is the one on the finished order, not the one you sent; a country outside the payment markets we cover applies no restriction. Omit to leave the cashier unrestricted. |
-| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                                                                                                                                                                                                             |
-| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                                                                                                                                                                                                        |
-| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                                                                                                                                                                                                          |
-| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 24 hours, recommended: 60 to 604800 / 1 min to 7 days)                                                                                                                                                                                                                                                                                     |
-| `darkMode`                | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)                                                                                                                                                                                                                                                                                                                |
-| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                                                                                                                                                                                                                |
-| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Surfaces under the same name on `Order` / `Payment` / `Refund` GraphQL types and in webhook payload (`data.orderMerchantExternalId`).                                                                                                                                                                                     |
-| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                                                                                                                                                                                                              |
+| Field                     | Type                     | Required | Description                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                                                                                                                                                                                                                      |
+| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                                                                                                                                                                                                                    |
+| `buyerIdentity`           | `string`                 | Yes      | Customer identity (email or merchant-defined identifier)                                                                                                                                                                                                                                                                                                                                    |
+| `buyerEmail`              | `string`                 | No       | Pre-fill checkout page email field (independent from `buyerIdentity`)                                                                                                                                                                                                                                                                                                                       |
+| `billingDetail`           | `BillingDetail`          | No       | Pre-filled billing details. Passing this couples the cashier to the order's billing country: it then offers only that country's payment market and the customer cannot switch. The country that applies is the one on the finished order, not the one you sent; a country outside the payment markets we cover applies no restriction. Omit to leave the cashier unrestricted.              |
+| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                                                                                                                                                                                                                          |
+| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                                                                                                                                                                                                                     |
+| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                                                                                                                                                                                                                       |
+| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 24 hours, recommended: 60 to 604800 / 1 min to 7 days)                                                                                                                                                                                                                                                                                                  |
+| `darkMode`                | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)                                                                                                                                                                                                                                                                                                                             |
+| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                                                                                                                                                                                                                             |
+| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Surfaces under the same name on `Order` / `Payment` / `Refund` GraphQL types and in webhook payload (`data.orderMerchantExternalId`).                                                                                                                                                                                                  |
+| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                                                                                                                                                                                                                           |
+| `couponId`                | `string`                 | No       | Coupon to apply (`CPN_xxx`, from `client.coupons.create`). Locked: the customer sees the discount but cannot change or remove it, and no code entry field is shown. One-time products and new subscriptions (on a subscription the coupon's `duration` sets how many billing periods are discounted; plan changes do not take discounts yet). Mutually exclusive with `allowPromotionCodes` |
+| `allowPromotionCodes`     | `boolean`                | No       | Show a code entry field where the customer can enter a coupon or promotion code. Default `false` for API Key sessions. Mutually exclusive with `couponId`                                                                                                                                                                                                                                   |
 
 **Returns `AuthenticatedCheckoutResult`**:
 
@@ -806,18 +913,20 @@ const snapshotResult = await client.checkout.anonymous.create({
 
 **Parameters `AnonymousCheckoutParams`**:
 
-| Field                     | Type                     | Required | Description                                                                                                                                                                                                   |
-| ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                                        |
-| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                                      |
-| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                                            |
-| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                                       |
-| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                                         |
-| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 24 hours, recommended: 60 to 604800 / 1 min to 7 days)                                                                                                                    |
-| `darkMode`                | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)                                                                                                                                               |
-| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                                               |
-| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Honored on the API Key path; visitor / store-slug flows silently drop it. Same field name in webhook payload and GraphQL `Order` / `Payment` / `Refund`. |
-| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                                             |
+| Field                     | Type                     | Required | Description                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                                                                                                                                                                                                                      |
+| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                                                                                                                                                                                                                    |
+| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                                                                                                                                                                                                                          |
+| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                                                                                                                                                                                                                     |
+| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                                                                                                                                                                                                                       |
+| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 24 hours, recommended: 60 to 604800 / 1 min to 7 days)                                                                                                                                                                                                                                                                                                  |
+| `darkMode`                | `boolean`                | No       | Dark mode override (true=dark, false=light, omit=store default)                                                                                                                                                                                                                                                                                                                             |
+| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                                                                                                                                                                                                                             |
+| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Honored on the API Key path; visitor / store-slug flows silently drop it. Same field name in webhook payload and GraphQL `Order` / `Payment` / `Refund`.                                                                                                                                                                               |
+| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                                                                                                                                                                                                                           |
+| `couponId`                | `string`                 | No       | Coupon to apply (`CPN_xxx`, from `client.coupons.create`). Locked: the customer sees the discount but cannot change or remove it, and no code entry field is shown. One-time products and new subscriptions (on a subscription the coupon's `duration` sets how many billing periods are discounted; plan changes do not take discounts yet). Mutually exclusive with `allowPromotionCodes` |
+| `allowPromotionCodes`     | `boolean`                | No       | Show a code entry field where the customer can enter a coupon or promotion code. Default `false` for API Key sessions. Mutually exclusive with `couponId`                                                                                                                                                                                                                                   |
 
 **Returns `CheckoutSessionResult`**:
 
@@ -908,20 +1017,32 @@ const session = await client.checkout.createSession({
 
 **Parameters `CreateCheckoutSessionParams`**:
 
-| Field                     | Type                     | Required | Description                                                                                                                                                                                                                                                                                                                                                                    |
-| ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                                                                                                                                                                                                         |
-| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                                                                                                                                                                                                       |
-| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                                                                                                                                                                                                             |
-| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                                                                                                                                                                                                        |
-| `buyerEmail`              | `string`                 | No       | Pre-filled customer email                                                                                                                                                                                                                                                                                                                                                      |
-| `billingDetail`           | `BillingDetail`          | No       | Pre-filled billing details. Passing this couples the cashier to the order's billing country: it then offers only that country's payment market and the customer cannot switch. The country that applies is the one on the finished order, not the one you sent; a country outside the payment markets we cover applies no restriction. Omit to leave the cashier unrestricted. |
-| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                                                                                                                                                                                                          |
-| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 24 hours, recommended: 60 to 604800 / 1 min to 7 days)                                                                                                                                                                                                                                                                                     |
-| `darkMode`                | `boolean`                | No       | Dark mode override                                                                                                                                                                                                                                                                                                                                                             |
-| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                                                                                                                                                                                                                |
-| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Honored on the API Key (merchant) path; visitor / store-slug flows silently drop it. Same field name in webhook payload and GraphQL.                                                                                                                                                                                      |
-| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                                                                                                                                                                                                              |
+| Field                     | Type                     | Required | Description                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------- | ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `productId`               | `string`                 | Yes      | Product ID (product type is auto-detected server-side)                                                                                                                                                                                                                                                                                                                                      |
+| `currency`                | `string`                 | Yes      | Currency code (ISO 4217)                                                                                                                                                                                                                                                                                                                                                                    |
+| `priceSnapshot`           | `PriceInfo`              | No       | Price snapshot override (reads from DB if omitted)                                                                                                                                                                                                                                                                                                                                          |
+| `withTrial`               | `boolean`                | No       | Enable trial period (subscription only)                                                                                                                                                                                                                                                                                                                                                     |
+| `buyerEmail`              | `string`                 | No       | Pre-filled customer email                                                                                                                                                                                                                                                                                                                                                                   |
+| `billingDetail`           | `BillingDetail`          | No       | Pre-filled billing details. Passing this couples the cashier to the order's billing country: it then offers only that country's payment market and the customer cannot switch. The country that applies is the one on the finished order, not the one you sent; a country outside the payment markets we cover applies no restriction. Omit to leave the cashier unrestricted.              |
+| `successUrl`              | `string`                 | No       | Redirect URL after successful payment                                                                                                                                                                                                                                                                                                                                                       |
+| `expiresInSeconds`        | `number`                 | No       | Session expiry in seconds (default: 24 hours, recommended: 60 to 604800 / 1 min to 7 days)                                                                                                                                                                                                                                                                                                  |
+| `darkMode`                | `boolean`                | No       | Dark mode override                                                                                                                                                                                                                                                                                                                                                                          |
+| `metadata`                | `Record<string, string>` | No       | Custom metadata                                                                                                                                                                                                                                                                                                                                                                             |
+| `orderMerchantExternalId` | `string`                 | No       | Your business-side order identifier (max 128 chars). Honored on the API Key (merchant) path; visitor / store-slug flows silently drop it. Same field name in webhook payload and GraphQL.                                                                                                                                                                                                   |
+| `language`                | `string`                 | No       | Default checkout cashier language (IETF BCP 47), e.g. `pt-BR`, `zh-Hant-TW`. Must be one of the supported cashier languages; the customer can switch on the page.                                                                                                                                                                                                                           |
+| `couponId`                | `string`                 | No       | Coupon to apply (`CPN_xxx`, from `client.coupons.create`). Locked: the customer sees the discount but cannot change or remove it, and no code entry field is shown. One-time products and new subscriptions (on a subscription the coupon's `duration` sets how many billing periods are discounted; plan changes do not take discounts yet). Mutually exclusive with `allowPromotionCodes` |
+| `allowPromotionCodes`     | `boolean`                | No       | Show a code entry field where the customer can enter a coupon or promotion code. Default `false` for API Key sessions. Mutually exclusive with `couponId`                                                                                                                                                                                                                                   |
+
+`couponId` and `allowPromotionCodes` are checked by every checkout method: a `couponId` without the `CPN_` prefix, or both fields together (with either `allowPromotionCodes` value), throws `WaffoPancakeError` (400, `layer: "sdk"`) before any request is sent. The platform answers 409 for a coupon from another store or environment, one that is not `active`, expires within 60 seconds, does not cover the product, or has no fixed amount in the session currency; the message names the reason. Rules tied to the customer are checked when the order is placed.
+
+```typescript
+// Locked coupon
+await client.checkout.createSession({ productId: "PROD_xxx", currency: "USD", couponId: "CPN_xxx" });
+
+// Code entry field on the checkout page
+await client.checkout.createSession({ productId: "PROD_xxx", currency: "USD", allowPromotionCodes: true });
+```
 
 **`BillingDetail` fields**:
 
@@ -1058,6 +1179,22 @@ All exported type interfaces:
 | `UpdateSubscriptionProductGroupParams`  | Update request (`productIds` = full replacement)                                                  |
 | `DeleteSubscriptionProductGroupParams`  | Delete request                                                                                    |
 | `PublishSubscriptionProductGroupParams` | Publish test → prod                                                                               |
+| **Coupon & Promotion Code**             |                                                                                                   |
+| `CouponStatus`                          | Coupon status (`Pending` / `Active` / `Inactive` / `Failed`)                                      |
+| `CouponDiscountType`                    | Discount type (`Percentage` / `FixedAmount`)                                                      |
+| `CouponDuration`                        | Subscription periods that get the discount (`Once` / `Repeating` / `Forever`)                     |
+| `CouponDiscount`                        | Discount of a coupon (percentage or fixed amount per currency)                                    |
+| `DiscountRestrictions`                  | Buyer restrictions (`firstTimeOnly` / `customerEmails` / `perCustomerLimit`)                      |
+| `CouponDetail`                          | Coupon entity                                                                                     |
+| `CreateCouponParams`                    | Create request (`code` becomes the default promotion code)                                        |
+| `UpdateCouponParams`                    | Rename request                                                                                    |
+| `DeactivateCouponParams`                | Deactivate request (permanent)                                                                    |
+| `PromotionCodeStatus`                   | Promotion code status (`Active` / `Inactive`)                                                     |
+| `PromotionCodeRestrictions`             | Coupon restrictions plus `maxRedemptions` / `expiresAt` / `minimumAmount`                         |
+| `PromotionCodeDetail`                   | Promotion code entity                                                                             |
+| `CreatePromotionCodeParams`             | Create request (`code` optional)                                                                  |
+| `GeneratePromotionCodesParams`          | Bulk generate request (1–500 codes)                                                               |
+| `DeactivatePromotionCodeParams`         | Deactivate request (permanent)                                                                    |
 | **Order**                               |                                                                                                   |
 | `CancelSubscriptionParams`              | Cancel subscription request                                                                       |
 | `CancelSubscriptionResult`              | Cancel subscription response                                                                      |
