@@ -33,9 +33,9 @@ function createClient(mockFetch: ReturnType<typeof vi.fn>) {
 }
 
 describe("coupons.create", () => {
-  it("posts to create-coupon with promotion codes and forwards the idempotency key", async () => {
+  it("posts to create-coupon with the coupon code and promotion codes and forwards the idempotency key", async () => {
     const mockFetch = createMockFetch(() => ({
-      data: { coupon: { id: COUPON_ID, status: "active", promotionCodes: [{ id: PROMOTION_CODE_ID, code: "BF2026" }] } },
+      data: { coupon: { id: COUPON_ID, code: "BF2026", status: "active", promotionCodes: [{ id: PROMOTION_CODE_ID, code: "BF-VIP" }] } },
     }));
     const client = createClient(mockFetch);
 
@@ -46,26 +46,32 @@ describe("coupons.create", () => {
         discount: { type: CouponDiscountType.Percentage, percentOff: 20 },
         duration: CouponDuration.Repeating,
         durationInPeriods: 3,
-        promotionCodes: [{ code: "bf2026" }, { restrictions: { maxRedemptions: 100 } }],
+        code: "bf2026",
+        maxRedemptions: 1000,
+        promotionCodes: [{ code: "bf-vip" }, { restrictions: { maxRedemptions: 100, dailyRedemptionLimit: 1 } }],
       },
       { idempotencyKey: "coupon-bf2026" },
     );
 
     expect(coupon.id).toBe(COUPON_ID);
-    expect(coupon.promotionCodes[0].code).toBe("BF2026");
+    expect(coupon.code).toBe("BF2026");
+    expect(coupon.promotionCodes[0].code).toBe("BF-VIP");
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.test.com/v1/actions/coupon/create-coupon");
     const body = JSON.parse(options.body as string);
     expect(body).toMatchObject({
+      code: "bf2026",
+      maxRedemptions: 1000,
       discount: { type: "percentage", percentOff: 20 },
-      promotionCodes: [{ code: "bf2026" }, { restrictions: { maxRedemptions: 100 } }],
+      promotionCodes: [{ code: "bf-vip" }, { restrictions: { maxRedemptions: 100, dailyRedemptionLimit: 1 } }],
     });
-    expect(body).not.toHaveProperty("code");
     expect((options.headers as Record<string, string>)["X-Idempotency-Key"]).toBe("coupon-bf2026");
   });
 
   it.each([
+    ["invalid coupon code", { code: "a_b" }],
     ["invalid promotion code", { promotionCodes: [{ code: "a_b" }] }],
+    ["promotion code repeating the coupon code (case-insensitive)", { code: "bf2026", promotionCodes: [{ code: "BF2026" }] }],
     ["duplicate promotion codes (case-insensitive)", { promotionCodes: [{ code: "vip-01" }, { code: "VIP-01" }] }],
     ["more than 20 promotion codes", { promotionCodes: Array.from({ length: 21 }, () => ({})) }],
     ["promotionCodes that is not an array", { promotionCodes: { code: "BF2026" } }],
@@ -105,6 +111,8 @@ describe("coupons.create", () => {
     });
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
+    // code omitted: the platform generates one
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body as string)).not.toHaveProperty("code");
   });
 
   it("accepts 20 promotion codes, codes omitted or given", async () => {

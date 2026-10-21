@@ -28,13 +28,15 @@ export class CouponsResource {
   constructor(private readonly http: HttpClient) {}
 
   /**
-   * Create a coupon, optionally with up to 20 promotion codes in the same request.
+   * Create a coupon with its own code, optionally with up to 20 promotion codes in the same request.
    *
-   * Buyers enter promotion codes; `couponId` applies the coupon without a code. The returned `status` is always
-   * `active` and `coupon.promotionCodes` lists the codes created with it. When the payment provider rejects the
-   * coupon or does not confirm it, the request fails with 502 and every code is released, so it can be created
-   * again with the same codes. A code already used by an active promotion code of the store fails with 409 and
-   * the message names it. If the request itself fails on your side (timeout, network), retry with the same
+   * Buyers enter the coupon's `code` (random when omitted) or one of its promotion codes; `couponId` applies the
+   * coupon without a code. A coupon only limits redemptions by `redeemBy` and `maxRedemptions`; put buyer
+   * restrictions (first purchase, emails, per-buyer and daily limits, minimum amount) on promotion codes. The
+   * returned `status` is always `active` and `coupon.promotionCodes` lists the codes created with it. When the
+   * payment provider rejects the coupon or does not confirm it, the request fails with 502 and every code is
+   * released, so it can be created again with the same codes. A code already used by an active code of the store
+   * fails with 409 and the message names it. If the request itself fails on your side (timeout, network), retry with the same
    * idempotency key: a creation that succeeded is returned instead of a 409 for the codes it already took.
    *
    * @param params - Coupon creation parameters
@@ -48,30 +50,38 @@ export class CouponsResource {
    *     discount: { type: CouponDiscountType.Percentage, percentOff: 20 },
    *     duration: CouponDuration.Repeating,
    *     durationInPeriods: 3,
-   *     promotionCodes: [{ code: "BF2026" }, { restrictions: { maxRedemptions: 100, firstTimeOnly: true } }],
+   *     code: "BF2026",
+   *     maxRedemptions: 1000,
+   *     promotionCodes: [{ code: "BF-VIP" }, { restrictions: { firstTimeOnly: true, dailyRedemptionLimit: 1 } }],
    *   },
    *   { idempotencyKey: "coupon-bf2026" },
    * );
-   * // coupon.promotionCodes.map((p) => p.code) => ["BF2026", "X7K2M9PQ4R"]
+   * // coupon.code => "BF2026"
+   * // coupon.promotionCodes.map((p) => p.code) => ["BF-VIP", "X7K2M9PQ4R"]
    *
    * @example
-   * // No promotion codes: apply the coupon with `couponId` on checkout sessions
+   * // No code given: a random one is generated; the coupon can also be applied with `couponId`
    * const { coupon } = await client.coupons.create({
    *   storeId: "STO_xxx",
    *   name: "Partner discount",
    *   discount: { type: CouponDiscountType.FixedAmount, amountOff: { USD: "5.00" } },
    * });
-   * // coupon.promotionCodes => []
+   * // coupon.code => "K7Q2M9X4PA", coupon.promotionCodes => []
    */
   async create(params: CreateCouponParams, options?: RequestOptions): Promise<{ coupon: CreatedCouponDetail; warnings?: Notice[] }> {
     validateShortId("storeId", params.storeId, "STO");
     validateRequired("name", params.name);
     validateMaxLength("name", params.name.trim(), 64);
+    // The coupon's code and its promotion codes share the store's code namespace, so they cannot repeat in a request
+    const seen = new Set<string>();
+    if (params.code !== undefined) {
+      validateDiscountCode("code", params.code);
+      seen.add(params.code.trim().toUpperCase());
+    }
     if (params.promotionCodes !== undefined) {
       if (!Array.isArray(params.promotionCodes) || params.promotionCodes.length > 20) {
         throw new WaffoPancakeError(400, [{ message: "Invalid promotionCodes: expected an array of at most 20 entries", layer: "sdk" }]);
       }
-      const seen = new Set<string>();
       params.promotionCodes.forEach((promotionCode, index) => {
         if (promotionCode?.code === undefined) return;
         validateDiscountCode(`promotionCodes[${index}].code`, promotionCode.code);

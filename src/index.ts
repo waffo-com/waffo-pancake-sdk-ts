@@ -104,7 +104,6 @@ export type {
   CreatePromotionCodeParams,
   DeactivateCouponParams,
   DeactivatePromotionCodeParams,
-  DiscountRestrictions,
   GeneratePromotionCodesParams,
   PromotionCodeDetail,
   PromotionCodeRestrictions,

@@ -632,7 +632,7 @@ await client.subscriptionProductGroups.delete({ id: group.id });
 
 ### Coupons & Promotion Codes
 
-A coupon defines the discount; buyers type one of its promotion codes. Create codes together with the coupon (`promotionCodes`, up to 20) or later with `client.promotionCodes`; a coupon applied with `couponId` needs no code. Deactivation is permanent and releases the codes for reuse. Read coupons with `client.graphql.query` (`coupons`, `coupon`, `promotionCodes`).
+A coupon defines the discount and has its own `code` (random when omitted) that buyers can type; its only limits are `redeemBy` and `maxRedemptions`. Promotion codes carry buyer restrictions (first purchase, emails, per-buyer and daily limits, minimum amount): create them together with the coupon (`promotionCodes`, up to 20) or later with `client.promotionCodes`. A coupon applied with `couponId` needs no code. Deactivation is permanent and releases the codes for reuse. Read coupons with `client.graphql.query` (`coupons`, `coupon`, `promotionCodes`).
 
 ```typescript
 import { CouponDiscountType, CouponDuration } from "@waffo/pancake-ts";
@@ -644,7 +644,8 @@ const { coupon } = await client.coupons.create(
     discount: { type: CouponDiscountType.Percentage, percentOff: 20 },
     duration: CouponDuration.Repeating,
     durationInPeriods: 3,
-    promotionCodes: [{ code: "BF2026" }],
+    code: "BF2026",
+    promotionCodes: [{ code: "BF-NEW", restrictions: { firstTimeOnly: true, dailyRedemptionLimit: 1 } }],
   },
   { idempotencyKey: "coupon-bf2026" },
 );

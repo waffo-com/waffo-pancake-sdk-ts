@@ -993,18 +993,19 @@ export type CouponDiscount =
   | { type: CouponDiscountType.Percentage; percentOff: number }
   | { type: CouponDiscountType.FixedAmount; amountOff: Record<string, string> };
 
-/** Buyer restrictions enforced by Pancake. */
-export interface DiscountRestrictions {
+/**
+ * Redemption restrictions of a promotion code, enforced by Pancake together with its coupon's `redeemBy` and
+ * `maxRedemptions` (the only limits a coupon has).
+ */
+export interface PromotionCodeRestrictions {
   /** Only buyers making their first purchase in this store. */
   firstTimeOnly?: boolean;
   /** Only these buyer emails (case-insensitive). Empty means anyone. */
   customerEmails?: string[];
-  /** Lifetime uses per buyer. `null` means unlimited. */
+  /** Lifetime uses of this code per buyer. `null` means unlimited. */
   perCustomerLimit?: number | null;
-}
-
-/** Additional restrictions of a promotion code, enforced together with its coupon's rules. */
-export interface PromotionCodeRestrictions extends DiscountRestrictions {
+  /** Uses of this code per buyer per UTC day. `null` means unlimited. */
+  dailyRedemptionLimit?: number | null;
   /** Redemption limit of this code; must not exceed the coupon's `maxRedemptions`. */
   maxRedemptions?: number | null;
   /** Expiry (ISO 8601); must not be later than the coupon's `redeemBy`. Defaults to the coupon's `redeemBy`. */
@@ -1014,14 +1015,16 @@ export interface PromotionCodeRestrictions extends DiscountRestrictions {
 }
 
 /**
- * Coupon detail. Buyers redeem a coupon through its promotion codes; a coupon applied by `couponId`
- * needs no code.
+ * Coupon detail. Buyers redeem a coupon with its own `code` or one of its promotion codes; a coupon applied by
+ * `couponId` needs no code. Its only redemption limits are `redeemBy` and `maxRedemptions`.
  * @see docs/api-reference/endpoints/coupons/overview.mdx
  */
 export interface CouponDetail {
   id: string;
   storeId: string;
   name: string;
+  /** The coupon's own code (uppercase), usable by buyers at checkout. */
+  code: string;
   status: CouponStatus;
   discountType: CouponDiscountType;
   percentOff: number | null;
@@ -1030,9 +1033,7 @@ export interface CouponDetail {
   durationInPeriods: number | null;
   productIds: string[];
   maxRedemptions: number | null;
-  dailyRedemptionLimit: number | null;
   redeemBy: string | null;
-  restrictions: Required<DiscountRestrictions>;
   createdAt: string;
   updatedAt: string;
 }
@@ -1042,27 +1043,35 @@ export interface CouponDetail {
  * @see docs/api-reference/endpoints/coupons/create-coupon.mdx
  */
 export interface CreatedCouponDetail extends CouponDetail {
-  /** Promotion codes created with the coupon, in request order. Empty when none were requested. */
+  /** Promotion codes created with the coupon, in request order. Empty when none were requested; never includes `code`. */
   promotionCodes: PromotionCodeDetail[];
 }
 
 /** A promotion code created together with its coupon. A random 10-character code is generated when `code` is omitted. */
 export interface CreateCouponPromotionCodeParams {
-  /** 3–32 letters, digits or `-`; case-insensitive (stored uppercase). Unique among active codes of the store and within the request. */
+  /**
+   * 3–32 letters, digits or `-`; case-insensitive (stored uppercase). Unique among active codes of the store and within
+   * the request, including the coupon's `code`.
+   */
   code?: string;
   /** Same restrictions as `promotionCodes.create()`; `maxRedemptions` and `expiresAt` must stay within the coupon's limits. */
   restrictions?: PromotionCodeRestrictions;
 }
 
 /**
- * Parameters for creating a coupon. Buyer-facing codes go in `promotionCodes`; without any, the coupon can only be
- * applied by `couponId` (checkout and plan change sessions) until you add promotion codes.
+ * Parameters for creating a coupon. A coupon only limits redemptions by `redeemBy` and `maxRedemptions`; buyer
+ * restrictions (first purchase, emails, per-buyer and daily limits, minimum amount) go on `promotionCodes`.
  * @see docs/api-reference/endpoints/coupons/create-coupon.mdx
  */
 export interface CreateCouponParams {
   storeId: string;
   /** Internal name (≤ 64 characters), not visible to buyers. */
   name: string;
+  /**
+   * The coupon's own code buyers can type: 3–32 letters, digits or `-`; case-insensitive (stored uppercase). Unique
+   * among active codes of the store. A random 10-character code is generated when omitted.
+   */
+  code?: string;
   discount: CouponDiscount;
   /** Defaults to `Once`. */
   duration?: CouponDuration;
@@ -1070,13 +1079,10 @@ export interface CreateCouponParams {
   durationInPeriods?: number | null;
   /** Restricted products (`PROD_xxx`). Empty means the whole store. */
   productIds?: string[];
-  /** Global redemption limit. `null` means unlimited. */
+  /** Total redemption limit across the coupon's code and all its promotion codes. `null` means unlimited. */
   maxRedemptions?: number | null;
-  /** Per-buyer limit per UTC day. `null` means unlimited. */
-  dailyRedemptionLimit?: number | null;
   /** Expiry (ISO 8601). Discounts already attached to subscriptions also end at this time. */
   redeemBy?: string | null;
-  restrictions?: DiscountRestrictions;
   /** Promotion codes to create in the same request (0–20). They become usable when the coupon is created. */
   promotionCodes?: CreateCouponPromotionCodeParams[];
 }
