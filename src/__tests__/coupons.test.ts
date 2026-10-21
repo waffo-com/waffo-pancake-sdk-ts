@@ -73,6 +73,10 @@ describe("coupons.create", () => {
     ["invalid promotion code", { promotionCodes: [{ code: "a_b" }] }],
     ["promotion code repeating the coupon code (case-insensitive)", { code: "bf2026", promotionCodes: [{ code: "BF2026" }] }],
     ["duplicate promotion codes (case-insensitive)", { promotionCodes: [{ code: "vip-01" }, { code: "VIP-01" }] }],
+    ["duplicate promotion codes after trimming", { promotionCodes: [{ code: " vip-01 " }, { code: "VIP-01" }] }],
+    ["promotion code repeating the coupon code after trimming", { code: "bf2026 ", promotionCodes: [{ code: " BF2026" }] }],
+    ["blank coupon code", { code: "   " }],
+    ["code that is too short after trimming", { code: " ab " }],
     ["more than 20 promotion codes", { promotionCodes: Array.from({ length: 21 }, () => ({})) }],
     ["promotionCodes that is not an array", { promotionCodes: { code: "BF2026" } }],
     ["repeating without durationInPeriods", { duration: "repeating" }],
@@ -113,6 +117,21 @@ describe("coupons.create", () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
     // code omitted: the platform generates one
     expect(JSON.parse(mockFetch.mock.calls[0][1].body as string)).not.toHaveProperty("code");
+  });
+
+  it("accepts codes with surrounding whitespace, as the server trims them", async () => {
+    const mockFetch = createMockFetch(() => ({ data: { coupon: { id: COUPON_ID, promotionCodes: [] } } }));
+    const client = createClient(mockFetch);
+
+    await client.coupons.create({
+      storeId: STORE_ID,
+      name: "Trimmed",
+      discount: { type: CouponDiscountType.Percentage, percentOff: 10 },
+      code: " bf2026 ",
+      promotionCodes: [{ code: "  VIP-01\t" }],
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it("accepts 20 promotion codes, codes omitted or given", async () => {
@@ -157,6 +176,17 @@ describe("promotionCodes", () => {
 
     expect(promotionCode.id).toBe(PROMOTION_CODE_ID);
     expect(mockFetch.mock.calls[0][0]).toBe("https://api.test.com/v1/actions/promotion-code/create-promotion-code");
+  });
+
+  it("create trims the code before validating it", async () => {
+    const mockFetch = createMockFetch(() => ({ data: { promotionCode: { id: PROMOTION_CODE_ID, code: "KOL-ALICE" } } }));
+    const client = createClient(mockFetch);
+
+    await client.promotionCodes.create({ couponId: COUPON_ID, code: " kol-alice " });
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+
+    await expect(client.promotionCodes.create({ couponId: COUPON_ID, code: " ab " })).rejects.toThrow(WaffoPancakeError);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it("generate returns batchId and codes", async () => {

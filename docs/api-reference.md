@@ -548,7 +548,7 @@ const { group } = await client.subscriptionProductGroups.publish({ id: "spg_xxx"
 
 ## Coupons
 
-A coupon defines a discount and has its own `code` that buyers can enter (random when omitted). Its only redemption limits are `redeemBy` and `maxRedemptions` (total across all its codes); buyer restrictions belong to promotion codes — create up to 20 of them together with the coupon (`promotionCodes`) and add more later with [`client.promotionCodes`](#promotion-codes). A coupon applied with `couponId` on a checkout or plan change session needs no code. Codes are 3–32 letters, digits or `-`, case-insensitive (stored uppercase), and unique among the store's **active** codes in the same environment; a deactivated code is released and can be reused. Deactivation is permanent. Only the name of a coupon can change — create a new coupon to change the discount.
+A coupon defines a discount and has its own `code` that buyers can enter (random when omitted). Its only redemption limits are `redeemBy` and `maxRedemptions` (total across all its codes); buyer restrictions belong to promotion codes — create up to 20 of them together with the coupon (`promotionCodes`) and add more later with [`client.promotionCodes`](#promotion-codes). A coupon applied with `couponId` on a checkout or plan change session needs no code. Codes are 3–32 letters, digits or `-`, case-insensitive (surrounding whitespace is trimmed and the code is stored uppercase), and unique among the store's **active** codes in the same environment; a deactivated code is released and can be reused. Deactivation is permanent. Only the name of a coupon can change — create a new coupon to change the discount.
 
 Server-side only: requests are signed with your private key. List and read coupons with [`client.graphql.query`](#graphql) (`coupons`, `couponsCount`, `coupon`).
 
@@ -626,7 +626,7 @@ const { promotionCode } = await client.promotionCodes.create({
 
 **`PromotionCodeRestrictions`**: `firstTimeOnly`, `customerEmails`, `perCustomerLimit`, `dailyRedemptionLimit` (uses per buyer per UTC day), `maxRedemptions` (≤ the coupon's), `expiresAt` (≤ the coupon's `redeemBy`; defaults to it), `minimumAmount` (pre-discount, pre-tax amount per currency; currencies not listed have no minimum).
 
-**Returns `{ promotionCode: PromotionCodeDetail }`**. Errors: 409 when the code is taken or the coupon is not `Active`.
+**Returns `{ promotionCode: PromotionCodeDetail }`**. Errors: 409 when the code is taken, the coupon is not `Active`, or the coupon has expired (its `redeemBy` is within 60 seconds) — no promotion code can be added to it.
 
 ### `client.promotionCodes.generate(params, options?)`
 

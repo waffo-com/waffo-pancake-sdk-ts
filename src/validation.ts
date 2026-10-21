@@ -255,10 +255,11 @@ export function validatePlanChangeCommon(params: {
 
 /**
  * Validate a discount / promotion code (3–32 letters, digits or `-`).
+ * Surrounding whitespace is trimmed before the check, matching the server, which trims and upper-cases the code.
  */
 export function validateDiscountCode(field: string, value: string): void {
   validateRequired(field, value);
-  if (!DISCOUNT_CODE_REGEX.test(value)) {
+  if (!DISCOUNT_CODE_REGEX.test(typeof value === "string" ? value.trim() : value)) {
     fail(`Invalid ${field}: expected 3-32 letters, digits or '-', got "${value}"`);
   }
 }
