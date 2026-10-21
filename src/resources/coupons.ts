@@ -13,41 +13,75 @@ import {
 } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
-import type { CouponDetail, CreateCouponParams, DeactivateCouponParams, Notice, RequestOptions, UpdateCouponParams } from "../types.js";
+import type {
+  CouponDetail,
+  CreateCouponParams,
+  CreatedCouponDetail,
+  DeactivateCouponParams,
+  Notice,
+  RequestOptions,
+  UpdateCouponParams,
+} from "../types.js";
 
 /** Coupon (discount code) management resource. Server-side only: requests are signed with the merchant private key. */
 export class CouponsResource {
   constructor(private readonly http: HttpClient) {}
 
   /**
-   * Create a coupon. The given `code` becomes the coupon's default promotion code.
+   * Create a coupon, optionally with up to 20 promotion codes in the same request.
    *
-   * The returned `status` is always `active`. When the payment provider rejects the coupon or does not
-   * confirm it, the request fails with 502 and the code is released, so it can be created again with the
-   * same code. If the request itself fails on your side (timeout, network), retry with the same idempotency
-   * key: a creation that succeeded is returned instead of a 409 for the code it already took.
+   * Buyers enter promotion codes; `couponId` applies the coupon without a code. The returned `status` is always
+   * `active` and `coupon.promotionCodes` lists the codes created with it. When the payment provider rejects the
+   * coupon or does not confirm it, the request fails with 502 and every code is released, so it can be created
+   * again with the same codes. A code already used by an active promotion code of the store fails with 409 and
+   * the message names it. If the request itself fails on your side (timeout, network), retry with the same
+   * idempotency key: a creation that succeeded is returned instead of a 409 for the codes it already took.
    *
    * @param params - Coupon creation parameters
-   * @returns Created coupon
+   * @returns Created coupon with its promotion codes
    *
    * @example
    * const { coupon } = await client.coupons.create(
    *   {
    *     storeId: "STO_xxx",
    *     name: "Black Friday 20% off",
-   *     code: "BF2026",
    *     discount: { type: CouponDiscountType.Percentage, percentOff: 20 },
    *     duration: CouponDuration.Repeating,
    *     durationInPeriods: 3,
+   *     promotionCodes: [{ code: "BF2026" }, { restrictions: { maxRedemptions: 100, firstTimeOnly: true } }],
    *   },
    *   { idempotencyKey: "coupon-bf2026" },
    * );
+   * // coupon.promotionCodes.map((p) => p.code) => ["BF2026", "X7K2M9PQ4R"]
+   *
+   * @example
+   * // No promotion codes: apply the coupon with `couponId` on checkout sessions
+   * const { coupon } = await client.coupons.create({
+   *   storeId: "STO_xxx",
+   *   name: "Partner discount",
+   *   discount: { type: CouponDiscountType.FixedAmount, amountOff: { USD: "5.00" } },
+   * });
+   * // coupon.promotionCodes => []
    */
-  async create(params: CreateCouponParams, options?: RequestOptions): Promise<{ coupon: CouponDetail; warnings?: Notice[] }> {
+  async create(params: CreateCouponParams, options?: RequestOptions): Promise<{ coupon: CreatedCouponDetail; warnings?: Notice[] }> {
     validateShortId("storeId", params.storeId, "STO");
     validateRequired("name", params.name);
     validateMaxLength("name", params.name.trim(), 64);
-    validateDiscountCode("code", params.code);
+    if (params.promotionCodes !== undefined) {
+      if (!Array.isArray(params.promotionCodes) || params.promotionCodes.length > 20) {
+        throw new WaffoPancakeError(400, [{ message: "Invalid promotionCodes: expected an array of at most 20 entries", layer: "sdk" }]);
+      }
+      const seen = new Set<string>();
+      params.promotionCodes.forEach((promotionCode, index) => {
+        if (promotionCode?.code === undefined) return;
+        validateDiscountCode(`promotionCodes[${index}].code`, promotionCode.code);
+        const normalized = promotionCode.code.trim().toUpperCase();
+        if (seen.has(normalized)) {
+          throw new WaffoPancakeError(400, [{ message: `Duplicate promotionCodes code: "${normalized}"`, layer: "sdk" }]);
+        }
+        seen.add(normalized);
+      });
+    }
     validateRequired("discount", params.discount);
     validateEnum("discount.type", params.discount.type, Object.values(CouponDiscountType));
     if (params.discount.type === CouponDiscountType.Percentage) {
@@ -74,7 +108,7 @@ export class CouponsResource {
       throw new WaffoPancakeError(400, [{ message: "durationInPeriods is only allowed when duration is repeating", layer: "sdk" }]);
     }
     for (const productId of params.productIds ?? []) validateShortId("productIds[]", productId, "PROD");
-    return unwrapAction(await this.http.post<{ coupon: CouponDetail }>("/v1/actions/coupon/create-coupon", params, options));
+    return unwrapAction(await this.http.post<{ coupon: CreatedCouponDetail }>("/v1/actions/coupon/create-coupon", params, options));
   }
 
   /**

@@ -1014,14 +1014,14 @@ export interface PromotionCodeRestrictions extends DiscountRestrictions {
 }
 
 /**
- * Coupon detail. `code` is the buyer-facing code carried by the coupon's default promotion code.
+ * Coupon detail. Buyers redeem a coupon through its promotion codes; a coupon applied by `couponId`
+ * needs no code.
  * @see docs/api-reference/endpoints/coupons/overview.mdx
  */
 export interface CouponDetail {
   id: string;
   storeId: string;
   name: string;
-  code: string;
   status: CouponStatus;
   discountType: CouponDiscountType;
   percentOff: number | null;
@@ -1038,15 +1038,31 @@ export interface CouponDetail {
 }
 
 /**
- * Parameters for creating a coupon. The `code` becomes the coupon's default promotion code.
+ * Coupon detail returned by `coupons.create()`, with the promotion codes created in the same request.
+ * @see docs/api-reference/endpoints/coupons/create-coupon.mdx
+ */
+export interface CreatedCouponDetail extends CouponDetail {
+  /** Promotion codes created with the coupon, in request order. Empty when none were requested. */
+  promotionCodes: PromotionCodeDetail[];
+}
+
+/** A promotion code created together with its coupon. A random 10-character code is generated when `code` is omitted. */
+export interface CreateCouponPromotionCodeParams {
+  /** 3–32 letters, digits or `-`; case-insensitive (stored uppercase). Unique among active codes of the store and within the request. */
+  code?: string;
+  /** Same restrictions as `promotionCodes.create()`; `maxRedemptions` and `expiresAt` must stay within the coupon's limits. */
+  restrictions?: PromotionCodeRestrictions;
+}
+
+/**
+ * Parameters for creating a coupon. Buyer-facing codes go in `promotionCodes`; without any, the coupon can only be
+ * applied by `couponId` (checkout and plan change sessions) until you add promotion codes.
  * @see docs/api-reference/endpoints/coupons/create-coupon.mdx
  */
 export interface CreateCouponParams {
   storeId: string;
   /** Internal name (≤ 64 characters), not visible to buyers. */
   name: string;
-  /** 3–32 letters, digits or `-`; case-insensitive (stored uppercase). Unique among active codes of the store. */
-  code: string;
   discount: CouponDiscount;
   /** Defaults to `Once`. */
   duration?: CouponDuration;
@@ -1061,6 +1077,8 @@ export interface CreateCouponParams {
   /** Expiry (ISO 8601). Discounts already attached to subscriptions also end at this time. */
   redeemBy?: string | null;
   restrictions?: DiscountRestrictions;
+  /** Promotion codes to create in the same request (0–20). They become usable when the coupon is created. */
+  promotionCodes?: CreateCouponPromotionCodeParams[];
 }
 
 /** Parameters for renaming a coupon. The name is the only field that can change. */
@@ -1109,7 +1127,7 @@ export interface GeneratePromotionCodesParams {
   restrictions?: PromotionCodeRestrictions;
 }
 
-/** Parameters for deactivating a promotion code (permanent). The coupon's own code cannot be deactivated alone. */
+/** Parameters for deactivating a promotion code (permanent). Deactivating it never deactivates the coupon. */
 export interface DeactivatePromotionCodeParams {
   id: string;
 }

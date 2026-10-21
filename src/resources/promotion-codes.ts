@@ -82,7 +82,7 @@ export class PromotionCodesResource {
 
   /**
    * Deactivate a promotion code permanently. Its code is released and can be used by a new promotion code.
-   * The coupon's own code can only be deactivated together with the coupon.
+   * The coupon itself stays active; deactivate the coupon to stop all of its codes.
    *
    * @param params - Promotion code ID
    * @returns Deactivated promotion code

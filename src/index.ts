@@ -99,6 +99,8 @@ export type {
   CouponDetail,
   CouponDiscount,
   CreateCouponParams,
+  CreateCouponPromotionCodeParams,
+  CreatedCouponDetail,
   CreatePromotionCodeParams,
   DeactivateCouponParams,
   DeactivatePromotionCodeParams,

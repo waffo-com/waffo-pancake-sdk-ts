@@ -33,31 +33,42 @@ function createClient(mockFetch: ReturnType<typeof vi.fn>) {
 }
 
 describe("coupons.create", () => {
-  it("posts to create-coupon and forwards the idempotency key", async () => {
-    const mockFetch = createMockFetch(() => ({ data: { coupon: { id: COUPON_ID, code: "BF2026", status: "active" } } }));
+  it("posts to create-coupon with promotion codes and forwards the idempotency key", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: { coupon: { id: COUPON_ID, status: "active", promotionCodes: [{ id: PROMOTION_CODE_ID, code: "BF2026" }] } },
+    }));
     const client = createClient(mockFetch);
 
     const { coupon } = await client.coupons.create(
       {
         storeId: STORE_ID,
         name: "Black Friday",
-        code: "bf2026",
         discount: { type: CouponDiscountType.Percentage, percentOff: 20 },
         duration: CouponDuration.Repeating,
         durationInPeriods: 3,
+        promotionCodes: [{ code: "bf2026" }, { restrictions: { maxRedemptions: 100 } }],
       },
       { idempotencyKey: "coupon-bf2026" },
     );
 
     expect(coupon.id).toBe(COUPON_ID);
+    expect(coupon.promotionCodes[0].code).toBe("BF2026");
     const [url, options] = mockFetch.mock.calls[0];
     expect(url).toBe("https://api.test.com/v1/actions/coupon/create-coupon");
-    expect(JSON.parse(options.body as string)).toMatchObject({ code: "bf2026", discount: { type: "percentage", percentOff: 20 } });
+    const body = JSON.parse(options.body as string);
+    expect(body).toMatchObject({
+      discount: { type: "percentage", percentOff: 20 },
+      promotionCodes: [{ code: "bf2026" }, { restrictions: { maxRedemptions: 100 } }],
+    });
+    expect(body).not.toHaveProperty("code");
     expect((options.headers as Record<string, string>)["X-Idempotency-Key"]).toBe("coupon-bf2026");
   });
 
   it.each([
-    ["invalid code", { code: "a_b" }],
+    ["invalid promotion code", { promotionCodes: [{ code: "a_b" }] }],
+    ["duplicate promotion codes (case-insensitive)", { promotionCodes: [{ code: "vip-01" }, { code: "VIP-01" }] }],
+    ["more than 20 promotion codes", { promotionCodes: Array.from({ length: 21 }, () => ({})) }],
+    ["promotionCodes that is not an array", { promotionCodes: { code: "BF2026" } }],
     ["repeating without durationInPeriods", { duration: "repeating" }],
     ["fixed amount without currencies", { discount: { type: "fixed_amount", amountOff: {} } }],
     ["invalid amount", { discount: { type: "fixed_amount", amountOff: { USD: "abc" } } }],
@@ -76,7 +87,6 @@ describe("coupons.create", () => {
       client.coupons.create({
         storeId: STORE_ID,
         name: "Black Friday",
-        code: "BF2026",
         discount: { type: CouponDiscountType.Percentage, percentOff: 20 },
         ...override,
       } as never),
@@ -91,8 +101,21 @@ describe("coupons.create", () => {
     await client.coupons.create({
       storeId: STORE_ID,
       name: "优".repeat(64),
-      code: "SAVE5",
       discount: { type: CouponDiscountType.FixedAmount, amountOff: { USD: "0.01", JPY: "500" } },
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("accepts 20 promotion codes, codes omitted or given", async () => {
+    const mockFetch = createMockFetch(() => ({ data: { coupon: { id: COUPON_ID, promotionCodes: [] } } }));
+    const client = createClient(mockFetch);
+
+    await client.coupons.create({
+      storeId: STORE_ID,
+      name: "Bulk",
+      discount: { type: CouponDiscountType.Percentage, percentOff: 10 },
+      promotionCodes: [{ code: "VIP-01" }, ...Array.from({ length: 19 }, () => ({}))],
     });
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
