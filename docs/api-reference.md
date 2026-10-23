@@ -566,7 +566,7 @@ const { coupon } = await client.coupons.create(
     durationInPeriods: 3,
     code: "BF2026",
     maxRedemptions: 1000,
-    promotionCodes: [{ code: "BF-VIP" }, { restrictions: { maxRedemptions: 100, firstTimeOnly: true, dailyRedemptionLimit: 1 } }],
+    promotionCodes: [{ code: "BF-VIP" }, { restrictions: { maxRedemptions: 100, perCustomerLimit: 1 } }],
   },
   { idempotencyKey: "coupon-bf2026" },
 );
@@ -624,7 +624,7 @@ const { promotionCode } = await client.promotionCodes.create({
 });
 ```
 
-**`PromotionCodeRestrictions`**: `firstTimeOnly`, `customerEmails`, `perCustomerLimit`, `dailyRedemptionLimit` (uses per buyer per UTC day), `maxRedemptions` (≤ the coupon's), `expiresAt` (≤ the coupon's `redeemBy`; defaults to it), `minimumAmount` (pre-discount, pre-tax amount per currency; currencies not listed have no minimum).
+**`PromotionCodeRestrictions`**: `customerEmails`, `perCustomerLimit`, `maxRedemptions` (≤ the coupon's), `expiresAt` (≤ the coupon's `redeemBy`; defaults to it), `minimumAmount` (pre-discount, pre-tax amount per currency; currencies not listed have no minimum).
 
 **Returns `{ promotionCode: PromotionCodeDetail }`**. Errors: 409 when the code is taken, the coupon is not `Active`, or the coupon has expired (its `redeemBy` is within 60 seconds) — no promotion code can be added to it.
 
@@ -1204,7 +1204,7 @@ All exported type interfaces:
 | `UpdateCouponParams`                    | Rename request                                                                                                                                              |
 | `DeactivateCouponParams`                | Deactivate request (permanent)                                                                                                                              |
 | `PromotionCodeStatus`                   | Promotion code status (`Active` / `Inactive`)                                                                                                               |
-| `PromotionCodeRestrictions`             | Buyer restrictions (`firstTimeOnly` / `customerEmails` / `perCustomerLimit` / `dailyRedemptionLimit`) plus `maxRedemptions` / `expiresAt` / `minimumAmount` |
+| `PromotionCodeRestrictions`             | Buyer restrictions (`customerEmails` / `perCustomerLimit`) plus `maxRedemptions` / `expiresAt` / `minimumAmount`                                            |
 | `PromotionCodeDetail`                   | Promotion code entity                                                                                                                                       |
 | `CreatePromotionCodeParams`             | Create request (`code` optional)                                                                                                                            |
 | `GeneratePromotionCodesParams`          | Bulk generate request (1–500 codes)                                                                                                                         |

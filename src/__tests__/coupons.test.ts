@@ -48,7 +48,7 @@ describe("coupons.create", () => {
         durationInPeriods: 3,
         code: "bf2026",
         maxRedemptions: 1000,
-        promotionCodes: [{ code: "bf-vip" }, { restrictions: { maxRedemptions: 100, dailyRedemptionLimit: 1 } }],
+        promotionCodes: [{ code: "bf-vip" }, { restrictions: { maxRedemptions: 100, perCustomerLimit: 1 } }],
       },
       { idempotencyKey: "coupon-bf2026" },
     );
@@ -63,8 +63,10 @@ describe("coupons.create", () => {
       code: "bf2026",
       maxRedemptions: 1000,
       discount: { type: "percentage", percentOff: 20 },
-      promotionCodes: [{ code: "bf-vip" }, { restrictions: { maxRedemptions: 100, dailyRedemptionLimit: 1 } }],
+      promotionCodes: [{ code: "bf-vip" }, { restrictions: { maxRedemptions: 100, perCustomerLimit: 1 } }],
     });
+    // firstTimeOnly / dailyRedemptionLimit are not exposed yet: the SDK never adds them to the body
+    expect(body.promotionCodes[1].restrictions).toEqual({ maxRedemptions: 100, perCustomerLimit: 1 });
     expect((options.headers as Record<string, string>)["X-Idempotency-Key"]).toBe("coupon-bf2026");
   });
 

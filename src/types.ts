@@ -998,14 +998,10 @@ export type CouponDiscount =
  * `maxRedemptions` (the only limits a coupon has).
  */
 export interface PromotionCodeRestrictions {
-  /** Only buyers making their first purchase in this store. */
-  firstTimeOnly?: boolean;
   /** Only these buyer emails (case-insensitive). Empty means anyone. */
   customerEmails?: string[];
   /** Lifetime uses of this code per buyer. `null` means unlimited. */
   perCustomerLimit?: number | null;
-  /** Uses of this code per buyer per UTC day. `null` means unlimited. */
-  dailyRedemptionLimit?: number | null;
   /** Redemption limit of this code; must not exceed the coupon's `maxRedemptions`. */
   maxRedemptions?: number | null;
   /** Expiry (ISO 8601); must not be later than the coupon's `redeemBy`. Defaults to the coupon's `redeemBy`. */
@@ -1060,7 +1056,7 @@ export interface CreateCouponPromotionCodeParams {
 
 /**
  * Parameters for creating a coupon. A coupon only limits redemptions by `redeemBy` and `maxRedemptions`; buyer
- * restrictions (first purchase, emails, per-buyer and daily limits, minimum amount) go on `promotionCodes`.
+ * restrictions (emails, per-buyer limit, minimum amount) go on `promotionCodes`.
  * @see docs/api-reference/endpoints/coupons/create-coupon.mdx
  */
 export interface CreateCouponParams {

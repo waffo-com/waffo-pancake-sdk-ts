@@ -32,7 +32,7 @@ export class CouponsResource {
    *
    * Buyers enter the coupon's `code` (random when omitted) or one of its promotion codes; `couponId` applies the
    * coupon without a code. A coupon only limits redemptions by `redeemBy` and `maxRedemptions`; put buyer
-   * restrictions (first purchase, emails, per-buyer and daily limits, minimum amount) on promotion codes. The
+   * restrictions (emails, per-buyer limit, minimum amount) on promotion codes. The
    * returned `status` is always `active` and `coupon.promotionCodes` lists the codes created with it. When the
    * payment provider rejects the coupon or does not confirm it, the request fails with 502 and every code is
    * released, so it can be created again with the same codes. A code already used by an active code of the store
@@ -52,7 +52,7 @@ export class CouponsResource {
    *     durationInPeriods: 3,
    *     code: "BF2026",
    *     maxRedemptions: 1000,
-   *     promotionCodes: [{ code: "BF-VIP" }, { restrictions: { firstTimeOnly: true, dailyRedemptionLimit: 1 } }],
+   *     promotionCodes: [{ code: "BF-VIP" }, { restrictions: { maxRedemptions: 100, perCustomerLimit: 1 } }],
    *   },
    *   { idempotencyKey: "coupon-bf2026" },
    * );
