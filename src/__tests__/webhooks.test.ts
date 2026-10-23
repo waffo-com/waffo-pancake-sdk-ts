@@ -6,6 +6,8 @@ import { WaffoPancake } from "../client.js";
 import { WaffoPancakeError } from "../errors.js";
 import { verifyWebhook } from "../webhooks.js";
 
+import type { WebhookAmountBreakdown, WebhookEventData } from "../types.js";
+
 describe("verifyWebhook", () => {
   describe("header validation", () => {
     it("should throw on missing signature header", () => {
@@ -168,6 +170,61 @@ describe("verifyWebhook", () => {
       const result = verifyWebhook(payload, header, { publicKey: publicKey as string });
       expect(result.id).toBe("evt_custom_1");
       expect(result.eventType).toBe("order.completed");
+    });
+
+    it("should expose listTotal / discountAmount on a discounted amount block", () => {
+      const listPrice: WebhookAmountBreakdown = {
+        total: "86.40",
+        subtotal: "99.99",
+        taxAmount: "6.40",
+        taxRate: 8,
+        taxName: "JCT",
+        listTotal: "107.99",
+        discountAmount: "21.59",
+      };
+      const event = {
+        id: "evt_discount_1",
+        timestamp: "2026-10-19T08:30:00.000Z",
+        eventType: "order.completed",
+        eventId: "PAY_disc",
+        storeId: "STO_abc",
+        mode: "test",
+        data: {
+          orderId: "ORD_disc",
+          buyerEmail: "a@b.com",
+          currency: "USD",
+          amount: "86.40",
+          taxAmount: "6.40",
+          productName: "Pro",
+          listPrice,
+        },
+      };
+
+      const payload = JSON.stringify(event);
+      const ts = Date.now().toString();
+      const header = `t=${ts},v1=${signPayload(ts, payload)}`;
+
+      const result = verifyWebhook<WebhookEventData>(payload, header, { publicKey: publicKey as string });
+      const block = result.data.listPrice;
+      expect(block?.listTotal).toBe("107.99");
+      expect(block?.discountAmount).toBe("21.59");
+      expect(Number(block?.listTotal) - Number(block?.discountAmount)).toBeCloseTo(Number(block?.total), 2);
+    });
+
+    it("should leave listTotal / discountAmount absent on a block recorded without them", () => {
+      const event = {
+        id: "evt_discount_2",
+        eventType: "refund.succeeded",
+        data: { originalPayment: { total: "4.08", subtotal: "3.20", taxAmount: "0.88" } },
+      };
+
+      const payload = JSON.stringify(event);
+      const ts = Date.now().toString();
+      const header = `t=${ts},v1=${signPayload(ts, payload)}`;
+
+      const result = verifyWebhook<WebhookEventData>(payload, header, { publicKey: publicKey as string });
+      expect(result.data.originalPayment).not.toHaveProperty("listTotal");
+      expect(result.data.originalPayment).not.toHaveProperty("discountAmount");
     });
 
     it("should reject invalid signature with custom publicKey", () => {
