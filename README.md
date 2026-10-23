@@ -80,6 +80,8 @@ Both modes support **dynamic pricing** and **trial control** at checkout time:
 - `withTrial` — explicitly enable or disable the trial period for subscriptions (`true` = force trial, `false` = skip trial, omit = use default rules)
 - `couponId` / `promotionCode` / `allowPromotionCodes` — apply a coupon the customer cannot change, prefill a promotion code (changeable only with `allowPromotionCodes: true`), or show a code entry field (one-time products, new subscriptions and plan changes) — see [Discounts at Checkout](#discounts-at-checkout)
 
+These fields are applied as your choice because the request is signed with your API Key, so set them from your own server code, never from values the browser sends. Using Next.js? `createCheckoutAction` from `@waffo/pancake-nextjs/server` keeps `allowPromotionCodes` but strips `couponId`, `promotionCode`, `priceSnapshot`, `withTrial`, `changeAmount` and `changeCreditAmount` on every flow, so call this SDK directly where you need them.
+
 ### Authenticated Checkout (Recommended)
 
 The merchant provides customer identity — the SDK issues a session token, creates a checkout session, and returns a checkout URL with the token appended as a URL fragment. One call does everything.
