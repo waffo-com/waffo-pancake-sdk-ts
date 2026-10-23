@@ -65,7 +65,7 @@ describe("coupons.create", () => {
       discount: { type: "percentage", percentOff: 20 },
       promotionCodes: [{ code: "bf-vip" }, { restrictions: { maxRedemptions: 100, perCustomerLimit: 1 } }],
     });
-    // firstTimeOnly / dailyRedemptionLimit are not exposed yet: the SDK never adds them to the body
+    // firstTimeOnly / dailyRedemptionLimit are not supported by the API (400 when present): the SDK never adds them to the body
     expect(body.promotionCodes[1].restrictions).toEqual({ maxRedemptions: 100, perCustomerLimit: 1 });
     expect((options.headers as Record<string, string>)["X-Idempotency-Key"]).toBe("coupon-bf2026");
   });
