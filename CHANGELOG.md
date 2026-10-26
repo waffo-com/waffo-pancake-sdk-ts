@@ -4,6 +4,12 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0] - 2026-10-26
+
+### Changed
+
+- **`PaymentMethod` adds `(string & {})`** so payment methods still in rollout can be passed without an SDK upgrade. Values the platform does not support are still rejected with a 400.
+
 ## [0.26.0] - 2026-10-10
 
 Customers signed in to a merchant's site can enter the store's customer portal without email verification.

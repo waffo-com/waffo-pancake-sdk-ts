@@ -1018,7 +1018,7 @@ export type CashierLanguage =
  * Subscription: `USD` / `EUR` / `GBP` / `HKD` / `JPY` support `card` / `applepay` / `googlepay`.
  * Currencies outside this matrix cannot be charged at all — checkout session creation is rejected with a 400.
  */
-export type PaymentMethod = "card" | "applepay" | "googlepay" | "wechat";
+export type PaymentMethod = "card" | "applepay" | "googlepay" | "wechat" | (string & {});
 
 /**
  * Session-level price override, accepted with API Key authentication only.

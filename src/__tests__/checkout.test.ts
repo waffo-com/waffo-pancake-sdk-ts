@@ -96,6 +96,27 @@ describe("checkout.anonymous", () => {
     expect(body.includePaymentMethods).toEqual(["card", "applepay"]);
   });
 
+  it("should forward payment method values the SDK does not list unchanged", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_pm",
+        checkoutUrl: "https://pancake.waffo.ai/store/s/checkout/cs_pm",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    // A value the platform enables after this SDK release type-checks without a cast; the platform validates it
+    await client.checkout.anonymous.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      excludePaymentMethods: ["card", "future_method"],
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.excludePaymentMethods).toEqual(["card", "future_method"]);
+  });
+
   it("should forward buyerEmail and billingDetail when provided", async () => {
     const mockFetch = createMockFetch(() => ({
       data: {
