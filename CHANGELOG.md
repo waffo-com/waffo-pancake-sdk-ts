@@ -4,6 +4,19 @@ All notable changes to `@waffo/pancake-ts` will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0] - 2026-10-26
+
+Payment methods the platform enables after this release can be passed without upgrading the SDK.
+
+### Changed
+
+- **`PaymentMethod` is now an open set: `KnownPaymentMethod | (string & {})`.** Any string type-checks in `includePaymentMethods` / `excludePaymentMethods`, and the known values keep editor autocompletion. Nothing changes at runtime: the SDK never validated these values, and the platform still rejects an unknown value with a 400 that lists the accepted ones. Code that only passes literals keeps compiling. If your own code relied on `PaymentMethod` being closed, such as an exhaustive `switch` ending in a `never` check, type that code against `KnownPaymentMethod` instead.
+- The `PaymentMethod` JSDoc no longer carries a currency availability matrix. Which methods a session offers depends on the product type, the currency and the store's configuration, and is decided by the platform.
+
+### Added
+
+- **`KnownPaymentMethod`** type: the values the platform accepted at release time, now including `"alipay"` (Alipay, mainland China) and `"alipayhk"` (AlipayHK). Availability of these two still depends on the store and the currency.
+
 ## [0.26.0] - 2026-10-10
 
 Customers signed in to a merchant's site can enter the store's customer portal without email verification.
