@@ -1279,7 +1279,9 @@ export interface CreateCheckoutSessionParams {
   /**
    * Coupon to apply to this session (Short ID, `CPN_xxx` — the Pancake coupon ID, not
    * the payment provider's). The discount is locked: the customer sees it applied but
-   * cannot change or remove it, and no code entry field is shown. Works for one-time
+   * cannot change or remove it, and no code entry field is shown. The customer sees the
+   * discount but not a code, even when the coupon has its own code — to show a code,
+   * prefill it with {@link CreateCheckoutSessionParams.promotionCode} instead. Works for one-time
    * products and new subscriptions (plan changes take one through
    * {@link CreatePlanChangeSessionParams.couponId}). On a subscription the coupon's
    * {@link CouponDuration} decides how many billing periods are discounted.
@@ -1294,7 +1296,8 @@ export interface CreateCheckoutSessionParams {
   couponId?: string;
   /**
    * Promotion code to prefill on the checkout page (the code string the customer would
-   * type, case-insensitive). Merchant credentials only. Whether the customer can change
+   * type, case-insensitive). Merchant credentials only. The customer sees the code, also
+   * when it is the coupon's own code. Whether the customer can change
    * it is decided by {@link CreateCheckoutSessionParams.allowPromotionCodes}: with
    * `allowPromotionCodes: true` the customer can replace it with another code or remove
    * it; without it (or with `false`) the code is locked.
@@ -1411,7 +1414,8 @@ export interface CreatePlanChangeSessionParams {
   excludePaymentMethods?: PaymentMethod[];
   /**
    * Coupon to apply to the new plan (Short ID, `CPN_xxx`). Locked: the customer cannot
-   * change or remove it, and no code entry field is shown. It replaces the subscription's
+   * change or remove it, and no code entry field is shown; they see the discount but not
+   * a code. It replaces the subscription's
    * current discount — the remaining periods of that discount are dropped and the new
    * coupon's {@link CouponDuration} counts from the new subscription's first charge above
    * zero. The platform checks it against the target plan's product, with the same 409
