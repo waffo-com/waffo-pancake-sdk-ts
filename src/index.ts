@@ -66,7 +66,6 @@ export type {
   WebhookChannel,
   CashierLanguage,
   PaymentMethod,
-  KnownPaymentMethod,
   AddWebhookParams,
   UpdateWebhookParams,
   RemoveWebhookParams,

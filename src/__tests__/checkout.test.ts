@@ -96,7 +96,7 @@ describe("checkout.anonymous", () => {
     expect(body.includePaymentMethods).toEqual(["card", "applepay"]);
   });
 
-  it("should forward payment method values outside KnownPaymentMethod unchanged", async () => {
+  it("should forward payment method values the SDK does not list unchanged", async () => {
     const mockFetch = createMockFetch(() => ({
       data: {
         sessionId: "cs_pm",
@@ -110,11 +110,11 @@ describe("checkout.anonymous", () => {
     await client.checkout.anonymous.create({
       productId: "PROD_0000000000000000000000",
       currency: "USD",
-      excludePaymentMethods: ["alipay", "future_method"],
+      excludePaymentMethods: ["card", "future_method"],
     });
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
-    expect(body.excludePaymentMethods).toEqual(["alipay", "future_method"]);
+    expect(body.excludePaymentMethods).toEqual(["card", "future_method"]);
   });
 
   it("should forward buyerEmail and billingDetail when provided", async () => {

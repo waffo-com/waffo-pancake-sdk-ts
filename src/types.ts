@@ -1011,22 +1011,14 @@ export type CashierLanguage =
   | "ms-MY";
 
 /**
- * Payment method values the platform accepted when this SDK version was released.
+ * Payment methods that can be offered on the hosted checkout page.
  *
- * Listed for editor autocompletion only: {@link PaymentMethod} also accepts values that are not in this list.
+ * Any string type-checks, so a method the platform enables after this SDK release can be passed without upgrading; the
+ * listed values keep editor autocompletion. The platform validates every value when the checkout session is created and
+ * rejects an unknown one with a 400. Which methods a session offers depends on the product type, the currency and the
+ * store's configuration, and is decided by the platform.
  */
-export type KnownPaymentMethod = "card" | "applepay" | "googlepay" | "wechat" | "alipay" | "alipayhk";
-
-/**
- * Payment method value for `includePaymentMethods` / `excludePaymentMethods`.
- *
- * This is an open set. Any string type-checks and {@link KnownPaymentMethod} values keep autocompletion, so a method the
- * platform enables after this SDK release can be passed without upgrading. The platform validates every value when the
- * checkout session is created: an unknown value is rejected with a 400 that lists the accepted values. Which methods a
- * session actually offers depends on the product type, the currency and the store's configuration, and is decided by the
- * platform rather than by this SDK.
- */
-export type PaymentMethod = KnownPaymentMethod | (string & {});
+export type PaymentMethod = "card" | "applepay" | "googlepay" | "wechat" | (string & {});
 
 /**
  * Session-level price override, accepted with API Key authentication only.
