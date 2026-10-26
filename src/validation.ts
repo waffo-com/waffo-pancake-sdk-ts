@@ -16,7 +16,7 @@ const SHORT_ID_REGEX = /^[A-Z]{2,5}_[0-9A-Za-z]{22}$/;
 const CURRENCY_CODE_REGEX = /^[A-Z]{3}$/;
 const COUNTRY_CODE_REGEX = /^[A-Z]{2}$/;
 const AMOUNT_STRING_REGEX = /^\d+(\.\d+)?$/;
-/** Discount code format: 3–32 letters, digits or `-` (case-insensitive). */
+/** Coupon code / promotion code format: 3–32 letters, digits or `-` (case-insensitive). */
 const DISCOUNT_CODE_REGEX = /^[A-Za-z0-9-]{3,32}$/;
 /** Prefix of bulk-generated promotion codes: 1–12 letters, digits or `-`. */
 const CODE_PREFIX_REGEX = /^[A-Za-z0-9-]{1,12}$/;

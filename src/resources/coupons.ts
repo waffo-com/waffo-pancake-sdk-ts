@@ -23,7 +23,7 @@ import type {
   UpdateCouponParams,
 } from "../types.js";
 
-/** Coupon (discount code) management resource. Server-side only: requests are signed with the merchant private key. */
+/** Coupon management resource. Server-side only: requests are signed with the merchant private key. */
 export class CouponsResource {
   constructor(private readonly http: HttpClient) {}
 
