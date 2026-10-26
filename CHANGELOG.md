@@ -6,12 +6,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [0.27.0] - 2026-10-26
 
-Payment methods the platform enables after this release can be passed without upgrading the SDK.
-
 ### Changed
 
-- **`PaymentMethod` now also accepts any string: `"card" | "applepay" | "googlepay" | "wechat" | (string & {})`.** The four listed values keep editor autocompletion. Nothing changes at runtime: the SDK never validated these values, and the platform still rejects an unknown value with a 400 that lists the accepted ones. Code that passes literals keeps compiling. If your own code relied on `PaymentMethod` being closed, such as an exhaustive `switch` ending in a `never` check, declare your own union of the values you handle, such as `type HandledMethod = "card" | "applepay"`.
-- The `PaymentMethod` JSDoc no longer carries a currency availability matrix. Which methods a session offers depends on the product type, the currency and the store's configuration, and is decided by the platform.
+- **`PaymentMethod` adds `(string & {})`** so payment methods still in rollout can be passed without an SDK upgrade. Values the platform does not support are still rejected with a 400.
 
 ## [0.26.0] - 2026-10-10
 

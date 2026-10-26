@@ -1013,10 +1013,10 @@ export type CashierLanguage =
 /**
  * Payment methods that can be offered on the hosted checkout page.
  *
- * Any string type-checks, so a method the platform enables after this SDK release can be passed without upgrading; the
- * listed values keep editor autocompletion. The platform validates every value when the checkout session is created and
- * rejects an unknown one with a 400. Which methods a session offers depends on the product type, the currency and the
- * store's configuration, and is decided by the platform.
+ * Availability depends on the product type × currency pair. One-time: `USD` supports all four;
+ * `EUR` / `GBP` / `HKD` / `JPY` support `card` / `applepay` / `googlepay`; `CNY` supports `wechat`.
+ * Subscription: `USD` / `EUR` / `GBP` / `HKD` / `JPY` support `card` / `applepay` / `googlepay`.
+ * Currencies outside this matrix cannot be charged at all — checkout session creation is rejected with a 400.
  */
 export type PaymentMethod = "card" | "applepay" | "googlepay" | "wechat" | (string & {});
 
