@@ -6,6 +6,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-10-27
+
 Merchants can create and manage coupons and promotion codes from their server, and apply them to checkout sessions for one-time products, new subscriptions and plan changes. **`checkout.createSession()` also starts validating its input locally** — see the BREAKING entry under Changed before upgrading.
 
 ### Added
@@ -31,11 +33,6 @@ Merchants can create and manage coupons and promotion codes from their server, a
   - **`couponId` / `promotionCode` / `allowPromotionCodes`** — new fields, so nothing that worked before is affected.
   - Not new: a malformed `productId` (not a `PROD_` Short ID) or `currency` (not three uppercase letters) was already a 400 from the platform; it is now the same 400 without a request.
   - **What to do**: if you call `createSession()` directly, make sure the cases above cannot reach it, or catch `WaffoPancakeError` with `layer: "sdk"`. Calls through `checkout.anonymous.create()` / `checkout.authenticated.create()` are unaffected — they already ran these checks.
-
-## [0.27.0] - 2026-10-26
-
-### Changed
-
 - **`PaymentMethod` adds `(string & {})`** so payment methods still in rollout can be passed without an SDK upgrade. Values the platform does not support are still rejected with a 400.
 
 ## [0.26.0] - 2026-10-10
