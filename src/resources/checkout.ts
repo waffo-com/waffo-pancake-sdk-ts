@@ -1,7 +1,7 @@
 import { CheckoutAnonymousResource } from "./checkout-anonymous.js";
 import { CheckoutAuthenticatedResource } from "./checkout-authenticated.js";
 import { unwrapAction } from "./internal.js";
-import { validatePlanChangeCommon } from "../validation.js";
+import { validateCheckoutCommon, validatePlanChangeCommon } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
 import type {
@@ -22,10 +22,8 @@ import type {
  * `createPlanChangeSession()` issues a link for changing an existing subscription's
  * plan, and the low-level `createSession()` is still available for full control.
  *
- * `createSession()` is the one method here that runs no client-side validation —
- * that is what "full control" buys, and it is the deliberate exception. Every other
- * method on this resource validates its input first, as resource methods do
- * throughout the SDK.
+ * Every method on this resource validates its input before sending, as resource
+ * methods do throughout the SDK.
  *
  * @example
  * // Anonymous checkout (no identity)
@@ -61,6 +59,10 @@ export class CheckoutResource {
    * For most use cases, prefer `checkout.anonymous.create()` or
    * `checkout.authenticated.create()` which handle the full flow automatically.
    *
+   * Validates the same fields as those two methods, including that `couponId` is a
+   * `CPN_` Short ID and is not combined with `promotionCode` or `allowPromotionCodes`,
+   * and that `promotionCode` is a non-empty string.
+   *
    * @param params - Checkout session parameters
    * @returns Session ID, checkout URL, and expiration
    *
@@ -71,11 +73,28 @@ export class CheckoutResource {
    *   buyerEmail: "customer@example.com",
    * });
    * // Redirect to session.checkoutUrl
+   *
+   * @example
+   * // Apply a coupon the customer cannot change
+   * await client.checkout.createSession({ productId: "PROD_xxx", currency: "USD", couponId: "CPN_xxx" });
+   *
+   * // Or let the customer enter a code on the checkout page
+   * await client.checkout.createSession({ productId: "PROD_xxx", currency: "USD", allowPromotionCodes: true });
+   *
+   * // Prefill a promotion code; allowPromotionCodes: true lets the customer change or remove it,
+   * // leave it out to lock the code
+   * await client.checkout.createSession({
+   *   productId: "PROD_xxx",
+   *   currency: "USD",
+   *   promotionCode: "SPRING-20",
+   *   allowPromotionCodes: true,
+   * });
    */
   async createSession(
     params: CreateCheckoutSessionParams,
     options?: RequestOptions,
   ): Promise<CheckoutSessionResult & { warnings?: Notice[] }> {
+    validateCheckoutCommon(params);
     return unwrapAction(await this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, options));
   }
 
@@ -94,6 +113,13 @@ export class CheckoutResource {
    *   only; the platform silently drops them for any other credential
    * - `changeAmount` and `changeCreditAmount` are mutually exclusive, and the
    *   platform rejects both-at-once with a 400 — the SDK forwards what you pass
+   * - Discounts: `couponId` (locked), `promotionCode` (prefilled; changeable only with
+   *   `allowPromotionCodes: true`) or `allowPromotionCodes` alone (code entry field).
+   *   A coupon or code replaces the subscription's current discount; without one the
+   *   current discount carries over with the periods already used, unless it has no
+   *   periods left, its coupon's `redeemBy` is within 60 seconds, or the coupon is
+   *   deactivated. `couponId` with `promotionCode` or `allowPromotionCodes` throws
+   *   `WaffoPancakeError` (400, `layer: "sdk"`) before sending
    * - Issued with your API Key, so the platform checks only that the subscription is
    *   yours: any target plan is allowed, in the group or not. For the customer-driven
    *   half (same group + `selfServicePlanChange` on), see
