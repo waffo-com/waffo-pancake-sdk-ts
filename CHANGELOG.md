@@ -32,6 +32,12 @@ Merchants can create and manage coupons and promotion codes from their server, a
   - Not new: a malformed `productId` (not a `PROD_` Short ID) or `currency` (not three uppercase letters) was already a 400 from the platform; it is now the same 400 without a request.
   - **What to do**: if you call `createSession()` directly, make sure the cases above cannot reach it, or catch `WaffoPancakeError` with `layer: "sdk"`. Calls through `checkout.anonymous.create()` / `checkout.authenticated.create()` are unaffected — they already ran these checks.
 
+## [0.27.0] - 2026-10-26
+
+### Changed
+
+- **`PaymentMethod` adds `(string & {})`** so payment methods still in rollout can be passed without an SDK upgrade. Values the platform does not support are still rejected with a 400.
+
 ## [0.26.0] - 2026-10-10
 
 Customers signed in to a merchant's site can enter the store's customer portal without email verification.
