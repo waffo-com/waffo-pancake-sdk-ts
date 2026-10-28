@@ -8,10 +8,12 @@ import {
   validateAmountString,
   validateBillingDetail,
   validateCheckoutCommon,
+  validateCodePrefix,
   validateCountryCode,
   validateCurrencyCode,
   validateEnum,
   validateMaxLength,
+  validatePositiveAmountString,
   validatePositiveInteger,
   validatePrices,
   validateRequired,
@@ -148,6 +150,26 @@ describe("validateAmountString", () => {
   });
 });
 
+describe("validatePositiveAmountString", () => {
+  it.each(["0.01", "5.00", "500"])("passes for %s", (value) => {
+    expect(() => validatePositiveAmountString("amount", value)).not.toThrow();
+  });
+
+  it.each(["0", "0.00", "abc", ""])("throws for %j", (value) => {
+    expect(() => validatePositiveAmountString("amount", value)).toThrow(WaffoPancakeError);
+  });
+});
+
+describe("validateCodePrefix", () => {
+  it.each(["K", "KOL-", "ABCDEFGHIJKL"])("passes for %s", (value) => {
+    expect(() => validateCodePrefix("prefix", value)).not.toThrow();
+  });
+
+  it.each(["", "KOL_", "ABCDEFGHIJKLM"])("throws for %j", (value) => {
+    expect(() => validateCodePrefix("prefix", value)).toThrow(WaffoPancakeError);
+  });
+});
+
 describe("validateEnum", () => {
   it("should pass for valid value", () => {
     expect(() => validateEnum("productType", "onetime", ["onetime", "subscription"])).not.toThrow();
@@ -266,6 +288,38 @@ describe("validateCheckoutCommon", () => {
 
   it("should validate billingDetail when present", () => {
     expect(() => validateCheckoutCommon({ ...valid, billingDetail: { country: "usa", isBusiness: false } })).toThrow(WaffoPancakeError);
+  });
+
+  it("should accept a CPN_ couponId on its own", () => {
+    expect(() => validateCheckoutCommon({ ...valid, couponId: "CPN_0000000000000000000000" })).not.toThrow();
+  });
+
+  it("should reject a couponId with another prefix", () => {
+    expect(() => validateCheckoutCommon({ ...valid, couponId: "PMC_0000000000000000000000" })).toThrow(/expected CPN_ prefix/);
+  });
+
+  it("should accept allowPromotionCodes on its own", () => {
+    expect(() => validateCheckoutCommon({ ...valid, allowPromotionCodes: true })).not.toThrow();
+  });
+
+  it.each([true, false])("should reject couponId together with allowPromotionCodes: %s", (allowPromotionCodes) => {
+    expect(() => validateCheckoutCommon({ ...valid, couponId: "CPN_0000000000000000000000", allowPromotionCodes })).toThrow(
+      /couponId and allowPromotionCodes are mutually exclusive/,
+    );
+  });
+
+  it.each([true, false])("should accept promotionCode with allowPromotionCodes: %s", (allowPromotionCodes) => {
+    expect(() => validateCheckoutCommon({ ...valid, promotionCode: "spring-20", allowPromotionCodes })).not.toThrow();
+  });
+
+  it("should reject couponId together with promotionCode", () => {
+    expect(() => validateCheckoutCommon({ ...valid, couponId: "CPN_0000000000000000000000", promotionCode: "SPRING-20" })).toThrow(
+      /couponId and promotionCode are mutually exclusive/,
+    );
+  });
+
+  it("should reject an empty promotionCode", () => {
+    expect(() => validateCheckoutCommon({ ...valid, promotionCode: "" })).toThrow(/promotionCode cannot be empty/);
   });
 });
 
