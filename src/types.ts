@@ -1311,8 +1311,9 @@ export interface CreateCheckoutSessionParams {
   promotionCode?: string;
   /**
    * Show a code entry field on the checkout page, where the customer can enter a coupon
-   * code or promotion code (default `false` for sessions created with the API Key).
-   * Together with {@link CreateCheckoutSessionParams.promotionCode}, `true` lets the
+   * code or promotion code. When omitted, the field is shown only if the store has a coupon
+   * or promotion code that can be redeemed on this product (a locked coupon or prefilled
+   * code keeps it hidden). Together with {@link CreateCheckoutSessionParams.promotionCode}, `true` lets the
    * customer change or remove the prefilled code.
    *
    * Mutually exclusive with {@link CreateCheckoutSessionParams.couponId}.
@@ -1443,8 +1444,9 @@ export interface CreatePlanChangeSessionParams {
   promotionCode?: string;
   /**
    * Show a code entry field on the confirmation page, where the customer can enter a
-   * coupon code or promotion code for the new plan (default `false` for sessions created
-   * with the API Key). Together with {@link CreatePlanChangeSessionParams.promotionCode},
+   * coupon code or promotion code for the new plan. When omitted, the field is shown only
+   * if the store has a coupon or promotion code that can be redeemed on the new plan's
+   * product (a locked coupon or prefilled code keeps it hidden). Together with {@link CreatePlanChangeSessionParams.promotionCode},
    * `true` lets the customer change or remove the prefilled code.
    *
    * Mutually exclusive with {@link CreatePlanChangeSessionParams.couponId}.

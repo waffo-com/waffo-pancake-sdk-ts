@@ -168,7 +168,7 @@ await client.checkout.anonymous.create({ productId: "PROD_xxx", currency: "USD",
 await client.checkout.createSession({ productId: "PROD_xxx", currency: "USD", promotionCode: "SPRING-20", allowPromotionCodes: true });
 ```
 
-- `allowPromotionCodes` defaults to `false` for sessions created with your API Key — no code entry field unless you turn it on.
+- When `allowPromotionCodes` is omitted, the code entry field is shown only if the store has a coupon or promotion code that can be redeemed on the product — pass `true` or `false` to decide yourself. A `couponId`, or a `promotionCode` without `allowPromotionCodes: true`, locks the discount and hides the field.
 - `promotionCode` takes the code string (case-insensitive) and needs your API Key. With `allowPromotionCodes: true` the customer can replace the prefilled code or remove it and enter another; without it (or with `false`) the code is locked.
 - Passing `couponId` together with `promotionCode` or `allowPromotionCodes` (either value) throws `WaffoPancakeError` (400, `layer: "sdk"`) before any request is sent; a `couponId` without the `CPN_` prefix, or an empty `promotionCode`, is rejected the same way.
 - The platform rejects a coupon or prefilled promotion code that belongs to another store or environment, is not `active`, expires within 60 seconds, does not cover the product, or is a fixed amount with no amount in the session currency, with a 409 whose message names the reason. Rules tied to the customer (eligible customers, per-customer limits) are checked when the customer places the order.
