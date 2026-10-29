@@ -527,6 +527,12 @@ export type MerchantWritableNotificationSettings = Pick<
  * @see docs/api-reference/endpoints/stores/overview.mdx
  */
 export interface CheckoutThemeSettings {
+  /**
+   * @deprecated Always `null`. The checkout page shows the store's top-level
+   * {@link Store.logo}; set it via `client.stores.update({ logo })`. A non-null
+   * value sent in `checkoutSettings` is ignored and the response carries a
+   * `warnings` entry.
+   */
   checkoutLogo: string | null;
   checkoutColorPrimary: string;
   checkoutColorBackground: string;
@@ -553,6 +559,11 @@ export interface Store {
   id: string;
   name: string;
   status: EntityStatus;
+  /**
+   * Store logo URL, shown on the checkout page. An http(s) URL; logos uploaded
+   * as a base64 data URI are returned as a CDN URL such as
+   * `https://media.waffo.ai/stores/{STO_xxx}/logo/{sha256}.{ext}`.
+   */
   logo: string | null;
   supportEmail: string | null;
   website: string | null;
@@ -594,7 +605,16 @@ export interface UpdateStoreParams {
   name?: string;
   /** Store status */
   status?: EntityStatus;
-  /** Store logo URL (set to `null` to remove) */
+  /**
+   * Store logo, shown on the checkout page. Accepts an http(s) URL (stored
+   * as-is) or a base64 image data URI (`data:image/<type>;base64,...`, at most
+   * 3 MB decoded; PNG, JPEG, WebP, GIF, SVG or ICO). A data URI is uploaded to
+   * the Waffo Pancake CDN and the stored value becomes a CDN URL such as
+   * `https://media.waffo.ai/stores/{STO_xxx}/logo/{sha256}.{ext}`. The logo is
+   * always stored as a PNG with the longest edge capped at 512px and metadata
+   * such as EXIF/GPS removed; an ICO without a PNG frame is kept as ICO. Set to
+   * `null` to remove.
+   */
   logo?: string | null;
   /**
    * Notification preferences (partial update — omitted fields keep existing values,
@@ -712,11 +732,16 @@ export type Prices = Record<string, PriceInfo>;
 export interface MediaItem {
   /** Media type */
   type: `${MediaType}`;
-  /** Asset URL */
+  /**
+   * Asset URL. On create / update, accepts an http(s) URL (stored as-is) or a
+   * base64 image data URI (`data:image/<type>;base64,...`, at most 3 MB
+   * decoded); a data URI is uploaded to the Waffo Pancake CDN and replaced with
+   * a URL such as `https://media.waffo.ai/stores/{STO_xxx}/product/{sha256}.{ext}`.
+   */
   url: string;
   /** Alt text */
   alt?: string;
-  /** Thumbnail URL */
+  /** Thumbnail URL. Accepts the same values as {@link MediaItem.url}. */
   thumbnail?: string;
 }
 

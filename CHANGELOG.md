@@ -6,6 +6,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+Store logos and product images are stored on the Waffo Pancake CDN. Types and documentation only; no runtime change.
+
+### Deprecated
+
+- **`CheckoutThemeSettings.checkoutLogo`** — always `null`. The platform ignores any value sent in `checkoutSettings.light` / `checkoutSettings.dark` (a non-null value adds a `warnings` entry to the `client.stores.update` response), and the checkout page shows the store's top-level `logo`. Set the logo with `client.stores.update({ id, logo })`.
+
+### Documentation
+
+- **`UpdateStoreParams.logo` / `Store.logo`** — JSDoc and `docs/api-reference.md` state the accepted values: an http(s) URL (stored as-is) or a base64 image data URI (`data:image/<type>;base64,...`, at most 3 MB decoded; PNG, JPEG, WebP, GIF, SVG or ICO). A data URI is uploaded to the CDN and the store returns a URL such as `https://media.waffo.ai/stores/{STO_xxx}/logo/{sha256}.{ext}`.
+- **`MediaItem.url` / `MediaItem.thumbnail`** — JSDoc states the same accepted values for product media on create / update; data URIs come back as `https://media.waffo.ai/stores/{STO_xxx}/product/{sha256}.{ext}` URLs.
+
 ## [0.27.0] - 2026-10-27
 
 Merchants can create and manage coupons and promotion codes from their server, and apply them to checkout sessions for one-time products, new subscriptions and plan changes. **`checkout.createSession()` also starts validating its input locally** — see the BREAKING entry under Changed before upgrading.
