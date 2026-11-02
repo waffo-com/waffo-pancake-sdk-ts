@@ -72,7 +72,7 @@ const { data } = await client.graphql.query<StoresQuery>({
 
 // Single store by ID
 const store = await client.graphql.query({
-  query: `query ($id: ID!) {
+  query: `query ($id: String!) {
     store(id: $id) { id name slug status }
   }`,
   variables: { id: "STO_xxx" },
@@ -171,7 +171,7 @@ const subOrders = await client.graphql.query({
 ```typescript
 // One-time order with payments and refunds
 const orderDetail = await client.graphql.query({
-  query: `query ($id: ID!) {
+  query: `query ($id: String!) {
     onetimeOrder(id: $id) {
       id buyerEmail currency status testMode
       priceSnapshot { currency subtotal taxAmount total taxCategory }
@@ -193,7 +193,7 @@ const orderDetail = await client.graphql.query({
 
 // Subscription order with renewal status
 const subDetail = await client.graphql.query({
-  query: `query ($id: ID!) {
+  query: `query ($id: String!) {
     subscriptionOrder(id: $id) {
       id buyerEmail status billingPeriod
       priceSnapshot {
@@ -283,7 +283,7 @@ const byRefundTicketRef = await client.graphql.query({
 
 ```typescript
 const merchant = await client.graphql.query({
-  query: `query ($id: ID!) {
+  query: `query ($id: String!) {
     merchant(id: $id) {
       id email name status
       storeMerchants {
