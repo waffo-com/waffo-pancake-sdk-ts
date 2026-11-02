@@ -1095,7 +1095,7 @@ const result = await client.graphql.query<StoresQuery>({
 });
 
 const productResult = await client.graphql.query({
-  query: `query ($id: ID!) { onetimeProduct(id: $id) { id name prices } }`,
+  query: `query ($id: String!) { onetimeProduct(id: $id) { id name prices { currency priceInfo { amount } } } }`,
   variables: { id: "PROD_xxx" },
 });
 ```

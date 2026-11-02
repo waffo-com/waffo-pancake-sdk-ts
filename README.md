@@ -417,16 +417,16 @@ const result = await client.graphql.query<StoresQuery>({
 
 // Query with variables
 const product = await client.graphql.query({
-  query: `query ($id: ID!) { onetimeProduct(id: $id) { id name prices } }`,
+  query: `query ($id: String!) { onetimeProduct(id: $id) { id name prices { currency priceInfo { amount } } } }`,
   variables: { id: "PROD_xxx" },
 });
 
 // Nested relationships in a single request
 const detail = await client.graphql.query({
-  query: `query ($id: ID!) {
+  query: `query ($id: String!) {
     store(id: $id) {
       id name
-      onetimeProducts { id name status prices }
+      onetimeProducts { id name status prices { currency priceInfo { amount } } }
       subscriptionProducts { id name billingPeriod status }
     }
   }`,
