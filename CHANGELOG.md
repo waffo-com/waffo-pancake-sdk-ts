@@ -12,6 +12,10 @@ Store logos and product images are stored on the Waffo Pancake CDN. Types and do
 
 - **`CheckoutThemeSettings.checkoutLogo`** — always `null`. The platform ignores any value sent in `checkoutSettings.light` / `checkoutSettings.dark` (a non-null value adds a `warnings` entry to the `client.stores.update` response), and the checkout page shows the store's top-level `logo`. Set the logo with `client.stores.update({ id, logo })`.
 
+### Added
+
+- **`GraphQLResponse.errors[].extensions.code`** — GraphQL errors carry `extensions.code`; `"BAD_USER_INPUT"` marks an argument rejected before the query runs (malformed ID, date, pagination or filter operator). The endpoint answers 400 when every error is `BAD_USER_INPUT` and no root field returned data, and 400 for a request body that is not valid JSON. Types only; `client.graphql.query` already parses non-2xx bodies.
+
 ### Documentation
 
 - **`UpdateStoreParams.logo` / `Store.logo`** — JSDoc and `docs/api-reference.md` state the accepted values: an http(s) URL (stored as-is) or a base64 image data URI (`data:image/<type>;base64,...`, at most 3 MB decoded; PNG, JPEG, WebP, GIF, SVG or ICO). A data URI is uploaded to the CDN and the store returns a URL such as `https://media.waffo.ai/stores/{STO_xxx}/logo/{sha256}.{ext}`.
