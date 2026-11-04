@@ -6,7 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
-Store logos and product images are stored on the Waffo Pancake CDN. Types and documentation only; no runtime change.
+Store logos and product images are stored on the Waffo Pancake CDN.
+
+### Added
+
+- **`WebhookEventData.paymentMethodBrand`** — optional wallet or card brand from the associated payment, independent of `paymentMethod`; existing payloads without it remain supported.
 
 ### Deprecated
 
