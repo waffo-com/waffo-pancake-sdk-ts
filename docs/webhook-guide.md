@@ -463,8 +463,6 @@ On payment events `amount` is the amount actually charged, equal to `chargedAmou
 | `paymentFailureReason` | `string` | Payment failure reason (present when failed)                                          |
 | `paymentDate`          | `string` | Payment date (ISO 8601 date, e.g., `"2026-04-18"`)                                    |
 
-`paymentMethod` and `paymentLast4` remain optional. `paymentMethodBrand` is an open string: it is included only when the associated payment has a non-blank string brand, even if `paymentMethod` is absent. Missing brands are omitted, never guessed or filled with `null`, `""` or `"unknown"`. Subscription status events do not carry this field. The existing explicitly subscribed `chargeback.filed` delivery path also uses the original payment's brand; this does not add it to the standard event list. Stored deliveries retain their original payload on retry or manual resend.
-
 **Subscription fields** — present on the subscription domain events, **not** on `subscription.payment_succeeded`:
 
 | Field                | Type     | Description                                                           |
