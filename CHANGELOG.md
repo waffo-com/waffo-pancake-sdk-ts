@@ -6,7 +6,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
-Store logos and product images are stored on the Waffo Pancake CDN.
+## [0.28.0] - 2026-11-04
+
+Webhook payment data now exposes the wallet or card brand.
 
 ### Added
 
@@ -18,6 +20,7 @@ Store logos and product images are stored on the Waffo Pancake CDN.
 
 ### Documentation
 
+- Correct GraphQL examples to use `String!` for IDs and select the nested fields of `prices`.
 - **`UpdateStoreParams.logo` / `Store.logo`** — JSDoc and `docs/api-reference.md` state the accepted values: an http(s) URL (stored as-is) or a base64 image data URI (`data:image/<type>;base64,...`, at most 3 MB decoded; PNG, JPEG, WebP, GIF, SVG or ICO). A data URI is uploaded to the CDN and the store returns a URL such as `https://media.waffo.ai/stores/{STO_xxx}/logo/{sha256}.{ext}`.
 - **`MediaItem.url` / `MediaItem.thumbnail`** — JSDoc states the same accepted values for product media on create / update; data URIs come back as `https://media.waffo.ai/stores/{STO_xxx}/product/{sha256}.{ext}` URLs.
 
