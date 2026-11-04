@@ -227,6 +227,30 @@ describe("verifyWebhook", () => {
       expect(result.data.originalPayment).not.toHaveProperty("discountAmount");
     });
 
+    it.each(["wechatpay", "alipay", "alipayhk", "visa", "future_wallet", undefined])(
+      "should preserve optional paymentMethodBrand %s without requiring paymentMethod",
+      (brand) => {
+        const data: WebhookEventData = {
+          orderId: "ORD_brand",
+          paymentId: "PAY_brand",
+          buyerEmail: "a@b.com",
+          currency: "USD",
+          amount: "10.00",
+          taxAmount: "0.00",
+          productName: "Pro",
+          ...(brand === undefined ? {} : { paymentMethodBrand: brand }),
+        };
+        const payload = JSON.stringify({ id: "PAY_brand", eventType: "order.completed", data });
+        const ts = Date.now().toString();
+        const header = `t=${ts},v1=${signPayload(ts, payload)}`;
+
+        const result = verifyWebhook<WebhookEventData>(payload, header, { publicKey: publicKey as string });
+        expect(result.data.paymentMethodBrand).toBe(brand);
+        expect(result.data).not.toHaveProperty("paymentMethod");
+        if (brand === undefined) expect(result.data).not.toHaveProperty("paymentMethodBrand");
+      },
+    );
+
     it("should reject invalid signature with custom publicKey", () => {
       const payload = JSON.stringify({ id: "evt_bad" });
       const ts = Date.now().toString();

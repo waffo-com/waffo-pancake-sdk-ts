@@ -1983,6 +1983,8 @@ export interface WebhookEventData {
   paymentStatus?: string;
   /** Payment method type (e.g., "card") */
   paymentMethod?: string;
+  /** Wallet or card brand (e.g., "wechatpay", "alipay", "visa"); optional independently of paymentMethod. */
+  paymentMethodBrand?: string;
   /** Last 4 digits of payment instrument */
   paymentLast4?: string;
   /** Payment failure reason (present when payment failed) */
