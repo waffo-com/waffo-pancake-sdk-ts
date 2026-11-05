@@ -1109,10 +1109,10 @@ const productResult = await client.graphql.query({
 
 **Returns `GraphQLResponse<T>`**:
 
-| Field    | Type                                    | Description             |
-| -------- | --------------------------------------- | ----------------------- |
-| `data`   | `T \| null`                             | Query result            |
-| `errors` | `Array<{ message, locations?, path? }>` | GraphQL errors (if any) |
+| Field    | Type                                                  | Description                                                                         |
+| -------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `data`   | `T \| null`                                           | Query result                                                                        |
+| `errors` | `Array<{ message, locations?, path?, extensions? }>` | GraphQL errors (if any); `extensions.code` is `"BAD_USER_INPUT"` for a rejected argument |
 
 See [GraphQL Guide](graphql-guide.md) for introspection, filters, pagination, and practical examples.
 

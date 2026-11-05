@@ -1750,6 +1750,12 @@ export interface GraphQLResponse<T = Record<string, unknown>> {
     aiHint?: string;
     /** Service stage that produced the error ("graphql", "gateway"). Resolver errors omit it. */
     layer?: string;
+    /**
+     * Machine-readable error class. `code: "BAD_USER_INPUT"` marks an invalid argument (malformed ID,
+     * date, pagination or filter operator) rejected before the query runs; fix the input instead of
+     * retrying. When every error is `BAD_USER_INPUT` and no root field returned data, the HTTP status is 400.
+     */
+    extensions?: { code?: string };
   }>;
   warnings?: Notice[];
 }
