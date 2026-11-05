@@ -6,11 +6,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
-GraphQL errors expose `extensions.code`, webhook payloads can carry the payment method brand, and store logos and product images are stored on the Waffo Pancake CDN. Types and documentation only; no runtime change.
+GraphQL errors expose `extensions.code`. Types only; no runtime change.
 
 ### Added
 
 - **`GraphQLResponse.errors[].extensions.code`** — GraphQL errors carry `extensions.code`; `"BAD_USER_INPUT"` marks an argument rejected before the query runs (malformed ID, date, pagination or filter operator). The endpoint answers 400 when every error is `BAD_USER_INPUT` and no root field returned data, and 400 for a request body that is not valid JSON. Types only; `client.graphql.query` already parses non-2xx bodies.
+
+## [0.28.0] - 2026-11-04
+
+Webhook payment data now exposes the wallet or card brand.
+
+### Added
+
 - **`WebhookEventData.paymentMethodBrand`** — optional wallet or card brand from the associated payment, independent of `paymentMethod`; existing payloads without it remain supported.
 
 ### Deprecated
@@ -19,6 +26,7 @@ GraphQL errors expose `extensions.code`, webhook payloads can carry the payment 
 
 ### Documentation
 
+- Correct GraphQL examples to use `String!` for IDs and select the nested fields of `prices`.
 - **`UpdateStoreParams.logo` / `Store.logo`** — JSDoc and `docs/api-reference.md` state the accepted values: an http(s) URL (stored as-is) or a base64 image data URI (`data:image/<type>;base64,...`, at most 3 MB decoded; PNG, JPEG, WebP, GIF, SVG or ICO). A data URI is uploaded to the CDN and the store returns a URL such as `https://media.waffo.ai/stores/{STO_xxx}/logo/{sha256}.{ext}`.
 - **`MediaItem.url` / `MediaItem.thumbnail`** — JSDoc states the same accepted values for product media on create / update; data URIs come back as `https://media.waffo.ai/stores/{STO_xxx}/product/{sha256}.{ext}` URLs.
 
