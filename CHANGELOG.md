@@ -6,11 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
-GraphQL errors expose `extensions.code`, and store logos and product images are stored on the Waffo Pancake CDN. Types and documentation only; no runtime change.
+GraphQL errors expose `extensions.code`, webhook payloads can carry the payment method brand, and store logos and product images are stored on the Waffo Pancake CDN. Types and documentation only; no runtime change.
 
 ### Added
 
 - **`GraphQLResponse.errors[].extensions.code`** — GraphQL errors carry `extensions.code`; `"BAD_USER_INPUT"` marks an argument rejected before the query runs (malformed ID, date, pagination or filter operator). The endpoint answers 400 when every error is `BAD_USER_INPUT` and no root field returned data, and 400 for a request body that is not valid JSON. Types only; `client.graphql.query` already parses non-2xx bodies.
+- **`WebhookEventData.paymentMethodBrand`** — optional wallet or card brand from the associated payment, independent of `paymentMethod`; existing payloads without it remain supported.
 
 ### Deprecated
 

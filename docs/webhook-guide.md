@@ -451,16 +451,17 @@ On payment events `amount` is the amount actually charged, equal to `chargedAmou
 | `productDescription` | `string` | No       | Product description                                           |
 | `productMetadata`    | `object` | No       | Product-level metadata set when creating/updating the product |
 
-**Payment fields** (present for `order.completed`, `subscription.payment_succeeded`):
+**Payment fields** (on `order.completed`, `subscription.payment_succeeded`, `refund.succeeded` and `refund.failed`; refunds refer to the original payment):
 
-| Field                  | Type     | Description                                        |
-| ---------------------- | -------- | -------------------------------------------------- |
-| `paymentId`            | `string` | Payment ID                                         |
-| `paymentStatus`        | `string` | Payment status (e.g., `"succeeded"`, `"failed"`)   |
-| `paymentMethod`        | `string` | Payment method type (e.g., `"card"`)               |
-| `paymentLast4`         | `string` | Last 4 digits of payment instrument                |
-| `paymentFailureReason` | `string` | Payment failure reason (present when failed)       |
-| `paymentDate`          | `string` | Payment date (ISO 8601 date, e.g., `"2026-04-18"`) |
+| Field                  | Type     | Description                                                                           |
+| ---------------------- | -------- | ------------------------------------------------------------------------------------- |
+| `paymentId`            | `string` | Payment ID                                                                            |
+| `paymentStatus`        | `string` | Payment status (e.g., `"succeeded"`, `"failed"`)                                      |
+| `paymentMethod`        | `string` | Payment method type (e.g., `"card"`)                                                  |
+| `paymentMethodBrand`   | `string` | Optional wallet or card brand, e.g. `"wechatpay"`, `"alipay"`, `"alipayhk"`, `"visa"` |
+| `paymentLast4`         | `string` | Last 4 digits of payment instrument                                                   |
+| `paymentFailureReason` | `string` | Payment failure reason (present when failed)                                          |
+| `paymentDate`          | `string` | Payment date (ISO 8601 date, e.g., `"2026-04-18"`)                                    |
 
 **Subscription fields** — present on the subscription domain events, **not** on `subscription.payment_succeeded`:
 
