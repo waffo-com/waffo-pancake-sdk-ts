@@ -6,6 +6,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+## [0.28.1] - 2026-11-06
+
 GraphQL errors expose `extensions.code`. Types only; no runtime change.
 
 ### Added
