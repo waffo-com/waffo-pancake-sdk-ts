@@ -6,9 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
-GraphQL errors expose `extensions.code`. Types only; no runtime change.
+GraphQL errors expose `extensions.code`, and webhooks gain the checkout session events of the one-page checkout.
 
 ### Added
+
+- **`WebhookEventType.CheckoutCompleted` (`checkout.completed`) / `WebhookEventType.CheckoutExpired` (`checkout.expired`)** — sent once per checkout session of the one-page checkout when it completes (one-time order paid or subscription activated) or expires without completing. They come in addition to `order.completed` / `subscription.activated`; a session moved back to the legacy checkout sends neither. Subscribable through `client.webhooks.add` / `update`.
+- **`CheckoutSessionWebhookEventData`** — payload type for the two events, used as `verifyWebhook<CheckoutSessionWebhookEventData>(body, sig)`: `sessionId` (`cs_` + UUID, also the envelope `id` / `eventId`), `status`, `productId`, `productName`, `productType`, `currency`, `amount`, `buyerEmail` (`null` when none was entered), `orderId` (`null` when the session expired before an order was created), `orderMetadata` (`{}` when none was passed), `createdAt`, `expiresAt`, plus `merchantProvidedBuyerIdentity` / `orderMerchantExternalId` when set. `WebhookEventData` is unchanged.
 
 - **`GraphQLResponse.errors[].extensions.code`** — GraphQL errors carry `extensions.code`; `"BAD_USER_INPUT"` marks an argument rejected before the query runs (malformed ID, date, pagination or filter operator). The endpoint answers 400 when every error is `BAD_USER_INPUT` and no root field returned data, and 400 for a request body that is not valid JSON. Types only; `client.graphql.query` already parses non-2xx bodies.
 

@@ -1,6 +1,6 @@
 # Webhook Guide
 
-Waffo Pancake sends webhook events to your configured endpoint when payment, subscription, and refund state changes occur. The SDK provides `verifyWebhook()` to validate signatures and parse events.
+Waffo Pancake sends webhook events to your configured endpoint when payment, subscription, refund, and checkout session state changes occur. The SDK provides `verifyWebhook()` to validate signatures and parse events.
 
 ## Overview
 
@@ -365,20 +365,20 @@ Both APIs share the same underlying verification logic and resolution chain.
 
 ### `WebhookEvent<T>`
 
-| Field       | Type     | Description                                                         |
-| ----------- | -------- | ------------------------------------------------------------------- |
-| `id`        | `string` | Delivery record unique ID (UUID) — use for idempotent deduplication |
-| `timestamp` | `string` | Event timestamp (ISO 8601 UTC)                                      |
-| `eventType` | `string` | Event type (e.g. `"order.completed"`)                               |
-| `eventId`   | `string` | Business event ID (e.g. payment ID)                                 |
-| `storeId`   | `string` | Store ID the event belongs to                                       |
-| `storeName` | `string` | Store name                                                          |
-| `mode`      | `string` | Environment (`"test"` or `"prod"`)                                  |
-| `data`      | `T`      | Event data (defaults to `WebhookEventData`)                         |
+| Field       | Type     | Description                                                                                              |
+| ----------- | -------- | -------------------------------------------------------------------------------------------------------- |
+| `id`        | `string` | Delivery record unique ID (UUID) — use for idempotent deduplication                                      |
+| `timestamp` | `string` | Event timestamp (ISO 8601 UTC)                                                                           |
+| `eventType` | `string` | Event type (e.g. `"order.completed"`)                                                                    |
+| `eventId`   | `string` | Business event ID (e.g. payment ID, checkout session ID)                                                 |
+| `storeId`   | `string` | Store ID the event belongs to                                                                            |
+| `storeName` | `string` | Store name                                                                                               |
+| `mode`      | `string` | Environment (`"test"` or `"prod"`)                                                                       |
+| `data`      | `T`      | Event data (defaults to `WebhookEventData`; `checkout.*` events carry `CheckoutSessionWebhookEventData`) |
 
 ### `WebhookEventData`
 
-All events include the **Order**, **Amount**, and **Product** sections. Additional sections are conditionally present based on event type.
+All order, subscription, and refund events include the **Order**, **Amount**, and **Product** sections. Additional sections are conditionally present based on event type. Checkout session events (`checkout.completed`, `checkout.expired`) carry a different shape — see [`CheckoutSessionWebhookEventData`](#checkoutsessionwebhookeventdata).
 
 **Order fields** (always present):
 
@@ -508,24 +508,60 @@ handler that only uses those needs no change.
 | `refundReason`    | `string` | Refund reason                             |
 | `refundCreatedAt` | `string` | Refund creation timestamp (ISO 8601)      |
 
+### `CheckoutSessionWebhookEventData`
+
+`checkout.completed` and `checkout.expired` describe a checkout session of the one-page checkout, not a payment. They are sent once per session, only for sessions of the one-page checkout, and in addition to the order and subscription events: a completed one-time session also produces `order.completed`, a completed subscription session `subscription.activated`. A session the customer moved back to the legacy checkout produces neither event. The envelope's `id` and `eventId` are both the session ID.
+
+| Field                           | Type                          | Required | Description                                                                                                                                                                                         |
+| ------------------------------- | ----------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sessionId`                     | `string`                      | Yes      | Checkout session ID (`cs_` + UUID, not a Short ID) — the `sessionId` returned when the session was created                                                                                          |
+| `status`                        | `"completed" \| "expired"`    | Yes      | Terminal status of the session; matches the event type                                                                                                                                              |
+| `productId`                     | `string`                      | Yes      | Product ID (Short ID, `PROD_...`)                                                                                                                                                                   |
+| `productName`                   | `string`                      | Yes      | Product name                                                                                                                                                                                        |
+| `productType`                   | `"onetime" \| "subscription"` | Yes      | Product type of the session                                                                                                                                                                         |
+| `currency`                      | `string`                      | Yes      | Currency code (ISO 4217)                                                                                                                                                                            |
+| `amount`                        | `string`                      | Yes      | Display string. With an order: the order's payable amount after any discount, tax included (subscriptions: the first period's amount). Without an order: the product's list price, tax not included |
+| `buyerEmail`                    | `string \| null`              | Yes      | Customer email; `null` when the customer never entered one before the session expired                                                                                                               |
+| `merchantProvidedBuyerIdentity` | `string`                      | No       | Merchant-provided customer identity from checkout session; absent when none was bound                                                                                                               |
+| `orderId`                       | `string \| null`              | Yes      | Order ID (Short ID, `ORD_...`); `null` when the session expired before an order was created                                                                                                         |
+| `orderMerchantExternalId`       | `string`                      | No       | Order business-side identifier passed when creating the session; absent when none was passed                                                                                                        |
+| `orderMetadata`                 | `object`                      | Yes      | Order-level metadata from checkout session (flat key-value pairs); `{}` when none was passed                                                                                                        |
+| `createdAt`                     | `string`                      | Yes      | Session creation time (ISO 8601 UTC)                                                                                                                                                                |
+| `expiresAt`                     | `string`                      | Yes      | Session expiration time (ISO 8601 UTC) — the `expiresAt` returned when the session was created                                                                                                      |
+
+Payment method, failure reason, billing details, and the tax breakdown are not included. Pass the type to `verifyWebhook` once the event type is known:
+
+```typescript
+import { verifyWebhook, WebhookEventType } from "@waffo/pancake-ts";
+import type { CheckoutSessionWebhookEventData } from "@waffo/pancake-ts";
+
+const event = verifyWebhook<CheckoutSessionWebhookEventData>(body, sig);
+if (event.eventType === WebhookEventType.CheckoutExpired && event.data.buyerEmail !== null) {
+  // the customer left an email but did not finish — follow up
+  await sendRecoveryEmail(event.data.buyerEmail, event.data.productName);
+}
+```
+
 ## Event Types
 
-| Enum Value                        | String                               | Trigger                                                            |
-| --------------------------------- | ------------------------------------ | ------------------------------------------------------------------ |
-| `OrderCompleted`                  | `order.completed`                    | One-time order first payment succeeded                             |
-| `SubscriptionActivated`           | `subscription.activated`             | New subscription activated                                         |
-| `SubscriptionPaymentSucceeded`    | `subscription.payment_succeeded`     | Subscription payment succeeded (pure payment event)                |
-| `SubscriptionRenewed`             | `subscription.renewed`               | Current billing period rolled forward (renewal)                    |
-| `SubscriptionRecovered`           | `subscription.recovered`             | Past-due subscription recovered by a successful retry              |
-| `SubscriptionPlanChanged`         | `subscription.plan_changed`          | Plan change took effect (upgrade/downgrade)                        |
-| `SubscriptionPlanChangeScheduled` | `subscription.plan_change_scheduled` | Plan change confirmed, effective next billing period               |
-| `SubscriptionPlanChangeFailed`    | `subscription.plan_change_failed`    | Plan change did not complete, current plan stays in effect         |
-| `SubscriptionCanceling`           | `subscription.canceling`             | Customer initiated cancellation (expires at end of billing period) |
-| `SubscriptionUncanceled`          | `subscription.uncanceled`            | Customer withdrew cancellation request                             |
-| `SubscriptionCanceled`            | `subscription.canceled`              | Subscription fully terminated                                      |
-| `SubscriptionPastDue`             | `subscription.past_due`              | Renewal payment failed (past due)                                  |
-| `RefundSucceeded`                 | `refund.succeeded`                   | Refund completed successfully                                      |
-| `RefundFailed`                    | `refund.failed`                      | Refund failed                                                      |
+| Enum Value                        | String                               | Trigger                                                                                                         |
+| --------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `OrderCompleted`                  | `order.completed`                    | One-time order first payment succeeded                                                                          |
+| `SubscriptionActivated`           | `subscription.activated`             | New subscription activated                                                                                      |
+| `SubscriptionPaymentSucceeded`    | `subscription.payment_succeeded`     | Subscription payment succeeded (pure payment event)                                                             |
+| `SubscriptionRenewed`             | `subscription.renewed`               | Current billing period rolled forward (renewal)                                                                 |
+| `SubscriptionRecovered`           | `subscription.recovered`             | Past-due subscription recovered by a successful retry                                                           |
+| `SubscriptionPlanChanged`         | `subscription.plan_changed`          | Plan change took effect (upgrade/downgrade)                                                                     |
+| `SubscriptionPlanChangeScheduled` | `subscription.plan_change_scheduled` | Plan change confirmed, effective next billing period                                                            |
+| `SubscriptionPlanChangeFailed`    | `subscription.plan_change_failed`    | Plan change did not complete, current plan stays in effect                                                      |
+| `SubscriptionCanceling`           | `subscription.canceling`             | Customer initiated cancellation (expires at end of billing period)                                              |
+| `SubscriptionUncanceled`          | `subscription.uncanceled`            | Customer withdrew cancellation request                                                                          |
+| `SubscriptionCanceled`            | `subscription.canceled`              | Subscription fully terminated                                                                                   |
+| `SubscriptionPastDue`             | `subscription.past_due`              | Renewal payment failed (past due)                                                                               |
+| `RefundSucceeded`                 | `refund.succeeded`                   | Refund completed successfully                                                                                   |
+| `RefundFailed`                    | `refund.failed`                      | Refund failed                                                                                                   |
+| `CheckoutCompleted`               | `checkout.completed`                 | Checkout session completed — its one-time order was paid or its subscription activated (one-page checkout only) |
+| `CheckoutExpired`                 | `checkout.expired`                   | Checkout session expired without completing (one-page checkout only)                                            |
 
 ## Key Rotation & Migration
 

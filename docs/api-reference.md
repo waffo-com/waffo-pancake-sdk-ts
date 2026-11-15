@@ -1238,4 +1238,5 @@ All exported type interfaces:
 | `WebhookEvent<T>`                       | Webhook event payload                                                                                                                                       |
 | `WebhookEventData`                      | Common event data fields                                                                                                                                    |
 | `WebhookAmountBreakdown`                | Amount breakdown of the object an event refers to (`listPrice` / `originalPayment` / `planPrice`)                                                           |
+| `CheckoutSessionWebhookEventData`       | Checkout session event data (`checkout.completed` / `checkout.expired`)                                                                                     |
 | `VerifyWebhookOptions`                  | Verification options (environment, tolerance)                                                                                                               |

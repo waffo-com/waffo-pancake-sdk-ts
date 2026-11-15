@@ -156,6 +156,7 @@ export type {
   GraphQLResponse,
 
   // Webhook
+  CheckoutSessionWebhookEventData,
   VerifyWebhookOptions,
   WebhookAmountBreakdown,
   WebhookEvent,
