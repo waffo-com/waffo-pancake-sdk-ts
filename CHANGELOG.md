@@ -6,6 +6,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-11-16
+
 GraphQL errors expose `extensions.code`, and webhook payment data exposes the payment timestamp. Types only; no runtime change.
 
 ### Added
