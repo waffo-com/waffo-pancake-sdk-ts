@@ -603,3 +603,63 @@ describe("checkout promotionCode", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 });
+
+describe("checkout.expireSession", () => {
+  const SESSION_ID = "cs_3f2b9c1e-7a4d-4e8b-9c21-5d6f0a1b2c3d";
+
+  it("should post the session ID to the expire endpoint and unwrap the result", async () => {
+    const mockFetch = createMockFetch(() => ({ data: { checkoutSessionId: SESSION_ID, status: "expired" } }));
+    const client = createClient(mockFetch);
+
+    const result = await client.checkout.expireSession({ checkoutSessionId: SESSION_ID });
+
+    expect(result).toEqual({ checkoutSessionId: SESSION_ID, status: "expired" });
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(url).toBe("https://api.test.com/v1/actions/checkout/session/expire");
+    expect(JSON.parse(options.body as string)).toEqual({ checkoutSessionId: SESSION_ID });
+  });
+
+  it("should send the idempotency key when one is passed", async () => {
+    const mockFetch = createMockFetch(() => ({ data: { checkoutSessionId: SESSION_ID, status: "expired" } }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.expireSession({ checkoutSessionId: SESSION_ID }, { idempotencyKey: "expire-1" });
+
+    const headers = mockFetch.mock.calls[0][1].headers as Record<string, string>;
+    expect(headers["X-Idempotency-Key"]).toBe("expire-1");
+  });
+
+  it("should reject a missing or empty checkoutSessionId without sending", async () => {
+    const mockFetch = vi.fn();
+    const client = createClient(mockFetch);
+
+    const error = await client.checkout.expireSession({ checkoutSessionId: "" }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(WaffoPancakeError);
+    expect((error as WaffoPancakeError).status).toBe(400);
+    expect((error as WaffoPancakeError).errors[0].layer).toBe("sdk");
+    await expect(client.checkout.expireSession({} as { checkoutSessionId: string })).rejects.toThrow(
+      /Missing required field: checkoutSessionId/,
+    );
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("should propagate API errors with the reason code", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      status: 409,
+      json: () =>
+        Promise.resolve({
+          data: null,
+          errors: [{ message: "PAYMENT_IN_FLIGHT", layer: "order", aiHint: "Wait for checkout.completed, or retry later." }],
+        }),
+    });
+    const client = createClient(mockFetch);
+
+    const error = await client.checkout.expireSession({ checkoutSessionId: SESSION_ID }).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(WaffoPancakeError);
+    expect((error as WaffoPancakeError).status).toBe(409);
+    expect((error as WaffoPancakeError).errors[0].message).toBe("PAYMENT_IN_FLIGHT");
+    expect((error as WaffoPancakeError).errors[0].aiHint).toContain("checkout.completed");
+  });
+});

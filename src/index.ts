@@ -150,6 +150,8 @@ export type {
   CheckoutSessionResult,
   CreateCheckoutSessionParams,
   CreatePlanChangeSessionParams,
+  ExpireCheckoutSessionParams,
+  ExpireCheckoutSessionResult,
 
   // GraphQL
   GraphQLParams,

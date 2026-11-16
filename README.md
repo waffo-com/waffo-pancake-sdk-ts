@@ -212,6 +212,17 @@ const result = await client.checkout.authenticated.createPlanChange({
 - **Anonymous has no plan change** — a Store Slug session has no subscription to attribute the change to (the platform answers 403), so `checkout.anonymous` carries no plan change method at all.
 - **Customer self-service** — to let customers start a change themselves, switch on `selfServicePlanChange` on the product group (see [Subscription Product Groups](#subscription-product-groups)) and call `customer.createPlanChangeSession()` on their session (see [Customer Self-Service](#customer-self-service)). That path is the only one the switch gates; merchant-issued links ignore it.
 
+### Closing a Checkout Session
+
+Close a one-page checkout session (`checkoutVersion` `v2`) the customer has not paid — for example when the item sold out or the customer cancelled on your site. Pass the `sessionId` returned when the session was created.
+
+```typescript
+const { status } = await client.checkout.expireSession({ checkoutSessionId: session.sessionId });
+// status: "expired" (also when the session had already expired)
+```
+
+Closing moves the session to `expired`, cancels its pending order, releases its discount reservation, and sends you a `checkout.expired` webhook. A customer who already had the payment form open may still be charged; that payment is refunded automatically. The platform refuses with `WaffoPancakeError`, `errors[0].message` holding the reason: `SESSION_NOT_FOUND` (404 — not yours, other environment, or a legacy session), `SESSION_COMPLETED` / `SESSION_FALLEN_BACK` (409 — paid, or moved to the legacy checkout), `SYNC_IN_PROGRESS` / `VERSION_CONFLICT` (409 — retry), `PAYMENT_IN_FLIGHT` (409 — wait for `checkout.completed` or retry later), `PSP_INQUIRY_FAILED` (502 — nothing changed, retry). See [API Reference](docs/api-reference.md#clientcheckoutexpiresessionparams-options).
+
 ### Opening the Checkout Page
 
 **We recommend opening the checkout page in a new tab** rather than navigating in the current page:
@@ -740,7 +751,7 @@ try {
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
 | `client.checkout.authenticated`    | `create()`                                                                                                               | Authenticated checkout (recommended)    |
 | `client.checkout.anonymous`        | `create()`                                                                                                               | Anonymous checkout                      |
-| `client.checkout`                  | `createSession()`                                                                                                        | Low-level checkout session              |
+| `client.checkout`                  | `createSession()` `expireSession()`                                                                                      | Low-level checkout session / close it   |
 | `client.customer(token, opts?)`    | `cancelSubscription()` `cancelOnetimeOrder()` `reactivateSubscription()` `createRefundTicket()` `resubmitRefundTicket()` | Customer self-service                   |
 | `client.customer(token).graphql`   | `query<T>()`                                                                                                             | Customer-scoped GraphQL queries         |
 | `client.webhooks`                  | `verify<T>()` `add()` `update()` `remove()`                                                                              | Webhook config + signature verification |

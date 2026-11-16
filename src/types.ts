@@ -1355,6 +1355,23 @@ export interface CheckoutSessionResult {
   expiresAt: string;
 }
 
+/** Parameters for closing (expiring) a one-page checkout session. */
+export interface ExpireCheckoutSessionParams {
+  /**
+   * Checkout session ID (`cs_` + lowercase UUID, not a Short ID) — the `sessionId` returned
+   * when a one-page checkout session (`checkoutVersion` `v2`) was created.
+   */
+  checkoutSessionId: string;
+}
+
+/** Result of closing (expiring) a one-page checkout session. */
+export interface ExpireCheckoutSessionResult {
+  /** Checkout session ID, same value as the request */
+  checkoutSessionId: string;
+  /** Always `"expired"`, also when the session had already expired */
+  status: "expired";
+}
+
 /**
  * Parameters for creating a plan-change checkout session.
  *
