@@ -462,6 +462,7 @@ On payment events `amount` is the amount actually charged, equal to `chargedAmou
 | `paymentLast4`         | `string` | Last 4 digits of payment instrument                                                   |
 | `paymentFailureReason` | `string` | Payment failure reason (present when failed)                                          |
 | `paymentDate`          | `string` | Payment date (ISO 8601 date, e.g., `"2026-04-18"`)                                    |
+| `paymentTimestamp`     | `string` | When Waffo recorded the payment (ISO 8601 UTC, ms); `paymentDate` is its date part    |
 
 **Subscription fields** — present on the subscription domain events, **not** on `subscription.payment_succeeded`:
 

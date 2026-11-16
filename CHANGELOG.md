@@ -6,10 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
-GraphQL errors expose `extensions.code`. Types only; no runtime change.
+GraphQL errors expose `extensions.code`, and webhook payment data exposes the payment timestamp. Types only; no runtime change.
 
 ### Added
 
+- **`WebhookEventData.paymentTimestamp`** — optional time Waffo recorded the associated payment (ISO 8601 UTC with milliseconds), present whenever `paymentDate` is; `paymentDate` is its UTC date part. On `refund.*` events it refers to the refunded payment.
 - **`GraphQLResponse.errors[].extensions.code`** — GraphQL errors carry `extensions.code`; `"BAD_USER_INPUT"` marks an argument rejected before the query runs (malformed ID, date, pagination or filter operator). The endpoint answers 400 when every error is `BAD_USER_INPUT` and no root field returned data, and 400 for a request body that is not valid JSON. Types only; `client.graphql.query` already parses non-2xx bodies.
 
 ## [0.28.0] - 2026-11-04
