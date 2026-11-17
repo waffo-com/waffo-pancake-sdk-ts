@@ -512,33 +512,22 @@ handler that only uses those needs no change.
 
 `checkout.completed` and `checkout.expired` describe a checkout session of the one-page checkout, not a payment. They are sent once per session, only for sessions of the one-page checkout, and in addition to the order and subscription events: a completed one-time session also produces `order.completed`, a completed subscription session `subscription.activated`. A session the customer moved back to the legacy checkout produces neither event. The envelope's `id` and `eventId` are both the session ID.
 
-| Field                           | Type                          | Required | Description                                                                                                                                                                                         |
-| ------------------------------- | ----------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sessionId`                     | `string`                      | Yes      | Checkout session ID (`cs_` + UUID, not a Short ID) — the `sessionId` returned when the session was created                                                                                          |
-| `status`                        | `"completed" \| "expired"`    | Yes      | Terminal status of the session; matches the event type                                                                                                                                              |
-| `productId`                     | `string`                      | Yes      | Product ID (Short ID, `PROD_...`)                                                                                                                                                                   |
-| `productName`                   | `string`                      | Yes      | Product name                                                                                                                                                                                        |
-| `productType`                   | `"onetime" \| "subscription"` | Yes      | Product type of the session                                                                                                                                                                         |
-| `currency`                      | `string`                      | Yes      | Currency code (ISO 4217)                                                                                                                                                                            |
-| `amount`                        | `string`                      | Yes      | Display string. With an order: the order's payable amount after any discount, tax included (subscriptions: the first period's amount). Without an order: the product's list price, tax not included |
-| `buyerEmail`                    | `string \| null`              | Yes      | Customer email; `null` when the customer never entered one before the session expired                                                                                                               |
-| `merchantProvidedBuyerIdentity` | `string`                      | No       | Merchant-provided customer identity from checkout session; absent when none was bound                                                                                                               |
-| `orderId`                       | `string \| null`              | Yes      | Order ID (Short ID, `ORD_...`); `null` when the session expired before an order was created                                                                                                         |
-| `orderMerchantExternalId`       | `string`                      | No       | Order business-side identifier passed when creating the session; absent when none was passed                                                                                                        |
-| `orderMetadata`                 | `object`                      | Yes      | Order-level metadata from checkout session (flat key-value pairs); `{}` when none was passed                                                                                                        |
-| `createdAt`                     | `string`                      | Yes      | Session creation time (ISO 8601 UTC)                                                                                                                                                                |
-| `expiresAt`                     | `string`                      | Yes      | Session expiration time (ISO 8601 UTC) — the `expiresAt` returned when the session was created                                                                                                      |
+| Field       | Type                       | Required | Description                                                                                                |
+| ----------- | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `sessionId` | `string`                   | Yes      | Checkout session ID (`cs_` + UUID, not a Short ID) — the `sessionId` returned when the session was created |
+| `status`    | `"completed" \| "expired"` | Yes      | Terminal status of the session; matches the event type                                                     |
+| `orderId`   | `string \| null`           | Yes      | Order ID (Short ID, `ORD_...`); `null` when the session expired before an order was created                |
 
-Payment method, failure reason, billing details, and the tax breakdown are not included. Pass the type to `verifyWebhook` once the event type is known:
+Product, amount, customer, and metadata are not included. On completion, the order's own `order.completed` (one-time) or `subscription.activated` (subscription) event carries the full order details; look the order up by `orderId`. Pass the type to `verifyWebhook` once the event type is known:
 
 ```typescript
 import { verifyWebhook, WebhookEventType } from "@waffo/pancake-ts";
 import type { CheckoutSessionWebhookEventData } from "@waffo/pancake-ts";
 
 const event = verifyWebhook<CheckoutSessionWebhookEventData>(body, sig);
-if (event.eventType === WebhookEventType.CheckoutExpired && event.data.buyerEmail !== null) {
-  // the customer left an email but did not finish — follow up
-  await sendRecoveryEmail(event.data.buyerEmail, event.data.productName);
+if (event.eventType === WebhookEventType.CheckoutExpired) {
+  // the customer did not finish — orderId is null if no order was created
+  await markSessionExpired(event.data.sessionId);
 }
 ```
 

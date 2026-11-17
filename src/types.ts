@@ -2054,13 +2054,12 @@ export interface WebhookEventData {
 /**
  * Data of a checkout session event (`checkout.completed` / `checkout.expired`).
  *
- * Describes the checkout session itself, not a payment: these events carry none of the payment,
- * billing, tax breakdown or subscription fields of {@link WebhookEventData}. Fields that share a
- * concept with the order events use the same names. Both events are sent only for sessions of
- * the one-page checkout, once per session, and in addition to the order and subscription events
- * (a completed one-time session also produces `order.completed`, a subscription
- * `subscription.activated`). A session the customer moved back to the legacy checkout produces
- * neither event.
+ * Identifies the checkout session and its order, nothing more: product, amount, customer and
+ * metadata are not repeated here. Both events are sent only for sessions of the one-page
+ * checkout, once per session, and in addition to the order and subscription events — a completed
+ * one-time session also produces `order.completed`, a subscription `subscription.activated`, and
+ * those carry the full order details (look the order up by `orderId`). A session the customer
+ * moved back to the legacy checkout produces neither event.
  *
  * The envelope's `id` and `eventId` are both the session ID (same value as `sessionId`).
  *
@@ -2069,32 +2068,17 @@ export interface WebhookEventData {
  * @example
  * // Pass the type to verifyWebhook / client.webhooks.verify after checking the event type
  * const event = verifyWebhook<CheckoutSessionWebhookEventData>(body, sig);
- * if (event.eventType === WebhookEventType.CheckoutExpired && event.data.buyerEmail !== null) {
- *   await sendRecoveryEmail(event.data.buyerEmail, event.data.productName);
+ * if (event.eventType === WebhookEventType.CheckoutExpired) {
+ *   await markSessionExpired(event.data.sessionId);
  * }
  *
  * @example
  * // checkout.completed
- * {
- *   sessionId: "cs_3f2b9c1e-7a4d-4e8b-9c21-5d6f0a1b2c3d",
- *   status: "completed",
- *   productId: "PROD_2aUyqjCzEIiEcYMKj7TZtw",
- *   productName: "Pro Plan",
- *   productType: "onetime",
- *   currency: "USD",
- *   amount: "86.40",
- *   buyerEmail: "buyer@example.com",
- *   merchantProvidedBuyerIdentity: "user_123",
- *   orderId: "ORD_5xK9mRtYvWnPqLsJ3hBfDe",
- *   orderMerchantExternalId: "INV-1001",
- *   orderMetadata: { plan: "pro" },
- *   createdAt: "2026-11-15T07:00:00.000Z",
- *   expiresAt: "2026-11-16T07:00:00.000Z"
- * }
+ * { sessionId: "cs_3f2b9c1e-7a4d-4e8b-9c21-5d6f0a1b2c3d", status: "completed", orderId: "ORD_5xK9mRtYvWnPqLsJ3hBfDe" }
  *
  * @example
  * // checkout.expired before an order was created
- * { sessionId: "cs_...", status: "expired", orderId: null, buyerEmail: null, amount: "99.99", orderMetadata: {}, ... }
+ * { sessionId: "cs_9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d", status: "expired", orderId: null }
  */
 export interface CheckoutSessionWebhookEventData {
   /**
@@ -2104,35 +2088,8 @@ export interface CheckoutSessionWebhookEventData {
   sessionId: string;
   /** Terminal status of the session; matches the event type */
   status: "completed" | "expired";
-  /** Product ID (Short ID, e.g. "PROD_2aUyqjCzEIiEcYMKj7TZtw") */
-  productId: string;
-  productName: string;
-  /** Product type of the session */
-  productType: "onetime" | "subscription";
-  /** Currency code (ISO 4217) */
-  currency: string;
-  /**
-   * Session amount as display string (e.g., "9.99" for USD, "1000" for JPY).
-   *
-   * When the session has an order: the order's payable amount after any discount, tax included
-   * (for a subscription, the first period's amount). Without an order: the product's list price,
-   * tax not included.
-   */
-  amount: string;
-  /** Customer email; `null` when the customer never entered one before the session expired */
-  buyerEmail: string | null;
-  /** Merchant-provided customer identity from checkout session; absent when none was bound */
-  merchantProvidedBuyerIdentity?: string;
   /** Order ID (Short ID, e.g. "ORD_5xK9mRtYvWnPqLsJ3hBfDe"); `null` when the session expired before an order was created */
   orderId: string | null;
-  /** Order business identifier passed when creating the session; absent when none was passed */
-  orderMerchantExternalId?: string;
-  /** Order-level metadata from checkout session (flat key-value pairs); `{}` when none was passed */
-  orderMetadata: Record<string, string>;
-  /** Session creation time (ISO 8601 UTC) */
-  createdAt: string;
-  /** Session expiration time (ISO 8601 UTC); the `expiresAt` returned when the session was created */
-  expiresAt: string;
 }
 
 /**

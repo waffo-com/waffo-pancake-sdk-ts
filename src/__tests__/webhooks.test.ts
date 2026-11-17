@@ -252,22 +252,11 @@ describe("verifyWebhook", () => {
       },
     );
 
-    it("should parse a checkout.completed event with the session, its order and the optional keys", () => {
+    it("should parse a checkout.completed event with the session and its order", () => {
       const data: CheckoutSessionWebhookEventData = {
         sessionId: "cs_3f2b9c1e-7a4d-4e8b-9c21-5d6f0a1b2c3d",
         status: "completed",
-        productId: "PROD_2aUyqjCzEIiEcYMKj7TZtw",
-        productName: "Pro Plan",
-        productType: "onetime",
-        currency: "USD",
-        amount: "86.40",
-        buyerEmail: "buyer@example.com",
-        merchantProvidedBuyerIdentity: "user_123",
         orderId: "ORD_5xK9mRtYvWnPqLsJ3hBfDe",
-        orderMerchantExternalId: "INV-1001",
-        orderMetadata: { plan: "pro" },
-        createdAt: "2026-11-15T07:00:00.000Z",
-        expiresAt: "2026-11-16T07:00:00.000Z",
       };
       const event = {
         id: data.sessionId,
@@ -291,20 +280,11 @@ describe("verifyWebhook", () => {
       expect(result.data).toEqual(data);
     });
 
-    it("should parse a checkout.expired event without an order, email or optional keys", () => {
+    it("should parse a checkout.expired event without an order", () => {
       const data: CheckoutSessionWebhookEventData = {
         sessionId: "cs_9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d",
         status: "expired",
-        productId: "PROD_2aUyqjCzEIiEcYMKj7TZtw",
-        productName: "Pro Plan",
-        productType: "subscription",
-        currency: "JPY",
-        amount: "1000",
-        buyerEmail: null,
         orderId: null,
-        orderMetadata: {},
-        createdAt: "2026-11-15T07:00:00.000Z",
-        expiresAt: "2026-11-16T07:00:00.000Z",
       };
       const payload = JSON.stringify({ id: data.sessionId, eventType: "checkout.expired", eventId: data.sessionId, mode: "test", data });
       const ts = Date.now().toString();
@@ -312,12 +292,7 @@ describe("verifyWebhook", () => {
 
       const result = verifyWebhook<CheckoutSessionWebhookEventData>(payload, header, { publicKey: publicKey as string });
       expect(result.eventType).toBe(WebhookEventType.CheckoutExpired);
-      expect(result.data.status).toBe("expired");
-      expect(result.data.orderId).toBeNull();
-      expect(result.data.buyerEmail).toBeNull();
-      expect(result.data.orderMetadata).toEqual({});
-      expect(result.data).not.toHaveProperty("merchantProvidedBuyerIdentity");
-      expect(result.data).not.toHaveProperty("orderMerchantExternalId");
+      expect(result.data).toEqual({ sessionId: data.sessionId, status: "expired", orderId: null });
     });
 
     it("should reject invalid signature with custom publicKey", () => {

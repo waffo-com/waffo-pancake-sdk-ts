@@ -309,7 +309,7 @@ const client = new WaffoPancake({
 const event = client.webhooks.verify(rawBody, sig, { environment: "prod" });
 ```
 
-Checkout session events (`checkout.completed`, `checkout.expired`, one-page checkout only) carry a session-shaped payload instead — pass `CheckoutSessionWebhookEventData` as the type parameter: `verifyWebhook<CheckoutSessionWebhookEventData>(body, sig)`.
+Checkout session events (`checkout.completed`, `checkout.expired`, one-page checkout only) carry a session-shaped payload instead (`sessionId`, `status`, `orderId`) — pass `CheckoutSessionWebhookEventData` as the type parameter: `verifyWebhook<CheckoutSessionWebhookEventData>(body, sig)`.
 
 See [Webhook Guide](docs/webhook-guide.md) for event types, `WebhookEventData` / `CheckoutSessionWebhookEventData` field reference, dual-environment key architecture, key resolution chain, retry mechanism, and best practices.
 
