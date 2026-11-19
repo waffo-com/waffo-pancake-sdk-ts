@@ -214,11 +214,13 @@ const result = await client.checkout.authenticated.createPlanChange({
 
 ### Closing a Checkout Session
 
-Close a one-page checkout session (`checkoutVersion` `v2`) the customer has not paid — for example when the item sold out or the customer cancelled on your site. Pass the `sessionId` returned when the session was created.
+Close a one-page checkout session the customer has not paid — for example when the item sold out or the customer cancelled on your site. Only sessions whose `checkoutVersion` is `"v2"` can be closed: every create method returns `checkoutVersion` next to `sessionId` (`"v2"` one-page checkout, `"v1"` legacy; a missing value means `"v1"`). Pass the `sessionId` returned when the session was created.
 
 ```typescript
-const { status } = await client.checkout.expireSession({ checkoutSessionId: session.sessionId });
-// status: "expired" (also when the session had already expired)
+if (session.checkoutVersion === "v2") {
+  const { status } = await client.checkout.expireSession({ checkoutSessionId: session.sessionId });
+  // status: "expired" (also when the session had already expired)
+}
 ```
 
 Closing moves the session to `expired`, cancels its pending order, releases its discount reservation, and sends you a `checkout.expired` webhook. A customer who already had the payment form open may still be charged; that payment is refunded automatically. The platform refuses with `WaffoPancakeError`, `errors[0].message` holding the reason: `SESSION_NOT_FOUND` (404 — not yours, other environment, or a legacy session), `SESSION_COMPLETED` / `SESSION_FALLEN_BACK` (409 — paid, or moved to the legacy checkout), `SYNC_IN_PROGRESS` / `VERSION_CONFLICT` (409 — retry), `PAYMENT_IN_FLIGHT` (409 — wait for `checkout.completed` or retry later), `PSP_INQUIRY_FAILED` (502 — nothing changed, retry). See [API Reference](docs/api-reference.md#clientcheckoutexpiresessionparams-options).

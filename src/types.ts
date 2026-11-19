@@ -1353,6 +1353,12 @@ export interface CheckoutSessionResult {
   checkoutUrl: string;
   /** Session expiration time (ISO 8601 UTC) */
   expiresAt: string;
+  /**
+   * Which checkout the session opens: `"v2"` is the one-page checkout (stored session; can be closed with
+   * `checkout.expireSession`), `"v1"` the legacy checkout. Plan-change sessions are always `"v1"`.
+   * Absent from responses of platform versions before the one-page checkout — treat a missing value as `"v1"`.
+   */
+  checkoutVersion?: "v1" | "v2";
 }
 
 /** Parameters for closing (expiring) a one-page checkout session. */
@@ -1739,6 +1745,12 @@ export interface AuthenticatedCheckoutResult {
   token: string;
   /** Token expiration time (ISO 8601 UTC) */
   tokenExpiresAt: string;
+  /**
+   * Which checkout the session opens: `"v2"` is the one-page checkout (stored session; can be closed with
+   * `checkout.expireSession`), `"v1"` the legacy checkout. Plan-change sessions are always `"v1"`.
+   * Absent from responses of platform versions before the one-page checkout — treat a missing value as `"v1"`.
+   */
+  checkoutVersion?: "v1" | "v2";
 }
 
 // ---------------------------------------------------------------------------

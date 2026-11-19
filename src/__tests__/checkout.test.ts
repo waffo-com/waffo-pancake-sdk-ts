@@ -604,6 +604,49 @@ describe("checkout promotionCode", () => {
   });
 });
 
+describe("checkout session checkoutVersion", () => {
+  const V2_SESSION = {
+    sessionId: "cs_3f2b9c1e-7a4d-4e8b-9c21-5d6f0a1b2c3d",
+    checkoutUrl: "https://checkout.waffo.ai/store/my-store/checkout/cs_3f2b9c1e-7a4d-4e8b-9c21-5d6f0a1b2c3d",
+    expiresAt: "2026-04-02T10:00:00.000Z",
+    checkoutVersion: "v2",
+  };
+  const base = { productId: "PROD_0000000000000000000000", currency: "USD" };
+
+  function createSessionFetch(session: object) {
+    return createMockFetch((url) =>
+      url.includes("issue-session-token")
+        ? { data: { token: "eyJhbGciOi.test.jwt", expiresAt: "2026-04-02T09:05:00.000Z" } }
+        : { data: session },
+    );
+  }
+
+  it("should return checkoutVersion from createSession and anonymous.create", async () => {
+    const client = createClient(createSessionFetch(V2_SESSION));
+
+    expect((await client.checkout.createSession(base)).checkoutVersion).toBe("v2");
+    expect((await client.checkout.anonymous.create(base)).checkoutVersion).toBe("v2");
+  });
+
+  it("should carry checkoutVersion through authenticated.create next to the token", async () => {
+    const client = createClient(createSessionFetch(V2_SESSION));
+
+    const result = await client.checkout.authenticated.create({ ...base, buyerIdentity: "user-123" });
+
+    expect(result.checkoutVersion).toBe("v2");
+    expect(result.checkoutUrl).toBe(`${V2_SESSION.checkoutUrl}#token=eyJhbGciOi.test.jwt`);
+  });
+
+  it("should leave checkoutVersion undefined when the platform does not return it (treat as v1)", async () => {
+    const legacy: Record<string, string> = { ...V2_SESSION };
+    delete legacy.checkoutVersion;
+    const client = createClient(createSessionFetch(legacy));
+
+    expect((await client.checkout.createSession(base)).checkoutVersion).toBeUndefined();
+    expect("checkoutVersion" in (await client.checkout.authenticated.create({ ...base, buyerIdentity: "user-123" }))).toBe(false);
+  });
+});
+
 describe("checkout.expireSession", () => {
   const SESSION_ID = "cs_3f2b9c1e-7a4d-4e8b-9c21-5d6f0a1b2c3d";
 

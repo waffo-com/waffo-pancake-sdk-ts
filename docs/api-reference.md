@@ -890,6 +890,7 @@ const subResult = await client.checkout.authenticated.create({
 | `sessionId`      | `string` | Session ID                              |
 | `checkoutUrl`    | `string` | Checkout URL with `#token=...` appended |
 | `expiresAt`      | `string` | Session expiration time                 |
+| `checkoutVersion` | `"v1" \| "v2"` (optional) | `"v2"` one-page checkout (can be closed with `expireSession`), `"v1"` legacy; absent = `"v1"` |
 | `token`          | `string` | Issued JWT token                        |
 | `tokenExpiresAt` | `string` | Token expiration time                   |
 
@@ -939,6 +940,7 @@ const snapshotResult = await client.checkout.anonymous.create({
 | `sessionId`   | `string` | Session ID               |
 | `checkoutUrl` | `string` | Hosted checkout page URL |
 | `expiresAt`   | `string` | Session expiration time  |
+| `checkoutVersion` | `"v1" \| "v2"` (optional) | `"v2"` one-page checkout (can be closed with `expireSession`), `"v1"` legacy; absent = `"v1"` |
 
 ### `client.checkout.createPlanChangeSession(params)`
 
@@ -1075,6 +1077,7 @@ await client.checkout.createSession({ productId: "PROD_xxx", currency: "USD", pr
 | `sessionId`   | `string` | Session ID               |
 | `checkoutUrl` | `string` | Hosted checkout page URL |
 | `expiresAt`   | `string` | Session expiration time  |
+| `checkoutVersion` | `"v1" \| "v2"` (optional) | `"v2"` one-page checkout (can be closed with `expireSession`), `"v1"` legacy; absent = `"v1"` |
 
 ### `client.checkout.expireSession(params, options?)`
 
