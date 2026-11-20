@@ -1353,6 +1353,29 @@ export interface CheckoutSessionResult {
   checkoutUrl: string;
   /** Session expiration time (ISO 8601 UTC) */
   expiresAt: string;
+  /**
+   * Which checkout the session opens: `"v2"` is the one-page checkout (stored session; can be closed with
+   * `checkout.expireSession`), `"v1"` the legacy checkout. Plan-change sessions are always `"v1"`.
+   * Absent from responses of platform versions before the one-page checkout — treat a missing value as `"v1"`.
+   */
+  checkoutVersion?: "v1" | "v2";
+}
+
+/** Parameters for closing (expiring) a one-page checkout session. */
+export interface ExpireCheckoutSessionParams {
+  /**
+   * Checkout session ID (`cs_` + lowercase UUID, not a Short ID) — the `sessionId` returned
+   * when a one-page checkout session (`checkoutVersion` `v2`) was created.
+   */
+  checkoutSessionId: string;
+}
+
+/** Result of closing (expiring) a one-page checkout session. */
+export interface ExpireCheckoutSessionResult {
+  /** Checkout session ID, same value as the request */
+  checkoutSessionId: string;
+  /** Always `"expired"`, also when the session had already expired */
+  status: "expired";
 }
 
 /**
@@ -1722,6 +1745,12 @@ export interface AuthenticatedCheckoutResult {
   token: string;
   /** Token expiration time (ISO 8601 UTC) */
   tokenExpiresAt: string;
+  /**
+   * Which checkout the session opens: `"v2"` is the one-page checkout (stored session; can be closed with
+   * `checkout.expireSession`), `"v1"` the legacy checkout. Plan-change sessions are always `"v1"`.
+   * Absent from responses of platform versions before the one-page checkout — treat a missing value as `"v1"`.
+   */
+  checkoutVersion?: "v1" | "v2";
 }
 
 // ---------------------------------------------------------------------------
@@ -1797,6 +1826,16 @@ export enum WebhookEventType {
   RefundSucceeded = "refund.succeeded",
   /** Refund failed */
   RefundFailed = "refund.failed",
+  /**
+   * Checkout session completed — its one-time order was paid or its subscription activated.
+   * Sent only for the one-page checkout; payload is {@link CheckoutSessionWebhookEventData}.
+   */
+  CheckoutCompleted = "checkout.completed",
+  /**
+   * Checkout session expired without completing, possibly before any order was created.
+   * Sent only for the one-page checkout; payload is {@link CheckoutSessionWebhookEventData}.
+   */
+  CheckoutExpired = "checkout.expired",
 }
 
 /**
@@ -2027,6 +2066,47 @@ export interface WebhookEventData {
 }
 
 /**
+ * Data of a checkout session event (`checkout.completed` / `checkout.expired`).
+ *
+ * Identifies the checkout session and its order, nothing more: product, amount, customer and
+ * metadata are not repeated here. Both events are sent only for sessions of the one-page
+ * checkout, once per session, and in addition to the order and subscription events — a completed
+ * one-time session also produces `order.completed`, a subscription `subscription.activated`, and
+ * those carry the full order details (look the order up by `orderId`). A session the customer
+ * moved back to the legacy checkout produces neither event.
+ *
+ * The envelope's `id` and `eventId` are both the session ID (same value as `sessionId`).
+ *
+ * @see docs/webhook-guide.md
+ *
+ * @example
+ * // Pass the type to verifyWebhook / client.webhooks.verify after checking the event type
+ * const event = verifyWebhook<CheckoutSessionWebhookEventData>(body, sig);
+ * if (event.eventType === WebhookEventType.CheckoutExpired) {
+ *   await markSessionExpired(event.data.sessionId);
+ * }
+ *
+ * @example
+ * // checkout.completed
+ * { sessionId: "cs_3f2b9c1e-7a4d-4e8b-9c21-5d6f0a1b2c3d", status: "completed", orderId: "ORD_5xK9mRtYvWnPqLsJ3hBfDe" }
+ *
+ * @example
+ * // checkout.expired before an order was created
+ * { sessionId: "cs_9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d", status: "expired", orderId: null }
+ */
+export interface CheckoutSessionWebhookEventData {
+  /**
+   * Checkout session ID (`cs_` + UUID, not a Short ID) — the `sessionId` returned when the
+   * session was created.
+   */
+  sessionId: string;
+  /** Terminal status of the session; matches the event type */
+  status: "completed" | "expired";
+  /** Order ID (Short ID, e.g. "ORD_5xK9mRtYvWnPqLsJ3hBfDe"); `null` when the session expired before an order was created */
+  orderId: string | null;
+}
+
+/**
  * Webhook event payload.
  *
  * @see docs/api-reference/webhooks.mdx
@@ -2050,7 +2130,7 @@ export interface WebhookEvent<T = WebhookEventData> {
   timestamp: string;
   /** Event type */
   eventType: `${WebhookEventType}` | (string & {});
-  /** Business event ID (e.g. payment ID, order ID) */
+  /** Business event ID (e.g. payment ID, order ID, checkout session ID) */
   eventId: string;
   /** Store ID the event belongs to */
   storeId: string;
