@@ -2036,6 +2036,8 @@ export interface WebhookEventData {
   paymentFailureReason?: string;
   /** Payment date (ISO 8601 date, e.g., "2026-04-18") */
   paymentDate?: string;
+  /** When Waffo recorded the payment (ISO 8601 UTC with milliseconds, e.g., "2026-04-18T08:29:58.412Z"); present whenever paymentDate is, which is its UTC date part. */
+  paymentTimestamp?: string;
 
   /** Billing period this event refers to, as reported by the payment channel; see the webhook docs for the full semantics. */
   periodNumber?: number;

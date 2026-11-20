@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
-GraphQL errors expose `extensions.code`, webhooks gain the checkout session events of the one-page checkout, and an unpaid one-page checkout session can be closed.
+GraphQL errors expose `extensions.code`, webhook payment data exposes the payment timestamp, webhooks gain the checkout session events of the one-page checkout, and an unpaid one-page checkout session can be closed.
 
 ### Added
 
@@ -14,7 +14,7 @@ GraphQL errors expose `extensions.code`, webhooks gain the checkout session even
 - **`CheckoutSessionWebhookEventData`** — payload type for the two events, used as `verifyWebhook<CheckoutSessionWebhookEventData>(body, sig)`: `sessionId` (`cs_` + UUID, also the envelope `id` / `eventId`), `status`, and `orderId` (`null` when the session expired before an order was created). Product, amount, customer and metadata are not included; on completion `order.completed` / `subscription.activated` carry the full order details. `WebhookEventData` is unchanged.
 - **`client.checkout.expireSession({ checkoutSessionId })`** — closes a one-page checkout session the customer has not paid (`POST /v1/actions/checkout/session/expire`): the session moves to `expired`, its pending order is canceled, its discount reservation released, and a `checkout.expired` webhook follows. Returns `ExpireCheckoutSessionResult` (`{ checkoutSessionId, status: "expired" }`), also for a session that had already expired. A customer who already had the payment form open may still be charged; that payment is refunded automatically. Refusals throw `WaffoPancakeError` with the reason in `errors[0].message`: `SESSION_NOT_FOUND` (404), `SESSION_COMPLETED` / `SESSION_FALLEN_BACK` / `SYNC_IN_PROGRESS` / `VERSION_CONFLICT` / `PAYMENT_IN_FLIGHT` (409), `PSP_INQUIRY_FAILED` (502). New types `ExpireCheckoutSessionParams` / `ExpireCheckoutSessionResult`.
 - **`checkoutVersion` on `CheckoutSessionResult` and `AuthenticatedCheckoutResult`** — optional `"v1" | "v2"` returned by `checkout.createSession`, `anonymous.create`, `authenticated.create` and the plan-change methods: `"v2"` is the one-page checkout (the only kind `expireSession` can close), `"v1"` the legacy checkout; plan-change sessions are always `"v1"`. Platform versions before the one-page checkout do not send it — treat a missing value as `"v1"`.
-
+- **`WebhookEventData.paymentTimestamp`** — optional time Waffo recorded the associated payment (ISO 8601 UTC with milliseconds), present whenever `paymentDate` is; `paymentDate` is its UTC date part. On `refund.*` events it refers to the refunded payment.
 - **`GraphQLResponse.errors[].extensions.code`** — GraphQL errors carry `extensions.code`; `"BAD_USER_INPUT"` marks an argument rejected before the query runs (malformed ID, date, pagination or filter operator). The endpoint answers 400 when every error is `BAD_USER_INPUT` and no root field returned data, and 400 for a request body that is not valid JSON. Types only; `client.graphql.query` already parses non-2xx bodies.
 
 ## [0.28.0] - 2026-11-04
