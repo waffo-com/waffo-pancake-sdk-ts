@@ -23,8 +23,8 @@ The timestamp is stamped once, before the first delivery attempt. Retries reuse
 the original header, so the final retry of a schedule arrives with a timestamp as
 old as the schedule itself — the past-facing window has to cover it. Treat the
 window as a bound on how long a captured request stays replayable, not as your
-primary defense: every event carries a stable `id`, and your handler should be
-idempotent on it.
+primary defense: every event carries a stable `eventType` + `eventId` pair, and
+your handler should be idempotent on it (see [Best Practices](#best-practices)).
 
 ## Usage
 
@@ -41,7 +41,7 @@ app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
     // Respond immediately, process asynchronously
     res.status(200).send("OK");
 
-    // Use event.id for idempotent deduplication
+    // Deduplicate on (event.eventType, event.eventId) — not on event.id
     switch (event.eventType) {
       case WebhookEventType.OrderCompleted:
         console.log(`Order ${event.data.orderId} completed`);
@@ -365,16 +365,16 @@ Both APIs share the same underlying verification logic and resolution chain.
 
 ### `WebhookEvent<T>`
 
-| Field       | Type     | Description                                                         |
-| ----------- | -------- | ------------------------------------------------------------------- |
-| `id`        | `string` | Delivery record unique ID (UUID) — use for idempotent deduplication |
-| `timestamp` | `string` | Event timestamp (ISO 8601 UTC)                                      |
-| `eventType` | `string` | Event type (e.g. `"order.completed"`)                               |
-| `eventId`   | `string` | Business event ID (e.g. payment ID)                                 |
-| `storeId`   | `string` | Store ID the event belongs to                                       |
-| `storeName` | `string` | Store name                                                          |
-| `mode`      | `string` | Environment (`"test"` or `"prod"`)                                  |
-| `data`      | `T`      | Event data (defaults to `WebhookEventData`)                         |
+| Field       | Type     | Description                                                                                                                                                    |
+| ----------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | `string` | ID of the entity the event is about (e.g. payment ID; the complaint ID `DSP_…` for `dispute.*`) — shared by several events, not a deduplication key on its own |
+| `timestamp` | `string` | Event timestamp (ISO 8601 UTC)                                                                                                                                 |
+| `eventType` | `string` | Event type (e.g. `"order.completed"`)                                                                                                                          |
+| `eventId`   | `string` | Event key — unique per occurrence within an `eventType`; deduplicate on `eventType` + `eventId`                                                                |
+| `storeId`   | `string` | Store ID the event belongs to                                                                                                                                  |
+| `storeName` | `string` | Store name                                                                                                                                                     |
+| `mode`      | `string` | Environment (`"test"` or `"prod"`)                                                                                                                             |
+| `data`      | `T`      | Event data (defaults to `WebhookEventData`)                                                                                                                    |
 
 ### `WebhookEventData`
 
@@ -670,12 +670,12 @@ When delivery fails (non-2xx response or timeout), the system automatically retr
 
 You can view each delivery's status, HTTP status code, and response content in the dashboard's Webhook logs.
 
-> **Note**: The same business event (same `eventType` + `eventId`) creates only one delivery record and won't be duplicated. However, the same delivery may arrive multiple times due to retries — always deduplicate using `event.id`.
+> **Note**: The same business event (same `eventType` + `eventId`) creates only one delivery record and won't be duplicated. However, the same delivery may arrive multiple times due to retries — always deduplicate on `eventType` + `eventId`. Don't deduplicate on `event.id` alone: it identifies the entity the event is about, not the occurrence — every `dispute.*` event for one complaint carries the same `event.id` (the complaint ID `DSP_…`), so keying on it would drop that complaint's later status changes and messages.
 
 ## Best Practices
 
 1. **Respond quickly** — Return 200 immediately and process the event asynchronously. Waffo retries on timeout.
-2. **Deduplicate** — Use `event.id` (delivery record UUID) as an idempotency key to handle redeliveries.
+2. **Deduplicate** — Use `eventType` + `eventId` as the idempotency key to handle redeliveries. `event.id` is the entity ID and repeats across events (all `dispute.*` events of one complaint share it), so it is not a deduplication key on its own.
 3. **Verify all events** — Always call `verifyWebhook()` before processing. Never trust unverified payloads.
 4. **Use raw body** — The signature is computed over the raw request body. Parsing JSON first will break verification.
 5. **Specify environment when known** — If your endpoint only receives test or prod events, pass `{ environment: "test" }` or `{ environment: "prod" }` to skip unnecessary key attempts and get clearer error messages.

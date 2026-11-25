@@ -2134,7 +2134,10 @@ export interface WebhookCheckoutSessionData {
 export interface WebhookDisputeMessage {
   /** Message ID (`DMSG_xxx`) */
   messageId: string;
-  /** Who wrote it: `"buyer"` (the customer) or `"channel"` (the payment channel) */
+  /**
+   * Who wrote it: `"buyer"` — the customer, in the customer portal; `"channel"` — arrived through the payment
+   * channel: the payer's complaint or message relayed by the channel (e.g. WeChat Pay), or a notice from the channel itself
+   */
   authorType: "buyer" | "channel" | (string & {});
   /** Message text */
   body: string;
@@ -2221,13 +2224,16 @@ export interface WebhookDisputeEventData {
  * }
  */
 export interface WebhookEvent<T = WebhookEventData> {
-  /** Delivery record unique ID (UUID), usable for idempotent deduplication */
+  /**
+   * ID of the entity the event is about (e.g. payment ID; the complaint ID `DSP_xxx` for `dispute.*`).
+   * Several events share it, so deduplicate on `eventType` + `eventId`, not on `id` alone.
+   */
   id: string;
   /** Event timestamp (ISO 8601 UTC) */
   timestamp: string;
   /** Event type */
   eventType: `${WebhookEventType}` | (string & {});
-  /** Business event ID (e.g. payment ID, order ID) */
+  /** Event key, unique per occurrence within an `eventType` (e.g. payment ID; `DSP_xxx-<timestamp>` for `dispute.updated`) */
   eventId: string;
   /** Store ID the event belongs to */
   storeId: string;
