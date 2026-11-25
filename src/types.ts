@@ -2051,8 +2051,10 @@ export interface WebhookEventData {
 /**
  * Chargeback case carried in `data.chargeback` on `chargeback.filed` and `chargeback.updated`.
  *
- * The rest of `data` describes the disputed payment and its order, with the same fields as
- * payment events. Money fields are display strings; `status` and `lifeCycle` are passed through
+ * The rest of `data` describes the disputed payment and its order with the common order and payment
+ * fields (`orderId`, `buyerEmail`, `currency`, `amount`, `paymentId`, ...). The payment-event-only
+ * amount fields `chargedAmount` and `listPrice` are not included; use `chargeback.disputedAmount` for
+ * the disputed amount. Money fields are display strings; `status` and `lifeCycle` are passed through
  * from the payment channel as an open set. Every field is `null` when the channel did not report it.
  */
 export interface WebhookChargeback {
@@ -2180,7 +2182,11 @@ export interface WebhookDispute {
   paymentId: string;
   /** Order of that payment (`ORD_xxx`) */
   orderId: string | null;
-  /** Customer email */
+  /**
+   * Customer email. Portal complaints use the contact email the customer entered, falling back to
+   * the order email; WeChat Pay complaints use the order email (the channel does not share the payer's
+   * email) and can be `null`.
+   */
   buyerEmail: string | null;
   /** Payment amount as display string (e.g., "19.99") */
   amount: string | null;
