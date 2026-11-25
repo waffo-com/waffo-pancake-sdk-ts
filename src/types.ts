@@ -2184,8 +2184,8 @@ export interface WebhookDispute {
   orderId: string | null;
   /**
    * Customer email. Portal complaints use the contact email the customer entered, falling back to
-   * the order email; WeChat Pay complaints use the order email (the channel does not share the payer's
-   * email) and can be `null`.
+   * the order email; WeChat Pay complaints are `null` (the channel does not share the payer's email,
+   * and the order email is not assumed to be the payer's).
    */
   buyerEmail: string | null;
   /** Payment amount as display string (e.g., "19.99") */
