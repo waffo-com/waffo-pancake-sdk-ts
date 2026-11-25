@@ -6,7 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
-GraphQL errors expose `extensions.code`, and webhook payment data exposes the payment timestamp. Types only; no runtime change.
+GraphQL errors expose `extensions.code`, webhook payment data exposes the payment timestamp, and the checkout cashier languages follow the November 2026 revision of the hosted checkout. Types only; no runtime change.
+
+### Changed
+
+- **`CashierLanguage`** — now the 19 languages the hosted checkout renders since November 2026: `en`, `zh-Hans`, `zh-Hant`, `ja-JP`, `ko-KR`, `es-MX`, `pt-BR`, `id-ID`, `ms-MY`, `th-TH`, `vi-VN`, `fr-FR`, `de-DE`, `nl-NL`, `it-IT`, `pl-PL`, `cs-CZ`, `sv-SE`, `tr-TR`. Traditional Chinese is the single `zh-Hant` tag; `fr-FR`, `de-DE`, `nl-NL`, `it-IT`, `cs-CZ` and `sv-SE` are new. **Breaking for callers of the removed tags**: `zh-Hant-TW`, `zh-Hant-HK`, `zh-Hans-HK`, `en-KE`, `en-NG`, `en-HK`, `es-PE`, `es-CO`, `es-CL` and `ru-RU` no longer type-check and are rejected by `language` validation with 400.
 
 ### Added
 

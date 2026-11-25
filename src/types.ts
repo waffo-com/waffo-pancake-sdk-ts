@@ -1204,30 +1204,32 @@ export interface BillingDetail {
  * The default language of the hosted checkout page. Pass one of these values as
  * {@link CreateCheckoutSessionParams.language}; the customer can still switch language
  * on the checkout page. Language×currency mismatches are rejected by the payment provider.
+ *
+ * Revised 2026-11: Traditional Chinese is the single `zh-Hant` tag (TW / HK / MO), and
+ * `fr-FR`, `de-DE`, `nl-NL`, `it-IT`, `cs-CZ`, `sv-SE` were added. The former regional
+ * tags (`zh-Hant-TW`, `zh-Hant-HK`, `zh-Hans-HK`, `en-KE`, `en-NG`, `en-HK`, `es-PE`,
+ * `es-CO`, `es-CL`) and `ru-RU` are no longer accepted.
  */
 export type CashierLanguage =
   | "en"
-  | "pt-BR"
-  | "es-MX"
-  | "id-ID"
-  | "vi-VN"
-  | "ru-RU"
-  | "en-KE"
-  | "es-PE"
-  | "es-CO"
-  | "es-CL"
-  | "zh-Hant-TW"
-  | "zh-Hant-HK"
-  | "th-TH"
-  | "ja-JP"
-  | "en-NG"
-  | "ko-KR"
-  | "en-HK"
-  | "zh-Hans-HK"
-  | "pl-PL"
-  | "tr-TR"
   | "zh-Hans"
-  | "ms-MY";
+  | "zh-Hant"
+  | "ja-JP"
+  | "ko-KR"
+  | "es-MX"
+  | "pt-BR"
+  | "id-ID"
+  | "ms-MY"
+  | "th-TH"
+  | "vi-VN"
+  | "fr-FR"
+  | "de-DE"
+  | "nl-NL"
+  | "it-IT"
+  | "pl-PL"
+  | "cs-CZ"
+  | "sv-SE"
+  | "tr-TR";
 
 /**
  * Payment methods that can be offered on the hosted checkout page.
