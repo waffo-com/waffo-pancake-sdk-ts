@@ -509,7 +509,7 @@ handler that only uses those needs no change.
 | `refundReason`    | `string` | Refund reason                             |
 | `refundCreatedAt` | `string` | Refund creation timestamp (ISO 8601)      |
 
-**Chargeback fields** (`data.chargeback`, present for `chargeback.filed`, `chargeback.updated`). The rest of `data` describes the disputed payment and its order, with the same fields as payment events. Money fields are display strings; `status` and `lifeCycle` are passed through from the payment channel as an open set. Each field is `null` when the channel did not report it.
+**Chargeback fields** (`data.chargeback`, present for `chargeback.filed`, `chargeback.updated`). The rest of `data` describes the disputed payment and its order with the common order and payment fields (`orderId`, `buyerEmail`, `currency`, `amount`, `paymentId`, ...). The payment-event-only amount fields `chargedAmount` and `listPrice` are not included; use `chargeback.disputedAmount` for the disputed amount. Money fields are display strings; `status` and `lifeCycle` are passed through from the payment channel as an open set. Each field is `null` when the channel did not report it.
 
 | Field             | Type             | Description                                                               |
 | ----------------- | ---------------- | ------------------------------------------------------------------------- |
