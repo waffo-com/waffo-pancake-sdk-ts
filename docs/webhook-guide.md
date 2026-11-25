@@ -509,24 +509,116 @@ handler that only uses those needs no change.
 | `refundReason`    | `string` | Refund reason                             |
 | `refundCreatedAt` | `string` | Refund creation timestamp (ISO 8601)      |
 
+**Chargeback fields** (`data.chargeback`, present for `chargeback.filed`, `chargeback.updated`). The rest of `data` describes the disputed payment and its order, with the same fields as payment events. Money fields are display strings; `status` and `lifeCycle` are passed through from the payment channel as an open set. Each field is `null` when the channel did not report it.
+
+| Field             | Type             | Description                                                               |
+| ----------------- | ---------------- | ------------------------------------------------------------------------- |
+| `chargebackId`    | `string \| null` | Chargeback ID (`CHB_xxx`)                                                 |
+| `pspChargebackId` | `string \| null` | Chargeback ID assigned by the payment channel                             |
+| `lifeCycle`       | `string \| null` | Chargeback cycle (e.g., `"FIRST_CYCLE"`, `"SECOND_CYCLE"`)                |
+| `status`          | `string \| null` | Current status as reported by the payment channel                         |
+| `previousStatus`  | `string \| null` | Status before the change; the key is only present on `chargeback.updated` |
+| `disputedAmount`  | `string \| null` | Disputed amount (display string)                                          |
+| `currency`        | `string \| null` | Currency of `disputedAmount`                                              |
+| `chargebackFee`   | `string \| null` | Chargeback fee (display string), in `feeCurrency`                         |
+| `feeCurrency`     | `string \| null` | Currency of `chargebackFee`                                               |
+| `deadline`        | `string \| null` | Deadline to respond (ISO 8601)                                            |
+
+### Store Events
+
+`store.domain_changed` and `store.domain_unbound` describe the store itself: no order, payment or amount fields.
+
+`store.domain_changed` — `WebhookStoreDomainChangedData`:
+
+| Field         | Type             | Description                                                                  |
+| ------------- | ---------------- | ---------------------------------------------------------------------------- |
+| `storeId`     | `string`         | Store ID (`STO_xxx`)                                                         |
+| `storeName`   | `string`         | Store name                                                                   |
+| `oldDomain`   | `string \| null` | Verified domain before the change; `null` when the store had no domain bound |
+| `newDomain`   | `string \| null` | Domain the store switched to                                                 |
+| `effectiveAt` | `string \| null` | When the new domain took effect (ISO 8601)                                   |
+
+`store.domain_unbound` — `WebhookStoreDomainUnboundData`:
+
+| Field       | Type             | Description                                         |
+| ----------- | ---------------- | --------------------------------------------------- |
+| `storeId`   | `string`         | Store ID (`STO_xxx`)                                |
+| `domain`    | `string \| null` | Domain that was unbound                             |
+| `unboundAt` | `string \| null` | When the domain was unbound (ISO 8601)              |
+| `method`    | `string \| null` | `"merchant"` (the store owner) or `"admin"` (Waffo) |
+
+### Checkout Session Events
+
+`checkout.completed` and `checkout.expired` — `WebhookCheckoutSessionData`. The envelope's `id` and `eventId` are the session ID (`cs_...`). Amounts, customer, product and metadata are not repeated: they arrive on the order's own `order.completed` / `subscription.activated` event, matched by `orderId`.
+
+| Field       | Type                       | Description                                                                                           |
+| ----------- | -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `sessionId` | `string`                   | Checkout session ID, the same value `checkout.createSession()` returns                                |
+| `status`    | `"completed" \| "expired"` | Final state of the session                                                                            |
+| `orderId`   | `string \| null`           | Order created by the session (`ORD_xxx`); `null` when no order was created before the session expired |
+
+### Dispute Events
+
+`dispute.created`, `dispute.updated` and `dispute.message_received` — `WebhookDisputeEventData` (`{ dispute: WebhookDispute }`). Complaints come from the customer portal (`source: "portal"`) or from a payment channel such as WeChat Pay (`source: "wechat"`). The envelope's `id` is the complaint ID (`DSP_xxx`).
+
+| Field            | Type                    | Description                                                                                                                                  |
+| ---------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `disputeId`      | `string`                | Complaint ID (`DSP_xxx`)                                                                                                                     |
+| `source`         | `string`                | `"portal"` or `"wechat"`                                                                                                                     |
+| `status`         | `string`                | Status when the event occurred: `"open"`, `"in_progress"`, `"waiting_buyer"`, `"pending_refund"`, `"resolved"` or `"closed"`                 |
+| `previousStatus` | `string`                | Status before the change; only on `dispute.updated`                                                                                          |
+| `escalated`      | `boolean`               | Whether the payment channel has escalated the complaint                                                                                      |
+| `category`       | `string \| null`        | Category chosen in the customer portal; `null` for payment channel complaints                                                                |
+| `reason`         | `string \| null`        | Reason reported by the payment channel; `null` for portal complaints                                                                         |
+| `description`    | `string`                | Complaint text written by the customer (at most 2000 characters)                                                                             |
+| `respondBy`      | `string \| null`        | Deadline for the merchant to respond (ISO 8601)                                                                                              |
+| `paymentId`      | `string`                | Payment the complaint is about (`PAY_xxx`)                                                                                                   |
+| `orderId`        | `string \| null`        | Order of that payment (`ORD_xxx`)                                                                                                            |
+| `buyerEmail`     | `string \| null`        | Customer email                                                                                                                               |
+| `amount`         | `string \| null`        | Payment amount (display string)                                                                                                              |
+| `currency`       | `string \| null`        | Currency of `amount`                                                                                                                         |
+| `pspDisputeId`   | `string \| null`        | Complaint ID assigned by the payment channel; `null` for portal complaints                                                                   |
+| `message`        | `WebhookDisputeMessage` | Only on `dispute.message_received`: `messageId` (`DMSG_xxx`), `authorType` (`"buyer"` / `"channel"`), `body`, `attachmentCount`, `createdAt` |
+
+Each `dispute.message_received` delivery carries one message; several new messages arrive as one delivery each.
+
 ## Event Types
 
-| Enum Value                        | String                               | Trigger                                                            |
-| --------------------------------- | ------------------------------------ | ------------------------------------------------------------------ |
-| `OrderCompleted`                  | `order.completed`                    | One-time order first payment succeeded                             |
-| `SubscriptionActivated`           | `subscription.activated`             | New subscription activated                                         |
-| `SubscriptionPaymentSucceeded`    | `subscription.payment_succeeded`     | Subscription payment succeeded (pure payment event)                |
-| `SubscriptionRenewed`             | `subscription.renewed`               | Current billing period rolled forward (renewal)                    |
-| `SubscriptionRecovered`           | `subscription.recovered`             | Past-due subscription recovered by a successful retry              |
-| `SubscriptionPlanChanged`         | `subscription.plan_changed`          | Plan change took effect (upgrade/downgrade)                        |
-| `SubscriptionPlanChangeScheduled` | `subscription.plan_change_scheduled` | Plan change confirmed, effective next billing period               |
-| `SubscriptionPlanChangeFailed`    | `subscription.plan_change_failed`    | Plan change did not complete, current plan stays in effect         |
-| `SubscriptionCanceling`           | `subscription.canceling`             | Customer initiated cancellation (expires at end of billing period) |
-| `SubscriptionUncanceled`          | `subscription.uncanceled`            | Customer withdrew cancellation request                             |
-| `SubscriptionCanceled`            | `subscription.canceled`              | Subscription fully terminated                                      |
-| `SubscriptionPastDue`             | `subscription.past_due`              | Renewal payment failed (past due)                                  |
-| `RefundSucceeded`                 | `refund.succeeded`                   | Refund completed successfully                                      |
-| `RefundFailed`                    | `refund.failed`                      | Refund failed                                                      |
+| Enum Value                        | String                               | Trigger                                                                     |
+| --------------------------------- | ------------------------------------ | --------------------------------------------------------------------------- |
+| `OrderCompleted`                  | `order.completed`                    | One-time order first payment succeeded                                      |
+| `SubscriptionActivated`           | `subscription.activated`             | New subscription activated                                                  |
+| `SubscriptionPaymentSucceeded`    | `subscription.payment_succeeded`     | Subscription payment succeeded (pure payment event)                         |
+| `SubscriptionRenewed`             | `subscription.renewed`               | Current billing period rolled forward (renewal)                             |
+| `SubscriptionRecovered`           | `subscription.recovered`             | Past-due subscription recovered by a successful retry                       |
+| `SubscriptionPlanChanged`         | `subscription.plan_changed`          | Plan change took effect (upgrade/downgrade)                                 |
+| `SubscriptionPlanChangeScheduled` | `subscription.plan_change_scheduled` | Plan change confirmed, effective next billing period                        |
+| `SubscriptionPlanChangeFailed`    | `subscription.plan_change_failed`    | Plan change did not complete, current plan stays in effect                  |
+| `SubscriptionCanceling`           | `subscription.canceling`             | Customer initiated cancellation (expires at end of billing period)          |
+| `SubscriptionUncanceled`          | `subscription.uncanceled`            | Customer withdrew cancellation request                                      |
+| `SubscriptionCanceled`            | `subscription.canceled`              | Subscription fully terminated                                               |
+| `SubscriptionPastDue`             | `subscription.past_due`              | Renewal payment failed (past due)                                           |
+| `RefundSucceeded`                 | `refund.succeeded`                   | Refund completed successfully                                               |
+| `RefundFailed`                    | `refund.failed`                      | Refund failed                                                               |
+| `ChargebackFiled`                 | `chargeback.filed`                   | New chargeback case filed against a payment (including a second-cycle case) |
+| `ChargebackUpdated`               | `chargeback.updated`                 | Chargeback status changed                                                   |
+| `StoreDomainChanged`              | `store.domain_changed`               | Store's verified domain replaced after review                               |
+| `CheckoutCompleted`               | `checkout.completed`                 | Checkout session completed (one-time order paid or subscription activated)  |
+| `CheckoutExpired`                 | `checkout.expired`                   | Checkout session expired without a successful payment                       |
+| `StoreDomainUnbound`              | `store.domain_unbound`               | Store's domain unbound                                                      |
+| `DisputeCreated`                  | `dispute.created`                    | Customer complaint became visible to the merchant                           |
+| `DisputeUpdated`                  | `dispute.updated`                    | Complaint status changed                                                    |
+| `DisputeMessageReceived`          | `dispute.message_received`           | Complaint received a new message from the customer or the payment channel   |
+
+Type argument for `verifyWebhook<T>()` / `client.webhooks.verify<T>()` per event:
+
+| Events                                                           | `data` type                     |
+| ---------------------------------------------------------------- | ------------------------------- |
+| `order.*`, `subscription.*`, `refund.*`, `chargeback.*`          | `WebhookEventData`              |
+| `store.domain_changed`                                           | `WebhookStoreDomainChangedData` |
+| `store.domain_unbound`                                           | `WebhookStoreDomainUnboundData` |
+| `checkout.completed`, `checkout.expired`                         | `WebhookCheckoutSessionData`    |
+| `dispute.created`, `dispute.updated`, `dispute.message_received` | `WebhookDisputeEventData`       |
 
 ## Key Rotation & Migration
 
