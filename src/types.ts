@@ -1206,9 +1206,8 @@ export interface BillingDetail {
  * on the checkout page. Language×currency mismatches are rejected by the payment provider.
  *
  * Revised 2026-11: Traditional Chinese is the single `zh-Hant` tag (TW / HK / MO), and
- * `fr-FR`, `de-DE`, `nl-NL`, `it-IT`, `cs-CZ`, `sv-SE` were added. The former regional
- * tags (`zh-Hant-TW`, `zh-Hant-HK`, `zh-Hans-HK`, `en-KE`, `en-NG`, `en-HK`, `es-PE`,
- * `es-CO`, `es-CL`) and `ru-RU` are no longer accepted.
+ * `fr-FR`, `de-DE`, `nl-NL`, `it-IT`, `cs-CZ`, `sv-SE` were added. The former tags are
+ * still accepted as {@link LegacyCashierLanguage} and mapped server-side.
  */
 export type CashierLanguage =
   | "en"
@@ -1230,6 +1229,28 @@ export type CashierLanguage =
   | "cs-CZ"
   | "sv-SE"
   | "tr-TR";
+
+/**
+ * Cashier language tags from before the November 2026 revision.
+ *
+ * Still accepted by `language` for backward compatibility and mapped by the server
+ * before the checkout page is created: `zh-Hant-TW` / `zh-Hant-HK` → `zh-Hant`,
+ * `zh-Hans-HK` → `zh-Hans`, `en-KE` / `en-NG` / `en-HK` → `en`, `es-PE` / `es-CO` /
+ * `es-CL` → `es-MX`, `ru-RU` → `en` (the Russian payment page was retired).
+ *
+ * @deprecated Pass the {@link CashierLanguage} value instead.
+ */
+export type LegacyCashierLanguage =
+  | "zh-Hant-TW"
+  | "zh-Hant-HK"
+  | "zh-Hans-HK"
+  | "en-KE"
+  | "en-NG"
+  | "en-HK"
+  | "es-PE"
+  | "es-CO"
+  | "es-CL"
+  | "ru-RU";
 
 /**
  * Payment methods that can be offered on the hosted checkout page.
@@ -1289,7 +1310,7 @@ export interface CreateCheckoutSessionParams {
    * Default language of the hosted checkout page ({@link CashierLanguage}, IETF BCP 47).
    * The customer can switch language on the checkout page. Omit to let the provider infer.
    */
-  language?: CashierLanguage;
+  language?: CashierLanguage | LegacyCashierLanguage;
   /**
    * Whitelist — offer only these payment methods ({@link PaymentMethod}).
    * Every value must be supported by the product type × currency pair, otherwise the request is rejected.
@@ -1428,7 +1449,7 @@ export interface CreatePlanChangeSessionParams {
    * Default language of the confirmation page ({@link CashierLanguage}, IETF BCP 47).
    * The customer can switch language on the page.
    */
-  language?: CashierLanguage;
+  language?: CashierLanguage | LegacyCashierLanguage;
   /**
    * Whitelist — offer only these payment methods ({@link PaymentMethod}).
    * Mutually exclusive with {@link CreatePlanChangeSessionParams.excludePaymentMethods}.
@@ -1680,7 +1701,7 @@ export interface CustomerPlanChangeParams {
   /** Dark mode override (true=dark, false=light, omit=use store default) */
   darkMode?: boolean;
   /** Default language of the confirmation page ({@link CashierLanguage}, IETF BCP 47) */
-  language?: CashierLanguage;
+  language?: CashierLanguage | LegacyCashierLanguage;
 }
 
 /**
