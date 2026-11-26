@@ -890,6 +890,7 @@ const subResult = await client.checkout.authenticated.create({
 | `sessionId`      | `string` | Session ID                              |
 | `checkoutUrl`    | `string` | Checkout URL with `#token=...` appended |
 | `expiresAt`      | `string` | Session expiration time                 |
+| `checkoutVersion` | `"v1" \| "v2"` (optional) | `"v2"` one-page checkout (can be closed with `expireSession`), `"v1"` legacy; absent = `"v1"` |
 | `token`          | `string` | Issued JWT token                        |
 | `tokenExpiresAt` | `string` | Token expiration time                   |
 
@@ -939,6 +940,7 @@ const snapshotResult = await client.checkout.anonymous.create({
 | `sessionId`   | `string` | Session ID               |
 | `checkoutUrl` | `string` | Hosted checkout page URL |
 | `expiresAt`   | `string` | Session expiration time  |
+| `checkoutVersion` | `"v1" \| "v2"` (optional) | `"v2"` one-page checkout (can be closed with `expireSession`), `"v1"` legacy; absent = `"v1"` |
 
 ### `client.checkout.createPlanChangeSession(params)`
 
@@ -1075,6 +1077,46 @@ await client.checkout.createSession({ productId: "PROD_xxx", currency: "USD", pr
 | `sessionId`   | `string` | Session ID               |
 | `checkoutUrl` | `string` | Hosted checkout page URL |
 | `expiresAt`   | `string` | Session expiration time  |
+| `checkoutVersion` | `"v1" \| "v2"` (optional) | `"v2"` one-page checkout (can be closed with `expireSession`), `"v1"` legacy; absent = `"v1"` |
+
+### `client.checkout.expireSession(params, options?)`
+
+Close a one-page checkout session (`checkoutVersion` `v2`) the customer has not paid. Calls `POST /v1/actions/checkout/session/expire` with your API Key.
+
+Closing moves the session to `expired`, cancels its pending order, releases its discount reservation, and sends you a `checkout.expired` webhook. A customer who already had the payment form open may still be charged; that payment is refunded automatically. A session that has already expired returns the same result.
+
+```typescript
+const { checkoutSessionId, status } = await client.checkout.expireSession({
+  checkoutSessionId: "cs_3f2b9c1e-7a4d-4e8b-9c21-5d6f0a1b2c3d",
+});
+// status: "expired"
+```
+
+**Parameters `ExpireCheckoutSessionParams`**:
+
+| Field               | Type     | Required | Description                                                                                      |
+| ------------------- | -------- | -------- | ------------------------------------------------------------------------------------------------ |
+| `checkoutSessionId` | `string` | Yes      | `cs_` + lowercase UUID — the `sessionId` returned when the one-page checkout session was created |
+
+**Returns `ExpireCheckoutSessionResult`**:
+
+| Field               | Type        | Description                                   |
+| ------------------- | ----------- | --------------------------------------------- |
+| `checkoutSessionId` | `string`    | Session ID                                    |
+| `status`            | `"expired"` | Always `"expired"`, also when already expired |
+
+A missing or empty `checkoutSessionId` throws `WaffoPancakeError` (400, `layer: "sdk"`) before any request is sent. Platform refusals throw `WaffoPancakeError` with the reason code in `errors[0].message` and an explanation in `errors[0].aiHint`:
+
+| Status | `errors[0].message`   | Meaning                                                                                              |
+| ------ | --------------------- | ---------------------------------------------------------------------------------------------------- |
+| 400    | `INVALID_REQUEST`     | `checkoutSessionId` is not a checkout session ID                                                     |
+| 404    | `SESSION_NOT_FOUND`   | Not in your stores in this environment, or a legacy checkout session                                 |
+| 409    | `SESSION_COMPLETED`   | The customer already paid; do not open a new checkout for the same purchase                          |
+| 409    | `SESSION_FALLEN_BACK` | The customer moved to the legacy checkout; that link expires by itself                               |
+| 409    | `SYNC_IN_PROGRESS`    | The checkout page is updating the session; retry with backoff                                        |
+| 409    | `VERSION_CONFLICT`    | The session kept changing; nothing was changed, retry                                                |
+| 409    | `PAYMENT_IN_FLIGHT`   | A submitted payment has not finished; wait for `checkout.completed` or retry later                   |
+| 502    | `PSP_INQUIRY_FAILED`  | Could not confirm with the payment system; nothing was changed, retry and do not treat it as expired |
 
 ---
 
@@ -1231,6 +1273,8 @@ All exported type interfaces:
 | `AnonymousCheckoutParams`               | Anonymous checkout request (no identity)                                                                                                                    |
 | `CreateCheckoutSessionParams`           | Low-level checkout session request                                                                                                                          |
 | `CheckoutSessionResult`                 | Checkout session response (URL + expiry)                                                                                                                    |
+| `ExpireCheckoutSessionParams`           | Close checkout session request                                                                                                                              |
+| `ExpireCheckoutSessionResult`           | Close checkout session response                                                                                                                             |
 | **GraphQL**                             |                                                                                                                                                             |
 | `GraphQLParams`                         | GraphQL query parameters                                                                                                                                    |
 | `GraphQLResponse<T>`                    | GraphQL response envelope                                                                                                                                   |
@@ -1238,4 +1282,5 @@ All exported type interfaces:
 | `WebhookEvent<T>`                       | Webhook event payload                                                                                                                                       |
 | `WebhookEventData`                      | Common event data fields                                                                                                                                    |
 | `WebhookAmountBreakdown`                | Amount breakdown of the object an event refers to (`listPrice` / `originalPayment` / `planPrice`)                                                           |
+| `CheckoutSessionWebhookEventData`       | Checkout session event data (`checkout.completed` / `checkout.expired`)                                                                                     |
 | `VerifyWebhookOptions`                  | Verification options (environment, tolerance)                                                                                                               |

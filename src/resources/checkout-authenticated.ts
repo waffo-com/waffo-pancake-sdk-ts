@@ -78,6 +78,7 @@ export class CheckoutAuthenticatedResource {
       expiresAt: session.expiresAt,
       token: token.token,
       tokenExpiresAt: token.expiresAt,
+      ...(session.checkoutVersion ? { checkoutVersion: session.checkoutVersion } : {}),
       ...(warnings.length > 0 ? { warnings } : {}),
     };
   }
@@ -138,6 +139,7 @@ export class CheckoutAuthenticatedResource {
       expiresAt: session.expiresAt,
       token: token.token,
       tokenExpiresAt: token.expiresAt,
+      ...(session.checkoutVersion ? { checkoutVersion: session.checkoutVersion } : {}),
       ...(warnings.length > 0 ? { warnings } : {}),
     };
   }

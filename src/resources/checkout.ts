@@ -1,13 +1,15 @@
 import { CheckoutAnonymousResource } from "./checkout-anonymous.js";
 import { CheckoutAuthenticatedResource } from "./checkout-authenticated.js";
 import { unwrapAction } from "./internal.js";
-import { validateCheckoutCommon, validatePlanChangeCommon } from "../validation.js";
+import { validateCheckoutCommon, validatePlanChangeCommon, validateRequired } from "../validation.js";
 
 import type { HttpClient } from "../http-client.js";
 import type {
   CheckoutSessionResult,
   CreateCheckoutSessionParams,
   CreatePlanChangeSessionParams,
+  ExpireCheckoutSessionParams,
+  ExpireCheckoutSessionResult,
   Notice,
   RequestOptions,
 } from "../types.js";
@@ -21,6 +23,7 @@ import type {
  *
  * `createPlanChangeSession()` issues a link for changing an existing subscription's
  * plan, and the low-level `createSession()` is still available for full control.
+ * `expireSession()` closes a one-page checkout session the customer has not paid.
  *
  * Every method on this resource validates its input before sending, as resource
  * methods do throughout the SDK.
@@ -144,5 +147,46 @@ export class CheckoutResource {
   ): Promise<CheckoutSessionResult & { warnings?: Notice[] }> {
     validatePlanChangeCommon(params);
     return unwrapAction(await this.http.post<CheckoutSessionResult>("/v1/actions/checkout/create-session", params, options));
+  }
+
+  /**
+   * Close (expire) a one-page checkout session the customer has not paid.
+   *
+   * Only one-page checkout sessions (`checkoutVersion` `v2`) can be closed; pass the
+   * `sessionId` returned when the session was created as `checkoutSessionId`.
+   *
+   * Closing moves the session to `expired`, cancels its pending order, releases its
+   * discount reservation, and sends you a `checkout.expired` webhook. A customer who
+   * already had the payment form open may still be charged; that payment is refunded
+   * automatically.
+   *
+   * Behavior:
+   * - A session that has already expired returns the same result
+   * - The platform rejects with `WaffoPancakeError`; `errors[0].message` is the code to
+   *   branch on and `errors[0].aiHint` explains it:
+   *   - 404 `SESSION_NOT_FOUND` — not in your stores in this environment, or a legacy session
+   *   - 409 `SESSION_COMPLETED` — the customer already paid
+   *   - 409 `SESSION_FALLEN_BACK` — the customer moved to the legacy checkout
+   *   - 409 `SYNC_IN_PROGRESS` — retry with backoff
+   *   - 409 `VERSION_CONFLICT` — retry
+   *   - 409 `PAYMENT_IN_FLIGHT` — a submitted payment has not finished; wait for
+   *     `checkout.completed` or retry later
+   *   - 502 `PSP_INQUIRY_FAILED` — nothing was changed; retry, and do not treat the session as expired
+   *
+   * @param params - Session to close
+   * @returns Session ID and status (`"expired"`)
+   *
+   * @example
+   * const { status } = await client.checkout.expireSession({
+   *   checkoutSessionId: "cs_3f2b9c1e-7a4d-4e8b-9c21-5d6f0a1b2c3d",
+   * });
+   * // status: "expired"
+   */
+  async expireSession(
+    params: ExpireCheckoutSessionParams,
+    options?: RequestOptions,
+  ): Promise<ExpireCheckoutSessionResult & { warnings?: Notice[] }> {
+    validateRequired("checkoutSessionId", params.checkoutSessionId);
+    return unwrapAction(await this.http.post<ExpireCheckoutSessionResult>("/v1/actions/checkout/session/expire", params, options));
   }
 }

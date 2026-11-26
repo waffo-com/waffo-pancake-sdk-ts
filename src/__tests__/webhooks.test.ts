@@ -4,9 +4,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { WaffoPancake } from "../client.js";
 import { WaffoPancakeError } from "../errors.js";
+import { WebhookEventType } from "../types.js";
 import { verifyWebhook } from "../webhooks.js";
 
-import type { WebhookAmountBreakdown, WebhookEventData } from "../types.js";
+import type { CheckoutSessionWebhookEventData, WebhookAmountBreakdown, WebhookEventData } from "../types.js";
 
 describe("verifyWebhook", () => {
   describe("header validation", () => {
@@ -250,6 +251,49 @@ describe("verifyWebhook", () => {
         if (brand === undefined) expect(result.data).not.toHaveProperty("paymentMethodBrand");
       },
     );
+
+    it("should parse a checkout.completed event with the session and its order", () => {
+      const data: CheckoutSessionWebhookEventData = {
+        sessionId: "cs_3f2b9c1e-7a4d-4e8b-9c21-5d6f0a1b2c3d",
+        status: "completed",
+        orderId: "ORD_5xK9mRtYvWnPqLsJ3hBfDe",
+      };
+      const event = {
+        id: data.sessionId,
+        timestamp: "2026-11-15T08:00:00.000Z",
+        eventType: "checkout.completed",
+        eventId: data.sessionId,
+        storeId: "STO_2aUyqjCzEIiEcYMKj7TZtw",
+        storeName: "My Store",
+        mode: "prod",
+        data,
+      };
+
+      const payload = JSON.stringify(event);
+      const ts = Date.now().toString();
+      const header = `t=${ts},v1=${signPayload(ts, payload)}`;
+
+      const result = verifyWebhook<CheckoutSessionWebhookEventData>(payload, header, { publicKey: publicKey as string });
+      expect(result.eventType).toBe(WebhookEventType.CheckoutCompleted);
+      expect(result.id).toBe(result.data.sessionId);
+      expect(result.eventId).toBe(result.data.sessionId);
+      expect(result.data).toEqual(data);
+    });
+
+    it("should parse a checkout.expired event without an order", () => {
+      const data: CheckoutSessionWebhookEventData = {
+        sessionId: "cs_9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d",
+        status: "expired",
+        orderId: null,
+      };
+      const payload = JSON.stringify({ id: data.sessionId, eventType: "checkout.expired", eventId: data.sessionId, mode: "test", data });
+      const ts = Date.now().toString();
+      const header = `t=${ts},v1=${signPayload(ts, payload)}`;
+
+      const result = verifyWebhook<CheckoutSessionWebhookEventData>(payload, header, { publicKey: publicKey as string });
+      expect(result.eventType).toBe(WebhookEventType.CheckoutExpired);
+      expect(result.data).toEqual({ sessionId: data.sessionId, status: "expired", orderId: null });
+    });
 
     it("should reject invalid signature with custom publicKey", () => {
       const payload = JSON.stringify({ id: "evt_bad" });

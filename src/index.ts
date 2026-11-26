@@ -150,12 +150,15 @@ export type {
   CheckoutSessionResult,
   CreateCheckoutSessionParams,
   CreatePlanChangeSessionParams,
+  ExpireCheckoutSessionParams,
+  ExpireCheckoutSessionResult,
 
   // GraphQL
   GraphQLParams,
   GraphQLResponse,
 
   // Webhook
+  CheckoutSessionWebhookEventData,
   VerifyWebhookOptions,
   WebhookAmountBreakdown,
   WebhookEvent,
