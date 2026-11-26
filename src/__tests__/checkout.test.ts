@@ -139,6 +139,27 @@ describe("checkout.anonymous", () => {
     expect(body.billingDetail).toEqual({ country: "US", isBusiness: false, postcode: "10001" });
   });
 
+  it("should forward lockBuyerEmail, including false", async () => {
+    const mockFetch = createMockFetch(() => ({
+      data: {
+        sessionId: "cs_lock",
+        checkoutUrl: "https://pancake.waffo.ai/store/s/checkout/cs_lock",
+        expiresAt: "2026-04-02T10:00:00.000Z",
+      },
+    }));
+    const client = createClient(mockFetch);
+
+    await client.checkout.anonymous.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      buyerEmail: "prefill@example.com",
+      lockBuyerEmail: false,
+    });
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(body.lockBuyerEmail).toBe(false);
+  });
+
   it("should forward orderMerchantExternalId in the request body", async () => {
     const mockFetch = createMockFetch(() => ({
       data: {
@@ -278,6 +299,35 @@ describe("checkout.authenticated", () => {
     const sessionCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("create-session"));
     const sessionBody = JSON.parse(sessionCall![1].body as string);
     expect(sessionBody.buyerEmail).toBe("explicit@test.com");
+  });
+
+  it("should forward lockBuyerEmail to the session, not the token call", async () => {
+    const mockFetch = createMockFetch((url) => {
+      if (url.includes("issue-session-token")) {
+        return { data: { token: "jwt", expiresAt: "2026-04-02T09:05:00.000Z" } };
+      }
+      return {
+        data: {
+          sessionId: "cs_lock",
+          checkoutUrl: "https://pancake.waffo.ai/checkout/cs_lock",
+          expiresAt: "2026-04-02T10:00:00.000Z",
+        },
+      };
+    });
+    const client = createClient(mockFetch);
+
+    await client.checkout.authenticated.create({
+      productId: "PROD_0000000000000000000000",
+      currency: "USD",
+      buyerIdentity: "user-id-123",
+      buyerEmail: "explicit@test.com",
+      lockBuyerEmail: false,
+    });
+
+    const sessionCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("create-session"));
+    const tokenCall = mockFetch.mock.calls.find(([url]: [string]) => url.includes("issue-session-token"));
+    expect(JSON.parse(sessionCall![1].body as string).lockBuyerEmail).toBe(false);
+    expect(JSON.parse(tokenCall![1].body as string).lockBuyerEmail).toBeUndefined();
   });
 
   it("should pass billingDetail to the session", async () => {

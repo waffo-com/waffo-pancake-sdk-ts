@@ -1267,6 +1267,11 @@ export interface CreateCheckoutSessionParams {
   /** Pre-filled customer email */
   buyerEmail?: string;
   /**
+   * Whether the customer can no longer change the pre-filled `buyerEmail` on the checkout page.
+   * Defaults to `true` when `buyerEmail` is set; pass `false` to keep it editable.
+   */
+  lockBuyerEmail?: boolean;
+  /**
    * Pre-filled billing details. Passing this couples the cashier to the order's billing country: it then offers
    * only that country's payment market and the customer cannot switch. The country that applies is the one on the
    * finished order, not the one you sent; a country outside the payment markets we cover applies no restriction.
