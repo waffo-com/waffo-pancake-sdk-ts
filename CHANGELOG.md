@@ -6,9 +6,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), version
 
 ## [Unreleased]
 
-GraphQL errors expose `extensions.code`, and webhook payment data exposes the payment timestamp. Types only; no runtime change.
+## [0.29.0] - 2026-11-25
+
+`WebhookEventType` now lists every event the platform delivers: chargeback, store domain, checkout session and customer complaint (dispute) events, each with a typed `data` shape. GraphQL errors expose `extensions.code`, and webhook payment data exposes the payment timestamp. Signature verification is unchanged.
 
 ### Added
+
+- **`WebhookEventType`** — nine values: `ChargebackFiled` (`chargeback.filed`), `ChargebackUpdated` (`chargeback.updated`), `StoreDomainChanged` (`store.domain_changed`), `CheckoutCompleted` (`checkout.completed`), `CheckoutExpired` (`checkout.expired`), `StoreDomainUnbound` (`store.domain_unbound`), `DisputeCreated` (`dispute.created`), `DisputeUpdated` (`dispute.updated`), `DisputeMessageReceived` (`dispute.message_received`). The enum now matches the 23 event types a webhook can subscribe to, so `client.webhooks.add` / `update` accept them in `events`.
+- **`WebhookDisputeEventData`** (`{ dispute: WebhookDispute }`) — `data` of the three `dispute.*` events. `WebhookDispute` carries `disputeId` (`DSP_xxx`), `source` (`"portal"` / `"wechat"`), `status`, `previousStatus` (only on `dispute.updated`), `escalated`, `category`, `reason`, `description`, `respondBy`, `paymentId`, `orderId`, `buyerEmail`, `amount` (display string), `currency`, `pspDisputeId`, and on `dispute.message_received` a `message` (`WebhookDisputeMessage`: `messageId` (`DMSG_xxx`), `authorType` (`"buyer"` / `"channel"`), `body`, `attachmentCount`, `createdAt`).
+- **`WebhookEventData.chargeback`** (`WebhookChargeback`) — the chargeback case on `chargeback.*` events: `chargebackId`, `pspChargebackId`, `lifeCycle`, `status`, `previousStatus` (only on `chargeback.updated`), `disputedAmount`, `currency`, `chargebackFee`, `feeCurrency`, `deadline`.
+- **`WebhookStoreDomainChangedData`** / **`WebhookStoreDomainUnboundData`** — `data` of `store.domain_changed` (`storeId`, `storeName`, `oldDomain`, `newDomain`, `effectiveAt`) and `store.domain_unbound` (`storeId`, `domain`, `unboundAt`, `method`).
+- **`WebhookCheckoutSessionData`** — `data` of `checkout.completed` / `checkout.expired`: `sessionId`, `status` (`"completed"` / `"expired"`), `orderId` (`null` when no order was created).
 
 - **`WebhookEventData.paymentTimestamp`** — optional time Waffo recorded the associated payment (ISO 8601 UTC with milliseconds), present whenever `paymentDate` is; `paymentDate` is its UTC date part. On `refund.*` events it refers to the refunded payment.
 - **`GraphQLResponse.errors[].extensions.code`** — GraphQL errors carry `extensions.code`; `"BAD_USER_INPUT"` marks an argument rejected before the query runs (malformed ID, date, pagination or filter operator). The endpoint answers 400 when every error is `BAD_USER_INPUT` and no root field returned data, and 400 for a request body that is not valid JSON. Types only; `client.graphql.query` already parses non-2xx bodies.

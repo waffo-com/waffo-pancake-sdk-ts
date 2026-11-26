@@ -4,9 +4,48 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { WaffoPancake } from "../client.js";
 import { WaffoPancakeError } from "../errors.js";
+import { WebhookEventType } from "../types.js";
 import { verifyWebhook } from "../webhooks.js";
 
-import type { WebhookAmountBreakdown, WebhookEventData } from "../types.js";
+import type {
+  WebhookAmountBreakdown,
+  WebhookCheckoutSessionData,
+  WebhookDispute,
+  WebhookDisputeEventData,
+  WebhookEventData,
+  WebhookStoreDomainChangedData,
+  WebhookStoreDomainUnboundData,
+} from "../types.js";
+
+describe("WebhookEventType", () => {
+  it("should list exactly the event types the platform delivers, in order", () => {
+    expect(Object.values(WebhookEventType)).toEqual([
+      "order.completed",
+      "subscription.activated",
+      "subscription.payment_succeeded",
+      "subscription.renewed",
+      "subscription.recovered",
+      "subscription.plan_changed",
+      "subscription.plan_change_scheduled",
+      "subscription.plan_change_failed",
+      "subscription.canceling",
+      "subscription.uncanceled",
+      "subscription.canceled",
+      "subscription.past_due",
+      "refund.succeeded",
+      "refund.failed",
+      "chargeback.filed",
+      "chargeback.updated",
+      "store.domain_changed",
+      "checkout.completed",
+      "checkout.expired",
+      "store.domain_unbound",
+      "dispute.created",
+      "dispute.updated",
+      "dispute.message_received",
+    ]);
+  });
+});
 
 describe("verifyWebhook", () => {
   describe("header validation", () => {
@@ -250,6 +289,164 @@ describe("verifyWebhook", () => {
         if (brand === undefined) expect(result.data).not.toHaveProperty("paymentMethodBrand");
       },
     );
+
+    describe("dispute events", () => {
+      const baseDispute: WebhookDispute = {
+        disputeId: "DSP_7n2KqLs",
+        source: "wechat",
+        status: "open",
+        escalated: false,
+        category: null,
+        reason: "Item not received",
+        description: "I paid but never got access.",
+        respondBy: "2026-11-28T08:00:00.000Z",
+        paymentId: "PAY_5xK9mRt",
+        orderId: "ORD_3hBfDe",
+        buyerEmail: "buyer@example.com",
+        amount: "19.99",
+        currency: "CNY",
+        pspDisputeId: "200000020251125000001",
+      };
+
+      const cases: Array<[WebhookEventType, WebhookDispute]> = [
+        [WebhookEventType.DisputeCreated, baseDispute],
+        [WebhookEventType.DisputeUpdated, { ...baseDispute, status: "in_progress", previousStatus: "open", escalated: true }],
+        [
+          WebhookEventType.DisputeMessageReceived,
+          {
+            ...baseDispute,
+            message: {
+              messageId: "DMSG_9pQr",
+              authorType: "buyer",
+              body: "Any update?",
+              attachmentCount: 2,
+              createdAt: "2026-11-25T09:00:00.000Z",
+            },
+          },
+        ],
+      ];
+
+      it.each(cases)("should verify %s and expose a typed data.dispute", (eventType, dispute) => {
+        const payload = JSON.stringify({
+          id: dispute.disputeId,
+          timestamp: "2026-11-25T09:00:01.000Z",
+          eventType,
+          eventId: `${dispute.disputeId}-2026-11-25T09:00:00.000Z`,
+          storeId: "STO_2aUyqj",
+          storeName: "My Store",
+          mode: "test",
+          data: { dispute },
+        });
+        const ts = Date.now().toString();
+        const header = `t=${ts},v1=${signPayload(ts, payload)}`;
+
+        const event = verifyWebhook<WebhookDisputeEventData>(payload, header, { publicKey: publicKey as string });
+        expect(event.eventType).toBe(eventType);
+        expect(event.id).toBe("DSP_7n2KqLs");
+        expect(event.data.dispute).toEqual(dispute);
+        expect(event.data.dispute.escalated).toBe(eventType === WebhookEventType.DisputeUpdated);
+        if (eventType === WebhookEventType.DisputeUpdated) {
+          expect(event.data.dispute.previousStatus).toBe("open");
+        } else {
+          expect(event.data.dispute).not.toHaveProperty("previousStatus");
+        }
+        if (eventType === WebhookEventType.DisputeMessageReceived) {
+          expect(event.data.dispute.message?.messageId).toBe("DMSG_9pQr");
+          expect(event.data.dispute.message?.attachmentCount).toBe(2);
+        } else {
+          expect(event.data.dispute).not.toHaveProperty("message");
+        }
+      });
+
+      it("should verify the same dispute payload through client.webhooks.verify", () => {
+        const payload = JSON.stringify({ id: "DSP_x", eventType: "dispute.created", mode: "prod", data: { dispute: baseDispute } });
+        const ts = Date.now().toString();
+        const header = `t=${ts},v1=${signPayload(ts, payload)}`;
+        const client = new WaffoPancake({
+          merchantId: "MER_0000000000000000000000",
+          privateKey: privateKey as string,
+          webhookPublicKey: publicKey as string,
+        });
+
+        const event = client.webhooks.verify<WebhookDisputeEventData>(payload, header);
+        expect(event.data.dispute.source).toBe("wechat");
+        expect(event.data.dispute.pspDisputeId).toBe("200000020251125000001");
+      });
+    });
+
+    it("should expose data.chargeback on chargeback.updated", () => {
+      const payload = JSON.stringify({
+        id: "CHB_1",
+        eventType: "chargeback.updated",
+        data: {
+          orderId: "ORD_1",
+          buyerEmail: "a@b.com",
+          currency: "USD",
+          amount: "10.00",
+          taxAmount: "0.00",
+          productName: "Pro",
+          chargeback: {
+            chargebackId: "CHB_1",
+            pspChargebackId: "psp-1",
+            lifeCycle: "FIRST_CYCLE",
+            status: "WON",
+            previousStatus: "UNDER_REVIEW",
+            disputedAmount: "10.00",
+            currency: "USD",
+            chargebackFee: "15.00",
+            feeCurrency: "USD",
+            deadline: "2026-12-01T00:00:00.000Z",
+          },
+        },
+      });
+      const ts = Date.now().toString();
+      const header = `t=${ts},v1=${signPayload(ts, payload)}`;
+
+      const event = verifyWebhook<WebhookEventData>(payload, header, { publicKey: publicKey as string });
+      expect(event.data.chargeback?.previousStatus).toBe("UNDER_REVIEW");
+      expect(event.data.chargeback?.disputedAmount).toBe("10.00");
+    });
+
+    it("should expose the store-level and checkout session data shapes", () => {
+      const sign = (body: unknown): [string, string] => {
+        const payload = JSON.stringify(body);
+        const ts = Date.now().toString();
+        return [payload, `t=${ts},v1=${signPayload(ts, payload)}`];
+      };
+      const opts = { publicKey: publicKey as string };
+
+      const changed = verifyWebhook<WebhookStoreDomainChangedData>(
+        ...sign({
+          eventType: "store.domain_changed",
+          data: {
+            storeId: "STO_1",
+            storeName: "S",
+            oldDomain: null,
+            newDomain: "shop.example.com",
+            effectiveAt: "2026-11-25T00:00:00.000Z",
+          },
+        }),
+        opts,
+      );
+      expect(changed.data.oldDomain).toBeNull();
+      expect(changed.data.newDomain).toBe("shop.example.com");
+
+      const unbound = verifyWebhook<WebhookStoreDomainUnboundData>(
+        ...sign({
+          eventType: "store.domain_unbound",
+          data: { storeId: "STO_1", domain: "shop.example.com", unboundAt: "2026-11-25T00:00:00.000Z", method: "admin" },
+        }),
+        opts,
+      );
+      expect(unbound.data.method).toBe("admin");
+
+      const expired = verifyWebhook<WebhookCheckoutSessionData>(
+        ...sign({ id: "cs_1", eventType: "checkout.expired", data: { sessionId: "cs_1", status: "expired", orderId: null } }),
+        opts,
+      );
+      expect(expired.data.status).toBe("expired");
+      expect(expired.data.orderId).toBeNull();
+    });
 
     it("should reject invalid signature with custom publicKey", () => {
       const payload = JSON.stringify({ id: "evt_bad" });

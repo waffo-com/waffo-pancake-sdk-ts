@@ -15,7 +15,8 @@ import type { VerifyWebhookOptions, WebhookEvent, WebhookPublicKeys } from "./ty
  * clock skew on the receiving server.
  *
  * A window this wide does not make replay attacks cheap on its own: every event
- * carries a stable `id`, and handlers are expected to be idempotent on it.
+ * carries a stable `eventType` + `eventId` pair, and handlers are expected to be
+ * idempotent on it (`id` is the entity ID and repeats across events).
  */
 const DEFAULT_TOLERANCE_MS = 45 * 60 * 1000;
 

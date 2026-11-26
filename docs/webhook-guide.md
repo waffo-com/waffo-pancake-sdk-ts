@@ -23,8 +23,8 @@ The timestamp is stamped once, before the first delivery attempt. Retries reuse
 the original header, so the final retry of a schedule arrives with a timestamp as
 old as the schedule itself — the past-facing window has to cover it. Treat the
 window as a bound on how long a captured request stays replayable, not as your
-primary defense: every event carries a stable `id`, and your handler should be
-idempotent on it.
+primary defense: every event carries a stable `eventType` + `eventId` pair, and
+your handler should be idempotent on it (see [Best Practices](#best-practices)).
 
 ## Usage
 
@@ -41,7 +41,7 @@ app.post("/webhooks", express.raw({ type: "application/json" }), (req, res) => {
     // Respond immediately, process asynchronously
     res.status(200).send("OK");
 
-    // Use event.id for idempotent deduplication
+    // Deduplicate on (event.eventType, event.eventId) — not on event.id
     switch (event.eventType) {
       case WebhookEventType.OrderCompleted:
         console.log(`Order ${event.data.orderId} completed`);
@@ -365,16 +365,16 @@ Both APIs share the same underlying verification logic and resolution chain.
 
 ### `WebhookEvent<T>`
 
-| Field       | Type     | Description                                                         |
-| ----------- | -------- | ------------------------------------------------------------------- |
-| `id`        | `string` | Delivery record unique ID (UUID) — use for idempotent deduplication |
-| `timestamp` | `string` | Event timestamp (ISO 8601 UTC)                                      |
-| `eventType` | `string` | Event type (e.g. `"order.completed"`)                               |
-| `eventId`   | `string` | Business event ID (e.g. payment ID)                                 |
-| `storeId`   | `string` | Store ID the event belongs to                                       |
-| `storeName` | `string` | Store name                                                          |
-| `mode`      | `string` | Environment (`"test"` or `"prod"`)                                  |
-| `data`      | `T`      | Event data (defaults to `WebhookEventData`)                         |
+| Field       | Type     | Description                                                                                                                                                    |
+| ----------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | `string` | ID of the entity the event is about (e.g. payment ID; the complaint ID `DSP_…` for `dispute.*`) — shared by several events, not a deduplication key on its own |
+| `timestamp` | `string` | Event timestamp (ISO 8601 UTC)                                                                                                                                 |
+| `eventType` | `string` | Event type (e.g. `"order.completed"`)                                                                                                                          |
+| `eventId`   | `string` | Event key — unique per occurrence within an `eventType`; deduplicate on `eventType` + `eventId`                                                                |
+| `storeId`   | `string` | Store ID the event belongs to                                                                                                                                  |
+| `storeName` | `string` | Store name                                                                                                                                                     |
+| `mode`      | `string` | Environment (`"test"` or `"prod"`)                                                                                                                             |
+| `data`      | `T`      | Event data (defaults to `WebhookEventData`)                                                                                                                    |
 
 ### `WebhookEventData`
 
@@ -509,24 +509,116 @@ handler that only uses those needs no change.
 | `refundReason`    | `string` | Refund reason                             |
 | `refundCreatedAt` | `string` | Refund creation timestamp (ISO 8601)      |
 
+**Chargeback fields** (`data.chargeback`, present for `chargeback.filed`, `chargeback.updated`). The rest of `data` describes the disputed payment and its order with the common order and payment fields (`orderId`, `buyerEmail`, `currency`, `amount`, `paymentId`, ...). The payment-event-only amount fields `chargedAmount` and `listPrice` are not included; use `chargeback.disputedAmount` for the disputed amount. Money fields are display strings; `status` and `lifeCycle` are passed through from the payment channel as an open set. Each field is `null` when the channel did not report it.
+
+| Field             | Type             | Description                                                               |
+| ----------------- | ---------------- | ------------------------------------------------------------------------- |
+| `chargebackId`    | `string \| null` | Chargeback ID (`CHB_xxx`)                                                 |
+| `pspChargebackId` | `string \| null` | Chargeback ID assigned by the payment channel                             |
+| `lifeCycle`       | `string \| null` | Chargeback cycle (e.g., `"FIRST_CYCLE"`, `"SECOND_CYCLE"`)                |
+| `status`          | `string \| null` | Current status as reported by the payment channel                         |
+| `previousStatus`  | `string \| null` | Status before the change; the key is only present on `chargeback.updated` |
+| `disputedAmount`  | `string \| null` | Disputed amount (display string)                                          |
+| `currency`        | `string \| null` | Currency of `disputedAmount`                                              |
+| `chargebackFee`   | `string \| null` | Chargeback fee (display string), in `feeCurrency`                         |
+| `feeCurrency`     | `string \| null` | Currency of `chargebackFee`                                               |
+| `deadline`        | `string \| null` | Deadline to respond (ISO 8601)                                            |
+
+### Store Events
+
+`store.domain_changed` and `store.domain_unbound` describe the store itself: no order, payment or amount fields.
+
+`store.domain_changed` — `WebhookStoreDomainChangedData`:
+
+| Field         | Type             | Description                                                                  |
+| ------------- | ---------------- | ---------------------------------------------------------------------------- |
+| `storeId`     | `string`         | Store ID (`STO_xxx`)                                                         |
+| `storeName`   | `string`         | Store name                                                                   |
+| `oldDomain`   | `string \| null` | Verified domain before the change; `null` when the store had no domain bound |
+| `newDomain`   | `string \| null` | Domain the store switched to                                                 |
+| `effectiveAt` | `string \| null` | When the new domain took effect (ISO 8601)                                   |
+
+`store.domain_unbound` — `WebhookStoreDomainUnboundData`:
+
+| Field       | Type             | Description                                         |
+| ----------- | ---------------- | --------------------------------------------------- |
+| `storeId`   | `string`         | Store ID (`STO_xxx`)                                |
+| `domain`    | `string \| null` | Domain that was unbound                             |
+| `unboundAt` | `string \| null` | When the domain was unbound (ISO 8601)              |
+| `method`    | `string \| null` | `"merchant"` (the store owner) or `"admin"` (Waffo) |
+
+### Checkout Session Events
+
+`checkout.completed` and `checkout.expired` — `WebhookCheckoutSessionData`. The envelope's `id` and `eventId` are the session ID (`cs_...`). Amounts, customer, product and metadata are not repeated: they arrive on the order's own `order.completed` / `subscription.activated` event, matched by `orderId`.
+
+| Field       | Type                       | Description                                                                                           |
+| ----------- | -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `sessionId` | `string`                   | Checkout session ID, the same value `checkout.createSession()` returns                                |
+| `status`    | `"completed" \| "expired"` | Final state of the session                                                                            |
+| `orderId`   | `string \| null`           | Order created by the session (`ORD_xxx`); `null` when no order was created before the session expired |
+
+### Dispute Events
+
+`dispute.created`, `dispute.updated` and `dispute.message_received` — `WebhookDisputeEventData` (`{ dispute: WebhookDispute }`). Complaints come from the customer portal (`source: "portal"`) or from a payment channel such as WeChat Pay (`source: "wechat"`). The envelope's `id` is the complaint ID (`DSP_xxx`).
+
+| Field            | Type                    | Description                                                                                                                                  |
+| ---------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `disputeId`      | `string`                | Complaint ID (`DSP_xxx`)                                                                                                                     |
+| `source`         | `string`                | `"portal"` or `"wechat"`                                                                                                                     |
+| `status`         | `string`                | Status when the event occurred: `"open"`, `"in_progress"`, `"waiting_buyer"`, `"pending_refund"`, `"resolved"` or `"closed"`                 |
+| `previousStatus` | `string`                | Status before the change; only on `dispute.updated`                                                                                          |
+| `escalated`      | `boolean`               | Whether the payment channel has escalated the complaint                                                                                      |
+| `category`       | `string \| null`        | Category chosen in the customer portal; `null` for payment channel complaints                                                                |
+| `reason`         | `string \| null`        | Reason reported by the payment channel; `null` for portal complaints                                                                         |
+| `description`    | `string`                | Complaint text written by the customer (at most 2000 characters)                                                                             |
+| `respondBy`      | `string \| null`        | Deadline for the merchant to respond (ISO 8601)                                                                                              |
+| `paymentId`      | `string`                | Payment the complaint is about (`PAY_xxx`)                                                                                                   |
+| `orderId`        | `string \| null`        | Order of that payment (`ORD_xxx`)                                                                                                            |
+| `buyerEmail`     | `string \| null`        | Customer email                                                                                                                               |
+| `amount`         | `string \| null`        | Payment amount (display string)                                                                                                              |
+| `currency`       | `string \| null`        | Currency of `amount`                                                                                                                         |
+| `pspDisputeId`   | `string \| null`        | Complaint ID assigned by the payment channel; `null` for portal complaints                                                                   |
+| `message`        | `WebhookDisputeMessage` | Only on `dispute.message_received`: `messageId` (`DMSG_xxx`), `authorType` (`"buyer"` / `"channel"`), `body`, `attachmentCount`, `createdAt` |
+
+Each `dispute.message_received` delivery carries one message; several new messages arrive as one delivery each.
+
 ## Event Types
 
-| Enum Value                        | String                               | Trigger                                                            |
-| --------------------------------- | ------------------------------------ | ------------------------------------------------------------------ |
-| `OrderCompleted`                  | `order.completed`                    | One-time order first payment succeeded                             |
-| `SubscriptionActivated`           | `subscription.activated`             | New subscription activated                                         |
-| `SubscriptionPaymentSucceeded`    | `subscription.payment_succeeded`     | Subscription payment succeeded (pure payment event)                |
-| `SubscriptionRenewed`             | `subscription.renewed`               | Current billing period rolled forward (renewal)                    |
-| `SubscriptionRecovered`           | `subscription.recovered`             | Past-due subscription recovered by a successful retry              |
-| `SubscriptionPlanChanged`         | `subscription.plan_changed`          | Plan change took effect (upgrade/downgrade)                        |
-| `SubscriptionPlanChangeScheduled` | `subscription.plan_change_scheduled` | Plan change confirmed, effective next billing period               |
-| `SubscriptionPlanChangeFailed`    | `subscription.plan_change_failed`    | Plan change did not complete, current plan stays in effect         |
-| `SubscriptionCanceling`           | `subscription.canceling`             | Customer initiated cancellation (expires at end of billing period) |
-| `SubscriptionUncanceled`          | `subscription.uncanceled`            | Customer withdrew cancellation request                             |
-| `SubscriptionCanceled`            | `subscription.canceled`              | Subscription fully terminated                                      |
-| `SubscriptionPastDue`             | `subscription.past_due`              | Renewal payment failed (past due)                                  |
-| `RefundSucceeded`                 | `refund.succeeded`                   | Refund completed successfully                                      |
-| `RefundFailed`                    | `refund.failed`                      | Refund failed                                                      |
+| Enum Value                        | String                               | Trigger                                                                     |
+| --------------------------------- | ------------------------------------ | --------------------------------------------------------------------------- |
+| `OrderCompleted`                  | `order.completed`                    | One-time order first payment succeeded                                      |
+| `SubscriptionActivated`           | `subscription.activated`             | New subscription activated                                                  |
+| `SubscriptionPaymentSucceeded`    | `subscription.payment_succeeded`     | Subscription payment succeeded (pure payment event)                         |
+| `SubscriptionRenewed`             | `subscription.renewed`               | Current billing period rolled forward (renewal)                             |
+| `SubscriptionRecovered`           | `subscription.recovered`             | Past-due subscription recovered by a successful retry                       |
+| `SubscriptionPlanChanged`         | `subscription.plan_changed`          | Plan change took effect (upgrade/downgrade)                                 |
+| `SubscriptionPlanChangeScheduled` | `subscription.plan_change_scheduled` | Plan change confirmed, effective next billing period                        |
+| `SubscriptionPlanChangeFailed`    | `subscription.plan_change_failed`    | Plan change did not complete, current plan stays in effect                  |
+| `SubscriptionCanceling`           | `subscription.canceling`             | Customer initiated cancellation (expires at end of billing period)          |
+| `SubscriptionUncanceled`          | `subscription.uncanceled`            | Customer withdrew cancellation request                                      |
+| `SubscriptionCanceled`            | `subscription.canceled`              | Subscription fully terminated                                               |
+| `SubscriptionPastDue`             | `subscription.past_due`              | Renewal payment failed (past due)                                           |
+| `RefundSucceeded`                 | `refund.succeeded`                   | Refund completed successfully                                               |
+| `RefundFailed`                    | `refund.failed`                      | Refund failed                                                               |
+| `ChargebackFiled`                 | `chargeback.filed`                   | New chargeback case filed against a payment (including a second-cycle case) |
+| `ChargebackUpdated`               | `chargeback.updated`                 | Chargeback status changed                                                   |
+| `StoreDomainChanged`              | `store.domain_changed`               | Store's verified domain replaced after review                               |
+| `CheckoutCompleted`               | `checkout.completed`                 | Checkout session completed (one-time order paid or subscription activated)  |
+| `CheckoutExpired`                 | `checkout.expired`                   | Checkout session expired without a successful payment                       |
+| `StoreDomainUnbound`              | `store.domain_unbound`               | Store's domain unbound                                                      |
+| `DisputeCreated`                  | `dispute.created`                    | Customer complaint became visible to the merchant                           |
+| `DisputeUpdated`                  | `dispute.updated`                    | Complaint status changed                                                    |
+| `DisputeMessageReceived`          | `dispute.message_received`           | Complaint received a new message from the customer or the payment channel   |
+
+Type argument for `verifyWebhook<T>()` / `client.webhooks.verify<T>()` per event:
+
+| Events                                                           | `data` type                     |
+| ---------------------------------------------------------------- | ------------------------------- |
+| `order.*`, `subscription.*`, `refund.*`, `chargeback.*`          | `WebhookEventData`              |
+| `store.domain_changed`                                           | `WebhookStoreDomainChangedData` |
+| `store.domain_unbound`                                           | `WebhookStoreDomainUnboundData` |
+| `checkout.completed`, `checkout.expired`                         | `WebhookCheckoutSessionData`    |
+| `dispute.created`, `dispute.updated`, `dispute.message_received` | `WebhookDisputeEventData`       |
 
 ## Key Rotation & Migration
 
@@ -578,12 +670,12 @@ When delivery fails (non-2xx response or timeout), the system automatically retr
 
 You can view each delivery's status, HTTP status code, and response content in the dashboard's Webhook logs.
 
-> **Note**: The same business event (same `eventType` + `eventId`) creates only one delivery record and won't be duplicated. However, the same delivery may arrive multiple times due to retries — always deduplicate using `event.id`.
+> **Note**: The same business event (same `eventType` + `eventId`) creates only one delivery record and won't be duplicated. However, the same delivery may arrive multiple times due to retries — always deduplicate on `eventType` + `eventId`. Don't deduplicate on `event.id` alone: it identifies the entity the event is about, not the occurrence — every `dispute.*` event for one complaint carries the same `event.id` (the complaint ID `DSP_…`), so keying on it would drop that complaint's later status changes and messages.
 
 ## Best Practices
 
 1. **Respond quickly** — Return 200 immediately and process the event asynchronously. Waffo retries on timeout.
-2. **Deduplicate** — Use `event.id` (delivery record UUID) as an idempotency key to handle redeliveries.
+2. **Deduplicate** — Use `eventType` + `eventId` as the idempotency key to handle redeliveries. `event.id` is the entity ID and repeats across events (all `dispute.*` events of one complaint share it), so it is not a deduplication key on its own.
 3. **Verify all events** — Always call `verifyWebhook()` before processing. Never trust unverified payloads.
 4. **Use raw body** — The signature is computed over the raw request body. Parsing JSON first will break verification.
 5. **Specify environment when known** — If your endpoint only receives test or prod events, pass `{ environment: "test" }` or `{ environment: "prod" }` to skip unnecessary key attempts and get clearer error messages.

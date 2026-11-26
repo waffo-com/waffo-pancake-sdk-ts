@@ -158,9 +158,16 @@ export type {
   // Webhook
   VerifyWebhookOptions,
   WebhookAmountBreakdown,
+  WebhookChargeback,
+  WebhookCheckoutSessionData,
+  WebhookDispute,
+  WebhookDisputeEventData,
+  WebhookDisputeMessage,
   WebhookEvent,
   WebhookEventData,
   WebhookPublicKeys,
+  WebhookStoreDomainChangedData,
+  WebhookStoreDomainUnboundData,
 
   // Content Safety
   ScanPromptParams,

@@ -1797,6 +1797,24 @@ export enum WebhookEventType {
   RefundSucceeded = "refund.succeeded",
   /** Refund failed */
   RefundFailed = "refund.failed",
+  /** New chargeback case filed against a payment, including a second-cycle case; `data.chargeback` describes it */
+  ChargebackFiled = "chargeback.filed",
+  /** Chargeback status changed; `data.chargeback.previousStatus` is the status before the change */
+  ChargebackUpdated = "chargeback.updated",
+  /** Store's verified domain replaced after review; `data` is {@link WebhookStoreDomainChangedData} */
+  StoreDomainChanged = "store.domain_changed",
+  /** Checkout session completed (one-time order paid or subscription activated); `data` is {@link WebhookCheckoutSessionData} */
+  CheckoutCompleted = "checkout.completed",
+  /** Checkout session expired without a successful payment; `data` is {@link WebhookCheckoutSessionData} */
+  CheckoutExpired = "checkout.expired",
+  /** Store's domain unbound by the store owner or by Waffo; `data` is {@link WebhookStoreDomainUnboundData} */
+  StoreDomainUnbound = "store.domain_unbound",
+  /** Customer complaint became visible to the merchant; `data` is {@link WebhookDisputeEventData} */
+  DisputeCreated = "dispute.created",
+  /** Complaint status changed; `data.dispute.previousStatus` is the status before the change */
+  DisputeUpdated = "dispute.updated",
+  /** Complaint received a new message from the customer or the payment channel; `data.dispute.message` is that message */
+  DisputeMessageReceived = "dispute.message_received",
 }
 
 /**
@@ -2024,6 +2042,174 @@ export interface WebhookEventData {
   refundReason?: string;
   /** Refund creation timestamp (ISO 8601) */
   refundCreatedAt?: string;
+
+  // Chargeback (present for chargeback events: chargeback.filed, chargeback.updated)
+  /** Chargeback case this event describes; only on `chargeback.*` events */
+  chargeback?: WebhookChargeback;
+}
+
+/**
+ * Chargeback case carried in `data.chargeback` on `chargeback.filed` and `chargeback.updated`.
+ *
+ * The rest of `data` describes the disputed payment and its order with the common order and payment
+ * fields (`orderId`, `buyerEmail`, `currency`, `amount`, `paymentId`, ...). The payment-event-only
+ * amount fields `chargedAmount` and `listPrice` are not included; use `chargeback.disputedAmount` for
+ * the disputed amount. Money fields are display strings; `status` and `lifeCycle` are passed through
+ * from the payment channel as an open set. Every field is `null` when the channel did not report it.
+ */
+export interface WebhookChargeback {
+  /** Chargeback ID (`CHB_xxx`) */
+  chargebackId: string | null;
+  /** Chargeback ID assigned by the payment channel */
+  pspChargebackId: string | null;
+  /** Chargeback cycle (e.g., "FIRST_CYCLE", "SECOND_CYCLE") */
+  lifeCycle: string | null;
+  /** Current chargeback status as reported by the payment channel */
+  status: string | null;
+  /** Status before the change; the key is only present on `chargeback.updated` */
+  previousStatus?: string | null;
+  /** Disputed amount as display string (e.g., "29.00") */
+  disputedAmount: string | null;
+  /** Currency of `disputedAmount` */
+  currency: string | null;
+  /** Chargeback fee as display string, in `feeCurrency` */
+  chargebackFee: string | null;
+  /** Currency of `chargebackFee` */
+  feeCurrency: string | null;
+  /** Deadline to respond to the chargeback (ISO 8601) */
+  deadline: string | null;
+}
+
+/**
+ * `data` of `store.domain_changed`: the store's verified domain was replaced after review.
+ *
+ * Store-level event — no order, payment or amount fields.
+ */
+export interface WebhookStoreDomainChangedData {
+  /** Store ID (`STO_xxx`) */
+  storeId: string;
+  /** Store name */
+  storeName: string;
+  /** Verified domain before the change; `null` when the store had no domain bound */
+  oldDomain: string | null;
+  /** Domain the store switched to */
+  newDomain: string | null;
+  /** When the new domain took effect (ISO 8601) */
+  effectiveAt: string | null;
+}
+
+/**
+ * `data` of `store.domain_unbound`: the store's domain was unbound.
+ *
+ * Store-level event — no order, payment or amount fields.
+ */
+export interface WebhookStoreDomainUnboundData {
+  /** Store ID (`STO_xxx`) */
+  storeId: string;
+  /** Domain that was unbound */
+  domain: string | null;
+  /** When the domain was unbound (ISO 8601) */
+  unboundAt: string | null;
+  /** Who unbound it: `"merchant"` (the store owner) or `"admin"` (Waffo) */
+  method: "merchant" | "admin" | (string & {}) | null;
+}
+
+/**
+ * `data` of `checkout.completed` and `checkout.expired`: a checkout session reached a final state.
+ *
+ * The envelope's `id` and `eventId` are the session ID as well. Amounts, customer, product and
+ * metadata are not repeated here — they arrive on the order's own `order.completed` /
+ * `subscription.activated` event, matched by `orderId`.
+ */
+export interface WebhookCheckoutSessionData {
+  /** Checkout session ID (`cs_...`), the same value `checkout.createSession()` returns as `sessionId` */
+  sessionId: string;
+  /** Final state of the session */
+  status: "completed" | "expired";
+  /** Order created by the session (`ORD_xxx`); `null` when no order was created before the session expired */
+  orderId: string | null;
+}
+
+/**
+ * New message carried in `data.dispute.message` on `dispute.message_received`.
+ */
+export interface WebhookDisputeMessage {
+  /** Message ID (`DMSG_xxx`) */
+  messageId: string;
+  /**
+   * Who wrote it: `"buyer"` — the customer, in the customer portal; `"channel"` — arrived through the payment
+   * channel: the payer's complaint or message relayed by the channel (e.g. WeChat Pay), or a notice from the channel itself
+   */
+  authorType: "buyer" | "channel" | (string & {});
+  /** Message text */
+  body: string;
+  /** Number of attachments on the message */
+  attachmentCount: number;
+  /** When the message was created (ISO 8601) */
+  createdAt: string;
+}
+
+/**
+ * Customer complaint carried in `data.dispute` on the `dispute.*` events.
+ *
+ * Complaints come from the customer portal (`source: "portal"`) or from a payment channel such
+ * as WeChat Pay (`source: "wechat"`). IDs are Short IDs (`DSP_` / `PAY_` / `ORD_`). The
+ * envelope's `id` is the complaint ID.
+ */
+export interface WebhookDispute {
+  /** Complaint ID (`DSP_xxx`) */
+  disputeId: string;
+  /** Where the complaint came from: `"portal"` (customer portal) or `"wechat"` (WeChat Pay) */
+  source: "portal" | "wechat" | (string & {});
+  /**
+   * Complaint status when the event occurred: `"open"`, `"in_progress"`, `"waiting_buyer"`,
+   * `"pending_refund"`, `"resolved"` or `"closed"`.
+   */
+  status: string;
+  /** Status before the change; only on `dispute.updated` */
+  previousStatus?: string;
+  /** Whether the payment channel has escalated the complaint */
+  escalated: boolean;
+  /** Complaint category chosen in the customer portal; `null` for payment channel complaints */
+  category: string | null;
+  /** Reason reported by the payment channel; `null` for portal complaints */
+  reason: string | null;
+  /** Complaint text written by the customer (at most 2000 characters) */
+  description: string;
+  /** Deadline for the merchant to respond (ISO 8601) */
+  respondBy: string | null;
+  /** Payment the complaint is about (`PAY_xxx`) */
+  paymentId: string;
+  /** Order of that payment (`ORD_xxx`) */
+  orderId: string | null;
+  /**
+   * Customer email. Portal complaints use the contact email the customer entered, falling back to
+   * the order email; WeChat Pay complaints are `null` (the channel does not share the payer's email,
+   * and the order email is not assumed to be the payer's).
+   */
+  buyerEmail: string | null;
+  /** Payment amount as display string (e.g., "19.99") */
+  amount: string | null;
+  /** Currency of `amount` */
+  currency: string | null;
+  /** Complaint ID assigned by the payment channel; `null` for portal complaints */
+  pspDisputeId: string | null;
+  /** New message; only on `dispute.message_received` */
+  message?: WebhookDisputeMessage;
+}
+
+/**
+ * `data` of `dispute.created`, `dispute.updated` and `dispute.message_received`.
+ *
+ * @example
+ * const event = client.webhooks.verify<WebhookDisputeEventData>(rawBody, signatureHeader);
+ * if (event.eventType === WebhookEventType.DisputeCreated) {
+ *   console.log(event.data.dispute.disputeId, event.data.dispute.respondBy);
+ * }
+ */
+export interface WebhookDisputeEventData {
+  /** The complaint */
+  dispute: WebhookDispute;
 }
 
 /**
@@ -2044,13 +2230,16 @@ export interface WebhookEventData {
  * }
  */
 export interface WebhookEvent<T = WebhookEventData> {
-  /** Delivery record unique ID (UUID), usable for idempotent deduplication */
+  /**
+   * ID of the entity the event is about (e.g. payment ID; the complaint ID `DSP_xxx` for `dispute.*`).
+   * Several events share it, so deduplicate on `eventType` + `eventId`, not on `id` alone.
+   */
   id: string;
   /** Event timestamp (ISO 8601 UTC) */
   timestamp: string;
   /** Event type */
   eventType: `${WebhookEventType}` | (string & {});
-  /** Business event ID (e.g. payment ID, order ID) */
+  /** Event key, unique per occurrence within an `eventType` (e.g. payment ID; `DSP_xxx-<timestamp>` for `dispute.updated`) */
   eventId: string;
   /** Store ID the event belongs to */
   storeId: string;
